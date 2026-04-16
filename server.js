@@ -18,13 +18,13 @@ app.get('/all-reservations', async (req, res) => {
     const seen = new Set();
     const now = new Date();
     const slices = [];
-    for (let offset = -12; offset <= 18; offset += 2) {
+    for (let offset = -36; offset <= 24; offset += 1) {
       const start = new Date(now.getFullYear(), now.getMonth() + offset, 1);
-      const end   = new Date(now.getFullYear(), now.getMonth() + offset + 2, 0);
+      const end   = new Date(now.getFullYear(), now.getMonth() + offset + 1, 0);
       slices.push({ from: start.toISOString().slice(0, 10), to: end.toISOString().slice(0, 10) });
     }
-    for (let i = 0; i < slices.length; i += 4) {
-      const batch = slices.slice(i, i + 4);
+    for (let i = 0; i < slices.length; i += 6) {
+      const batch = slices.slice(i, i + 6);
       const results = await Promise.all(
         batch.map(s => hostexGet(`/reservations?check_in_date_min=${s.from}&check_in_date_max=${s.to}&page_size=50`).catch(() => null))
       );
@@ -37,7 +37,7 @@ app.get('/all-reservations', async (req, res) => {
       }
     }
     allReservations.sort((a, b) => (b.check_in_date || '').localeCompare(a.check_in_date || ''));
-    console.log(`✓ ${allReservations.length} réservations chargées`);
+    console.log(`✓ all-reservations : ${allReservations.length} réservations chargées`);
     res.json({ error_code: 200, error_msg: 'Done.', data: { reservations: allReservations, total: allReservations.length } });
   } catch (err) {
     res.status(500).json({ error: 'Error', message: err.message });
