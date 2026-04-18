@@ -652,8 +652,17 @@ function _calModal(ds,res){
         +(arr?" <span style=\"font-size:10px;background:#E1F5EE;color:#0F6E56;padding:1px 7px;border-radius:10px\">Arriv\u00e9e</span>":"")
         +(dep?" <span style=\"font-size:10px;background:#FCEBEB;color:#A32D2D;padding:1px 7px;border-radius:10px\">D\u00e9part</span>":"")
         +"</div>"
-        +"<div style=\"font-size:11px;color:#888;margin-top:3px\">"+(prop?prop.name:"")+" \u00b7 "+platLabel(r.platform)+" \u00b7 "+fmt(r.check_in)+"\u2192"+fmt(r.check_out)+" \u00b7 "+r.amount.toLocaleString("fr-FR")+"\u00a0\u20ac</div>"
-        +"<button class=\"btn\" style=\"font-size:10px;margin-top:6px;padding:3px 8px\" onclick=\"closeModal();openResDetail('"+r.id+"')\">D\u00e9tail</button>"
+        +"<div style=\"font-size:11px;color:#888;margin-top:3px\">"+(prop?prop.name:"")+" \u00b7 "+platLabel(r.platform)+"</div>"
+        +"<div style=\"display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:6px;font-size:11px\">"
+        +"<div><span style=\"color:#888\">Arriv\u00e9e</span> "+fmt(r.check_in)+"</div>"
+        +"<div><span style=\"color:#888\">D\u00e9part</span> "+fmt(r.check_out)+"</div>"
+        +"<div><span style=\"color:#888\">Dur\u00e9e</span> "+nights(r.check_in,r.check_out)+" nuits</div>"
+        +"<div><span style=\"color:#888\">Voyageurs</span> "+r.guests+"</div>"
+        +"</div>"
+        +"<div style=\"margin-top:6px;padding:6px 8px;background:#fff;border-radius:6px;font-size:12px\">"
+        +"<span style=\"color:#888\">Net re\u00e7u : </span><span style=\"font-weight:700;color:#1D9E75\">"+(platClass(r.platform)==='booking'?Math.round(r.amount-r.commission):Math.round(r.amount)).toLocaleString('fr-FR')+" \u20ac</span>"
+        +"</div>"
+        +"<button class=\"btn\" style=\"font-size:10px;margin-top:6px;padding:3px 8px\" onclick=\"closeModal();openResDetail('"+r.id+"')\">Voir d\u00e9tail complet</button>"
         +"</div>";
     }).join("")
     +"<div class=\"modal-actions\"><button class=\"btn\" onclick=\"closeModal()\">Fermer</button></div>");
@@ -673,7 +682,7 @@ function renderRates(){
   const dim=new Date(year,month+1,0).getDate();
   const firstDay=(new Date(year,month,1).getDay()+6)%7;
   const MOIS=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
-  const JOURS=['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
+  const JOURS=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
   const total=Math.ceil((firstDay+dim)/7)*7;
 
   // Récupérer les tarifs stockés localement (S.ratesPrices)
