@@ -457,10 +457,10 @@ function renderRes(){
 function renderCal(){
   const year=S.currentMonth.getFullYear(), month=S.currentMonth.getMonth();
   const dim=new Date(year,month+1,0).getDate();
-  const firstDay=new Date(year,month,1).getDay();
+  const firstDay=(new Date(year,month,1).getDay()+6)%7;
   const dPrev=new Date(year,month,0).getDate();
   const total=Math.ceil((firstDay+dim)/7)*7;
-  const JOURS=["Dim","Lun","Mar","Mer","Jeu","Ven","Sam"];
+  const JOURS=["Lun","Mar","Mer","Jeu","Ven","Sam","Dim"];
   const MOIS=["Janvier","F\u00e9vrier","Mars","Avril","Mai","Juin","Juillet","Ao\u00fbt","Septembre","Octobre","Novembre","D\u00e9cembre"];
   const view=S.calView||"single";
 
@@ -671,7 +671,7 @@ function renderRates(){
   const m=S.ratesMonth||new Date();
   const year=m.getFullYear(), month=m.getMonth();
   const dim=new Date(year,month+1,0).getDate();
-  const firstDay=new Date(year,month,1).getDay();
+  const firstDay=(new Date(year,month,1).getDay()+6)%7;
   const MOIS=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
   const JOURS=['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
   const total=Math.ceil((firstDay+dim)/7)*7;
