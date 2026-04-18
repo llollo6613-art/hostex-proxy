@@ -1,0 +1,974 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Illiberis Manager</title>
+<style>
+
+
+
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#1a1a1a;font-size:14px;background:#f5f4f0}
+.app{display:flex;min-height:100vh}
+.sidebar{width:210px;flex-shrink:0;border-right:1px solid #e5e4e0;background:#f0efe9;display:flex;flex-direction:column;position:fixed;height:100vh;left:0;top:0}
+.sidebar-top{padding:16px;border-bottom:1px solid #e5e4e0}
+.logo{font-size:14px;font-weight:600;color:#1a1a1a}
+.logo-sub{font-size:11px;color:#888;margin-top:3px}
+.nav-item{display:flex;align-items:center;gap:9px;padding:9px 16px;cursor:pointer;font-size:13px;color:#666;transition:background 0.1s}
+.nav-item.active,.nav-item:hover{background:#fff;color:#1a1a1a}
+.nav-badge{margin-left:auto;background:#E24B4A;color:white;border-radius:20px;font-size:10px;padding:1px 6px}
+.sidebar-bottom{margin-top:auto;padding:12px 16px;border-top:1px solid #e5e4e0;font-size:11px;color:#888}
+.main{flex:1;margin-left:210px;display:flex;flex-direction:column;min-height:100vh}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;border-bottom:1px solid #e5e4e0;background:#fff;position:sticky;top:0;z-index:10;gap:10px;flex-wrap:wrap}
+.page-title{font-size:15px;font-weight:600}
+.btn{font-size:12px;padding:6px 14px;border-radius:7px;border:1px solid #ddd;background:#fff;color:#1a1a1a;cursor:pointer;transition:background 0.1s}
+.btn:hover{background:#f5f4f0}
+.btn-green{background:#1D9E75;color:white;border-color:#1D9E75}
+.btn-green:hover{background:#0F6E56}
+.btn-red{background:#E24B4A;color:white;border-color:#E24B4A}
+.content{flex:1;padding:20px}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+@media(max-width:800px){.grid4{grid-template-columns:repeat(2,1fr)}}
+.stat{background:#fff;border-radius:10px;padding:12px 16px;border:1px solid #e5e4e0}
+.stat-l{font-size:11px;color:#888;margin-bottom:4px}
+.stat-v{font-size:22px;font-weight:700;color:#1a1a1a;margin-bottom:2px}
+.stat-s{font-size:11px;color:#aaa}
+.section-h{font-size:12px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.5px;margin:16px 0 8px}
+.card{background:#fff;border-radius:10px;border:1px solid #e5e4e0;overflow:hidden}
+.res-row{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid #f5f4f0;gap:8px;flex-wrap:wrap}
+.res-row:last-child{border-bottom:none}
+.res-guest{font-size:13px;font-weight:600}
+.res-meta{font-size:11px;color:#888;margin-top:2px}
+.res-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.badge{font-size:10px;padding:2px 8px;border-radius:20px;font-weight:600}
+.b-airbnb{background:#FFE8EC;color:#C8523E}
+.b-booking{background:#E6EFF8;color:#2E5F9E}
+.b-direct{background:#E0F5F3;color:#3D8B78}
+.b-ok{background:#E1F5EE;color:#0F6E56}
+.tabs{display:flex;gap:2px;padding:8px 12px;border-bottom:1px solid #e5e4e0;overflow-x:auto}
+.tab{font-size:12px;padding:5px 12px;border-radius:6px;cursor:pointer;color:#666;white-space:nowrap}
+.tab.active{background:#f0efe9;color:#1a1a1a;font-weight:600}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:100;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:#fff;border-radius:14px;padding:20px;max-width:480px;width:90%;max-height:85vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,0.15)}
+.modal h3{font-size:15px;font-weight:700;margin-bottom:14px}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:14px;padding-top:10px;border-top:1px solid #f0efe9}
+.conflict-banner{background:#FEF3C7;border:1px solid #F59E0B;border-radius:8px;padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+input,textarea,select{font-size:13px;padding:7px 10px;border:1px solid #ddd;border-radius:7px;width:100%;outline:none;font-family:inherit}
+input:focus,textarea:focus,select:focus{border-color:#1D9E75}
+.form-row{margin-bottom:10px}
+.form-label{font-size:11px;color:#888;margin-bottom:4px}
+.spinner{display:inline-block;width:12px;height:12px;border:2px solid #ddd;border-top-color:#1D9E75;border-radius:50%;animation:spin 0.7s linear infinite;vertical-align:middle;margin-right:6px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.toast{position:fixed;bottom:20px;right:20px;background:#1a1a1a;color:#fff;padding:10px 16px;border-radius:8px;font-size:13px;opacity:0;transition:opacity .3s;z-index:200;pointer-events:none}
+.toast.show{opacity:1}
+.rate-card{background:#fff;border:1px solid #e5e4e0;border-radius:10px;padding:14px;margin-bottom:12px}
+.msg-row{padding:10px 14px;border-bottom:1px solid #f5f4f0;cursor:pointer}
+.msg-row:hover{background:#f9f9f9}
+.msg-row.unread{background:#f0f9ff}
+
+
+
+</style>
+</head>
+<body>
+<div class="app">
+<div class="sidebar">
+  <div class="sidebar-top">
+    <div class="logo">&#127968; Illiberis Manager</div>
+    <div class="logo-sub" id="conn-label">Chargement...</div>
+    <div style="margin-top:6px" id="live-badge"></div>
+    <button class="btn btn-green" style="width:100%;font-size:11px;margin-top:8px" onclick="loadAll()">&#8635; Actualiser</button>
+  </div>
+  <div id="nav" style="padding:8px 0;flex:1"></div>
+  <div class="sidebar-bottom">
+    <div style="margin-bottom:4px">Illiberis Channel Manager</div>
+    <div style="font-size:10px;opacity:.6">v2.0</div>
+  </div>
+</div>
+<div class="main">
+  <div class="topbar">
+    <div class="page-title" id="page-title"></div>
+    <div id="topbar-actions" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+  </div>
+  <div class="content">
+    <div id="main-content"><div style="color:#888;padding:40px;text-align:center">Chargement...</div></div>
+  </div>
+</div>
+</div>
+<div class="modal-overlay" id="modal"><div class="modal" id="modal-body"></div></div>
+<div class="toast" id="toast"></div>
+<script>
+
+
+const PROXY='';
+// Données CSV importées — 93 réservations (historique complet)
+const CSV_DATA=[{"id":"HM38S3ZYCF","g":"Alexandre Bariller","ph":"","pl":"airbnb","pi":"12619011","ci":"2025-07-27","co":"2025-07-28","n":1,"st":"accepted","ss":"stay_completed","a":77.12,"c":2.31,"b":"2025-06-24","src":"airbnb_csv"},{"id":"HMCNJDDNE3","g":"Emeric Deschomets","ph":"","pl":"airbnb","pi":"12619011","ci":"2025-07-26","co":"2025-07-27","n":1,"st":"accepted","ss":"stay_completed","a":96.4,"c":2.89,"b":"2025-06-24","src":"airbnb_csv"},{"id":"HMDJQK3EST","g":"Rémi Tailla","ph":"","pl":"airbnb","pi":"12619011","ci":"2025-07-19","co":"2025-07-26","n":1,"st":"accepted","ss":"stay_completed","a":520.56,"c":15.62,"b":"2025-06-25","src":"airbnb_csv"},{"id":"HMY5MPKHWC","g":"Ines Baz","ph":"","pl":"airbnb","pi":"12619011","ci":"2025-07-18","co":"2025-07-19","n":1,"st":"accepted","ss":"stay_completed","a":96.4,"c":2.89,"b":"2025-07-18","src":"airbnb_csv"},{"id":"HMCPCDNQJ8","g":"Axel","ph":"","pl":"airbnb","pi":"12619011","ci":"2025-07-18","co":"2025-07-19","n":1,"st":"cancelled","ss":"checkin_pending","a":0.0,"c":0.0,"b":"2025-07-02","src":"airbnb_csv"},{"id":"HMF9ECERFM","g":"Hélène Marechal","ph":"","pl":"airbnb","pi":"12619011","ci":"2025-07-16","co":"2025-07-18","n":1,"st":"accepted","ss":"stay_completed","a":154.24,"c":4.63,"b":"2025-06-28","src":"airbnb_csv"},{"id":"HMRXEEWAFZ","g":"Romane Sicello","ph":"","pl":"airbnb","pi":"12619011","ci":"2025-07-14","co":"2025-07-16","n":1,"st":"accepted","ss":"stay_completed","a":154.24,"c":4.63,"b":"2025-06-25","src":"airbnb_csv"},{"id":"HMJER25W2R","g":"Maryne Onillon","ph":"","pl":"airbnb","pi":"12619011","ci":"2025-07-13","co":"2025-07-14","n":1,"st":"accepted","ss":"stay_completed","a":96.4,"c":2.89,"b":"2025-07-10","src":"airbnb_csv"},{"id":"HM2KHMQABT","g":"Prescillia","ph":"","pl":"airbnb","pi":"12619011","ci":"2025-07-12","co":"2025-07-14","n":1,"st":"cancelled","ss":"checkin_pending","a":0.0,"c":0.0,"b":"2025-06-21","src":"airbnb_csv"},{"id":"HMJWF59QHT","g":"Ophelie Petrini Cami","ph":"","pl":"airbnb","pi":"12619011","ci":"2025-07-12","co":"2025-07-13","n":1,"st":"accepted","ss":"stay_completed","a":96.4,"c":2.89,"b":"2025-07-10","src":"airbnb_csv"},{"id":"HMRQC2MHYN","g":"Nicolas Bonnaire","ph":"","pl":"airbnb","pi":"12619011","ci":"2025-07-11","co":"2025-07-12","n":1,"st":"accepted","ss":"stay_completed","a":96.4,"c":2.89,"b":"2025-06-29","src":"airbnb_csv"},{"id":"HMP9EFKE9W","g":"Adam Eladel","ph":"","pl":"airbnb","pi":"12619011","ci":"2025-07-09","co":"2025-07-10","n":1,"st":"accepted","ss":"stay_completed","a":96.4,"c":2.89,"b":"2025-07-07","src":"airbnb_csv"},{"id":"HMYQPQ9ASW","g":"Noemie","ph":"","pl":"airbnb","pi":"12619011","ci":"2025-07-08","co":"2025-07-13","n":1,"st":"cancelled","ss":"checkin_pending","a":0.0,"c":0.0,"b":"2025-06-20","src":"airbnb_csv"},{"id":"HM2PEXJD5J","g":"Jessica Naranassamy","ph":"","pl":"airbnb","pi":"12619011","ci":"2025-07-07","co":"2025-07-09","n":1,"st":"accepted","ss":"stay_completed","a":154.24,"c":4.63,"b":"2025-06-27","src":"airbnb_csv"},{"id":"HM3NN9CRRA","g":"Brice Tomas-Boulet","ph":"","pl":"airbnb","pi":"12619011","ci":"2025-07-04","co":"2025-07-06","n":1,"st":"accepted","ss":"stay_completed","a":192.8,"c":5.78,"b":"2025-06-25","src":"airbnb_csv"},{"id":"HMJBYYJ8RC","g":"Lila Hadir","ph":"","pl":"airbnb","pi":"12619011","ci":"2025-07-03","co":"2025-07-04","n":1,"st":"accepted","ss":"stay_completed","a":77.12,"c":2.31,"b":"2025-06-28","src":"airbnb_csv"},{"id":"HMSBZJWXBS","g":"Mathilde Jouberteau","ph":"","pl":"airbnb","pi":"12619011","ci":"2025-07-01","co":"2025-07-02","n":1,"st":"accepted","ss":"stay_completed","a":77.12,"c":2.31,"b":"2025-06-29","src":"airbnb_csv"},{"id":"HMQB3ZEFPB","g":"Pauline Bacque","ph":"","pl":"airbnb","pi":"12619011","ci":"2025-06-29","co":"2025-07-01","n":1,"st":"accepted","ss":"stay_completed","a":134.96,"c":4.05,"b":"2025-06-26","src":"airbnb_csv"},{"id":"HM5FJFM24R","g":"Aurelie Salvi","ph":"","pl":"airbnb","pi":"12619011","ci":"2025-06-28","co":"2025-06-29","n":1,"st":"accepted","ss":"stay_completed","a":96.4,"c":2.89,"b":"2025-06-21","src":"airbnb_csv"},{"id":"HM392FKCPK","g":"Julian Debue","ph":"","pl":"airbnb","pi":"12619011","ci":"2025-06-23","co":"2025-06-24","n":1,"st":"accepted","ss":"stay_completed","a":19.28,"c":0.58,"b":"2025-06-23","src":"airbnb_csv"},{"id":"HM2QW533SE","g":"Noura","ph":"","pl":"airbnb","pi":"12619011","ci":"2025-06-21","co":"2025-06-22","n":1,"st":"cancelled","ss":"checkin_pending","a":-43.38,"c":-1.3,"b":"2025-06-21","src":"airbnb_csv"},{"id":"HMREZQRH8C","g":"Laura Lagier","ph":"","pl":"airbnb","pi":"12619011","ci":"2025-06-19","co":"2025-06-20","n":1,"st":"accepted","ss":"stay_completed","a":19.28,"c":0.58,"b":"2025-06-19","src":"airbnb_csv"},{"id":"HMHK9JBZDM","g":"Ayoub Nassiri","ph":"","pl":"airbnb","pi":"12619012","ci":"2025-12-12","co":"2025-12-13","n":1,"st":"accepted","ss":"stay_completed","a":106.04,"c":3.18,"b":"2025-12-12","src":"airbnb_csv"},{"id":"HMKCD9R9SP","g":"Dylan Moreaux","ph":"","pl":"airbnb","pi":"12619012","ci":"2025-12-09","co":"2025-12-10","n":1,"st":"accepted","ss":"stay_completed","a":101.22,"c":3.04,"b":"2025-12-09","src":"airbnb_csv"},{"id":"HMA2EQEFBE","g":"Norah Berthier","ph":"","pl":"airbnb","pi":"12619012","ci":"2025-12-08","co":"2025-12-09","n":1,"st":"accepted","ss":"stay_completed","a":101.22,"c":3.04,"b":"2025-12-08","src":"airbnb_csv"},{"id":"HMPNEB49DQ","g":"Eva Blanc","ph":"","pl":"airbnb","pi":"12619011","ci":"2025-12-04","co":"2025-12-05","n":1,"st":"accepted","ss":"stay_completed","a":81.94,"c":2.46,"b":"2025-12-04","src":"airbnb_csv"},{"id":"HMW9F9NRN8","g":"Romain Fournier","ph":"","pl":"airbnb","pi":"12619012","ci":"2025-12-03","co":"2025-12-04","n":1,"st":"accepted","ss":"stay_completed","a":106.04,"c":3.18,"b":"2025-12-01","src":"airbnb_csv"},{"id":"HMP828QJRF","g":"Romain Fournier","ph":"","pl":"airbnb","pi":"12619011","ci":"2025-12-03","co":"2025-12-04","n":1,"st":"accepted","ss":"stay_completed","a":81.94,"c":2.46,"b":"2025-12-01","src":"airbnb_csv"},{"id":"HM8QDRDEMB","g":"Audrey Tissenier","ph":"","pl":"airbnb","pi":"12619012","ci":"2025-12-01","co":"2025-12-03","n":1,"st":"accepted","ss":"stay_completed","a":178.34,"c":5.35,"b":"2025-11-29","src":"airbnb_csv"},{"id":"HMSSDSYK28","g":"Hamza Benhaoui","ph":"","pl":"airbnb","pi":"12619011","ci":"2025-12-01","co":"2025-12-02","n":1,"st":"accepted","ss":"stay_completed","a":81.94,"c":2.46,"b":"2025-11-30","src":"airbnb_csv"},{"id":"HM8DH8N9SW","g":"Lisa","ph":"","pl":"airbnb","pi":"12619011","ci":"2025-12-01","co":"2025-12-02","n":1,"st":"cancelled","ss":"checkin_pending","a":0.0,"c":0.0,"b":"2025-11-23","src":"airbnb_csv"},{"id":"HMECFY9EH3","g":"Sarah Meddour","ph":"","pl":"airbnb","pi":"12619012","ci":"2025-11-28","co":"2025-11-30","n":1,"st":"accepted","ss":"stay_completed","a":183.16,"c":5.49,"b":"2025-11-25","src":"airbnb_csv"},{"id":"HMZTXAHWBM","g":"Sofiane Kandrouch","ph":"","pl":"airbnb","pi":"12619011","ci":"2025-11-25","co":"2025-11-26","n":1,"st":"accepted","ss":"stay_completed","a":91.58,"c":2.75,"b":"2025-11-25","src":"airbnb_csv"},{"id":"HMPYM9CH5N","g":"Mathis Joly","ph":"","pl":"airbnb","pi":"12619011","ci":"2025-11-24","co":"2025-11-25","n":1,"st":"accepted","ss":"stay_completed","a":91.58,"c":2.75,"b":"2025-11-24","src":"airbnb_csv"},{"id":"HM8XT9BF25","g":"Rubén Morales Lopez","ph":"","pl":"airbnb","pi":"12619011","ci":"2025-11-22","co":"2025-11-23","n":1,"st":"accepted","ss":"stay_completed","a":110.86,"c":3.33,"b":"2025-11-22","src":"airbnb_csv"},{"id":"HMYNPFMTF2","g":"Ines Marcos","ph":"","pl":"airbnb","pi":"12619012","ci":"2025-11-18","co":"2025-11-23","n":1,"st":"accepted","ss":"stay_completed","a":588.05,"c":17.64,"b":"2025-10-10","src":"airbnb_csv"},{"id":"HM8BZH52EX","g":"Yacine Ahmed Zenasni","ph":"","pl":"airbnb","pi":"12619012","ci":"2025-11-15","co":"2025-11-16","n":1,"st":"accepted","ss":"stay_completed","a":192.8,"c":5.78,"b":"2025-11-10","src":"airbnb_csv"},{"id":"HMRF8BZZ88","g":"Maxime Hermet","ph":"","pl":"airbnb","pi":"12619011","ci":"2025-11-14","co":"2025-11-16","n":1,"st":"accepted","ss":"stay_completed","a":212.08,"c":6.36,"b":"2025-09-27","src":"airbnb_csv"},{"id":"HMDA5KBFH3","g":"Camille Charria","ph":"","pl":"airbnb","pi":"12619012","ci":"2025-11-13","co":"2025-11-14","n":1,"st":"accepted","ss":"stay_completed","a":119.54,"c":3.59,"b":"2025-10-13","src":"airbnb_csv"},{"id":"HMQPHYMBSD","g":"Amine Chikouche Hami","ph":"","pl":"airbnb","pi":"12619011","ci":"2025-11-12","co":"2025-11-13","n":1,"st":"accepted","ss":"stay_completed","a":91.58,"c":2.75,"b":"2025-11-12","src":"airbnb_csv"},{"id":"HM38WX229H","g":"Chaima Amezyane","ph":"","pl":"airbnb","pi":"12619011","ci":"2025-11-07","co":"2025-11-09","n":1,"st":"accepted","ss":"stay_completed","a":212.08,"c":6.36,"b":"2025-10-03","src":"airbnb_csv"},{"id":"HM4SCDHBCZ","g":"Eve Ferrari","ph":"","pl":"airbnb","pi":"12619011","ci":"2025-11-05","co":"2025-11-07","n":1,"st":"accepted","ss":"stay_completed","a":173.52,"c":5.21,"b":"2025-09-26","src":"airbnb_csv"},{"id":"HMWKCS44FK","g":"Narjesse Slimani","ph":"","pl":"airbnb","pi":"12619011","ci":"2025-11-03","co":"2025-11-05","n":1,"st":"accepted","ss":"stay_completed","a":163.88,"c":4.92,"b":"2025-11-03","src":"airbnb_csv"},{"id":"HMAW3XAB4D","g":"Corine Autogue","ph":"","pl":"airbnb","pi":"12619012","ci":"2025-11-01","co":"2025-11-11","n":1,"st":"accepted","ss":"stay_completed","a":997.25,"c":29.92,"b":"2025-09-28","src":"airbnb_csv"},{"id":"HMTXDJQXNW","g":"Fanny Prouvost","ph":"","pl":"airbnb","pi":"12619011","ci":"2025-10-31","co":"2025-11-02","n":1,"st":"accepted","ss":"stay_completed","a":202.44,"c":6.07,"b":"2025-10-06","src":"airbnb_csv"},{"id":"HM28E2J4W3","g":"Lula Mckenna","ph":"","pl":"airbnb","pi":"12619012","ci":"2025-10-30","co":"2025-11-01","n":1,"st":"accepted","ss":"stay_completed","a":240.04,"c":7.2,"b":"2025-10-30","src":"airbnb_csv"},{"id":"HM3KF9ZAPJ","g":"Wahiba Belhafsi","ph":"","pl":"airbnb","pi":"12619011","ci":"2025-10-29","co":"2025-10-31","n":1,"st":"accepted","ss":"stay_completed","a":163.88,"c":4.92,"b":"2025-10-26","src":"airbnb_csv"},{"id":"HMYZAHE8KE","g":"Donatien Ange Marc-A","ph":"","pl":"airbnb","pi":"12619012","ci":"2025-10-29","co":"2025-10-30","n":1,"st":"accepted","ss":"stay_completed","a":158.1,"c":4.74,"b":"2025-10-29","src":"airbnb_csv"},{"id":"HMRTTJR245","g":"Simone Del Buono","ph":"","pl":"airbnb","pi":"12619012","ci":"2025-10-25","co":"2025-10-26","n":1,"st":"accepted","ss":"stay_completed","a":173.52,"c":5.21,"b":"2025-10-24","src":"airbnb_csv"},{"id":"HME9HHFMAF","g":"Christopher Dippe","ph":"","pl":"airbnb","pi":"12619012","ci":"2025-10-23","co":"2025-10-24","n":1,"st":"accepted","ss":"stay_completed","a":119.54,"c":3.59,"b":"2025-10-23","src":"airbnb_csv"},{"id":"HMQRNTHR2N","g":"Olivier Greck","ph":"","pl":"airbnb","pi":"12619012","ci":"2025-10-19","co":"2025-10-23","n":1,"st":"accepted","ss":"stay_completed","a":381.74,"c":11.45,"b":"2025-10-15","src":"airbnb_csv"},{"id":"HMNNHBFEEJ","g":"Frederique Chanvilla","ph":"","pl":"airbnb","pi":"12619012","ci":"2025-10-18","co":"2025-10-19","n":1,"st":"accepted","ss":"stay_completed","a":173.52,"c":5.21,"b":"2025-10-15","src":"airbnb_csv"},{"id":"HMANJC2955","g":"Colin Chaussemy","ph":"","pl":"airbnb","pi":"12619012","ci":"2025-10-13","co":"2025-10-15","n":1,"st":"accepted","ss":"stay_completed","a":205.33,"c":6.16,"b":"2025-10-13","src":"airbnb_csv"},{"id":"HM8APJ3EMF","g":"Jeremy Beuret","ph":"","pl":"airbnb","pi":"12619011","ci":"2025-10-12","co":"2025-10-15","n":1,"st":"accepted","ss":"stay_completed","a":231.36,"c":6.94,"b":"2025-08-10","src":"airbnb_csv"},{"id":"HMEZ8DRRQ3","g":"Hadrien Bongue","ph":"","pl":"airbnb","pi":"12619011","ci":"2025-10-09","co":"2025-10-10","n":1,"st":"accepted","ss":"stay_completed","a":91.58,"c":2.75,"b":"2025-10-09","src":"airbnb_csv"},{"id":"HMN5F8R4P3","g":"Damien Bauche","ph":"","pl":"airbnb","pi":"12619011","ci":"2025-10-07","co":"2025-10-08","n":1,"st":"accepted","ss":"stay_completed","a":86.76,"c":2.6,"b":"2025-08-28","src":"airbnb_csv"},{"id":"HMXBN9EAPQ","g":"Yesica Cordero","ph":"","pl":"airbnb","pi":"12619011","ci":"2025-10-06","co":"2025-10-07","n":1,"st":"accepted","ss":"stay_completed","a":91.58,"c":2.75,"b":"2025-10-06","src":"airbnb_csv"},{"id":"HMYYYPKSQ3","g":"Youna Quelennec","ph":"","pl":"airbnb","pi":"12619012","ci":"2025-10-02","co":"2025-10-06","n":1,"st":"accepted","ss":"stay_completed","a":491.64,"c":14.75,"b":"2025-10-01","src":"airbnb_csv"},{"id":"HMRR2KXKBK","g":"Youri Constantin","ph":"","pl":"airbnb","pi":"12619011","ci":"2025-10-02","co":"2025-10-03","n":1,"st":"accepted","ss":"stay_completed","a":96.4,"c":2.89,"b":"2025-09-25","src":"airbnb_csv"},{"id":"HMDQQSWJXX","g":"Ilyass Naitbenali","ph":"","pl":"airbnb","pi":"12619012","ci":"2025-09-29","co":"2025-09-30","n":1,"st":"accepted","ss":"stay_completed","a":130.14,"c":3.9,"b":"2025-09-29","src":"airbnb_csv"},{"id":"HMF8Y9C8EB","g":"Alexis Villani","ph":"","pl":"airbnb","pi":"12619011","ci":"2025-09-28","co":"2025-10-01","n":1,"st":"accepted","ss":"stay_completed","a":245.82,"c":7.37,"b":"2025-08-28","src":"airbnb_csv"},{"id":"HMBY28PYPR","g":"Oscar Sauvage","ph":"","pl":"airbnb","pi":"12619012","ci":"2025-09-26","co":"2025-09-28","n":1,"st":"accepted","ss":"stay_completed","a":318.12,"c":9.54,"b":"2025-09-22","src":"airbnb_csv"},{"id":"HMQ2CKA3JS","g":"Blondine","ph":"","pl":"airbnb","pi":"12619011","ci":"2026-01-22","co":"2026-01-24","n":1,"st":"cancelled","ss":"checkin_pending","a":0.0,"c":0.0,"b":"2026-01-03","src":"airbnb_csv"},{"id":"HMMWQZFM8Y","g":"Romain Vaucanson","ph":"","pl":"airbnb","pi":"12619011","ci":"2026-01-20","co":"2026-01-22","n":1,"st":"accepted","ss":"stay_completed","a":150.38,"c":4.51,"b":"2026-01-17","src":"airbnb_csv"},{"id":"HMY4JCY5K4","g":"Bilal El Hafiani","ph":"","pl":"airbnb","pi":"12619012","ci":"2026-01-20","co":"2026-01-21","n":1,"st":"accepted","ss":"stay_completed","a":119.54,"c":3.59,"b":"2026-01-19","src":"airbnb_csv"},{"id":"HMNYNCSKFP","g":"Alizée Petit","ph":"","pl":"airbnb","pi":"12619011","ci":"2026-01-18","co":"2026-01-19","n":1,"st":"accepted","ss":"stay_completed","a":84.83,"c":2.54,"b":"2026-01-18","src":"airbnb_csv"},{"id":"HMT8TFFXYF","g":"Enzo Campos","ph":"","pl":"airbnb","pi":"12619012","ci":"2026-01-17","co":"2026-01-18","n":1,"st":"accepted","ss":"stay_completed","a":154.24,"c":4.63,"b":"2026-01-02","src":"airbnb_csv"},{"id":"HM3J2RHR5M","g":"Auphelie Gasquez","ph":"","pl":"airbnb","pi":"12619012","ci":"2026-01-13","co":"2026-01-14","n":1,"st":"accepted","ss":"stay_completed","a":106.04,"c":3.18,"b":"2026-01-13","src":"airbnb_csv"},{"id":"HMAFN95PZR","g":"Lena","ph":"","pl":"airbnb","pi":"12619011","ci":"2026-01-10","co":"2026-01-11","n":1,"st":"cancelled","ss":"checkin_pending","a":0.0,"c":0.0,"b":"2025-11-06","src":"airbnb_csv"},{"id":"HM4EY5ZSCF","g":"Vanessa Malfesan","ph":"","pl":"airbnb","pi":"12619011","ci":"2026-01-09","co":"2026-01-11","n":1,"st":"accepted","ss":"stay_completed","a":192.8,"c":5.78,"b":"2026-01-05","src":"airbnb_csv"},{"id":"HM3WBPEH9P","g":"Sibel Dag","ph":"","pl":"airbnb","pi":"12619012","ci":"2026-01-09","co":"2026-01-11","n":1,"st":"accepted","ss":"stay_completed","a":226.54,"c":6.8,"b":"2025-12-28","src":"airbnb_csv"},{"id":"HMP82FXN9C","g":"Leslie Philippon","ph":"","pl":"airbnb","pi":"12619012","ci":"2026-01-08","co":"2026-01-09","n":1,"st":"accepted","ss":"stay_completed","a":177.38,"c":5.32,"b":"2026-01-02","src":"airbnb_csv"},{"id":"HMR85WAH5F","g":"Núria Alcorta Madron","ph":"","pl":"airbnb","pi":"12619012","ci":"2026-01-05","co":"2026-01-08","n":1,"st":"accepted","ss":"stay_completed","a":295.95,"c":8.88,"b":"2025-12-20","src":"airbnb_csv"},{"id":"HMET9JEA3Y","g":"Mathieu Auvergne","ph":"","pl":"airbnb","pi":"12619011","ci":"2026-01-05","co":"2026-01-06","n":1,"st":"accepted","ss":"stay_completed","a":84.83,"c":2.54,"b":"2026-01-05","src":"airbnb_csv"},{"id":"HMBFA53HTW","g":"Kimberley Edouard","ph":"","pl":"airbnb","pi":"12619011","ci":"2026-01-04","co":"2026-01-05","n":1,"st":"accepted","ss":"stay_completed","a":91.58,"c":2.75,"b":"2026-01-04","src":"airbnb_csv"},{"id":"HM5NZ5XF9Z","g":"Mohammed Naceur","ph":"","pl":"airbnb","pi":"12619012","ci":"2026-01-04","co":"2026-01-05","n":1,"st":"accepted","ss":"stay_completed","a":119.54,"c":3.59,"b":"2026-01-03","src":"airbnb_csv"},{"id":"HMNDDW9CNJ","g":"Ana Grimaldi","ph":"","pl":"airbnb","pi":"12619011","ci":"2026-01-03","co":"2026-01-04","n":1,"st":"accepted","ss":"stay_completed","a":110.86,"c":3.33,"b":"2025-11-01","src":"airbnb_csv"},{"id":"HMXYE8RBHE","g":"Aitor","ph":"","pl":"airbnb","pi":"12619012","ci":"2026-01-02","co":"2026-01-05","n":1,"st":"cancelled","ss":"checkin_pending","a":0.0,"c":0.0,"b":"2025-12-03","src":"airbnb_csv"},{"id":"HMBWYJ9D25","g":"Nerea Ruiz Rejas","ph":"","pl":"airbnb","pi":"12619012","ci":"2026-01-02","co":"2026-01-04","n":1,"st":"accepted","ss":"stay_completed","a":260.28,"c":7.81,"b":"2025-12-26","src":"airbnb_csv"},{"id":"HMXPNMPDNQ","g":"Guillem Figols","ph":"","pl":"airbnb","pi":"12619011","ci":"2026-01-02","co":"2026-01-03","n":1,"st":"accepted","ss":"stay_completed","a":110.86,"c":3.33,"b":"2025-12-16","src":"airbnb_csv"},{"id":"HMNPWZHJBN","g":"Colyne Invernizzi","ph":"","pl":"airbnb","pi":"12619012","ci":"2026-01-01","co":"2026-01-02","n":1,"st":"accepted","ss":"stay_completed","a":139.78,"c":4.19,"b":"2025-12-27","src":"airbnb_csv"},{"id":"HMQRWF4XK2","g":"Emilien Dauban","ph":"","pl":"airbnb","pi":"12619012","ci":"2025-12-31","co":"2026-01-01","n":1,"st":"accepted","ss":"stay_completed","a":313.3,"c":9.4,"b":"2025-10-30","src":"airbnb_csv"},{"id":"HMTBJ8BXW2","g":"Clément Fromentin","ph":"","pl":"airbnb","pi":"12619011","ci":"2025-12-30","co":"2026-01-02","n":1,"st":"accepted","ss":"stay_completed","a":289.2,"c":8.68,"b":"2025-10-19","src":"airbnb_csv"},{"id":"HMMQT9MK9T","g":"Alexandre","ph":"","pl":"airbnb","pi":"12619011","ci":"2025-12-29","co":"2026-01-05","n":1,"st":"cancelled","ss":"checkin_pending","a":0.0,"c":0.0,"b":"2025-08-23","src":"airbnb_csv"},{"id":"HMRMM39Y38","g":"Cécilia Combrouze","ph":"","pl":"airbnb","pi":"12619012","ci":"2025-12-29","co":"2025-12-31","n":1,"st":"accepted","ss":"stay_completed","a":205.33,"c":6.16,"b":"2025-11-05","src":"airbnb_csv"},{"id":"HMJCBCKXSX","g":"Qiyao Zhang","ph":"","pl":"airbnb","pi":"12619011","ci":"2025-12-28","co":"2025-12-30","n":1,"st":"accepted","ss":"stay_completed","a":163.88,"c":4.92,"b":"2025-10-18","src":"airbnb_csv"},{"id":"HMWW5B9DD2","g":"Grégory Baudounet","ph":"","pl":"airbnb","pi":"12619012","ci":"2025-12-26","co":"2025-12-29","n":1,"st":"accepted","ss":"stay_completed","a":365.36,"c":10.96,"b":"2025-12-03","src":"airbnb_csv"},{"id":"HMTMDNAJXP","g":"Camille Wojtylak","ph":"","pl":"airbnb","pi":"12619012","ci":"2025-12-25","co":"2025-12-26","n":1,"st":"accepted","ss":"stay_completed","a":173.52,"c":5.21,"b":"2025-12-17","src":"airbnb_csv"},{"id":"HMSXRP4NP9","g":"Dylan Demestre","ph":"","pl":"airbnb","pi":"12619011","ci":"2025-12-24","co":"2025-12-26","n":1,"st":"accepted","ss":"stay_completed","a":212.08,"c":6.36,"b":"2025-11-14","src":"airbnb_csv"},{"id":"HMS28FB949","g":"Steffi Hüsch","ph":"","pl":"airbnb","pi":"12619012","ci":"2025-12-23","co":"2025-12-24","n":1,"st":"accepted","ss":"stay_completed","a":125.32,"c":3.76,"b":"2025-12-23","src":"airbnb_csv"},{"id":"HMYNPXAAQD","g":"Matheo Kidri","ph":"","pl":"airbnb","pi":"12619012","ci":"2025-12-21","co":"2025-12-23","n":1,"st":"accepted","ss":"stay_completed","a":321.01,"c":9.63,"b":"2025-11-16","src":"airbnb_csv"},{"id":"HMRPNFZEYM","g":"Lucas Da Santos","ph":"","pl":"airbnb","pi":"12619012","ci":"2025-12-20","co":"2025-12-21","n":1,"st":"accepted","ss":"stay_completed","a":149.42,"c":4.48,"b":"2025-12-20","src":"airbnb_csv"},{"id":"HMYWPXXS3W","g":"Thomas","ph":"","pl":"airbnb","pi":"12619012","ci":"2025-12-20","co":"2025-12-21","n":1,"st":"cancelled","ss":"checkin_pending","a":0.0,"c":0.0,"b":"2025-12-16","src":"airbnb_csv"},{"id":"HMTBPWF2ZK","g":"Noémie Sanchez","ph":"","pl":"airbnb","pi":"12619011","ci":"2025-12-20","co":"2025-12-21","n":1,"st":"accepted","ss":"stay_completed","a":110.86,"c":3.33,"b":"2025-11-05","src":"airbnb_csv"},{"id":"HMZSWDXN98","g":"Alicia","ph":"","pl":"airbnb","pi":"12619012","ci":"2025-12-19","co":"2025-12-21","n":1,"st":"cancelled","ss":"checkin_pending","a":0.0,"c":0.0,"b":"2025-11-14","src":"airbnb_csv"},{"id":"HMFY5BE9FB","g":"Enzo Rotolo","ph":"","pl":"airbnb","pi":"12619012","ci":"2025-12-19","co":"2025-12-20","n":1,"st":"accepted","ss":"stay_completed","a":120.5,"c":3.61,"b":"2025-12-15","src":"airbnb_csv"},{"id":"HMWZZ4C2X3","g":"Charlotte Marguerita","ph":"","pl":"airbnb","pi":"12619011","ci":"2025-12-17","co":"2025-12-18","n":1,"st":"accepted","ss":"stay_completed","a":91.58,"c":2.75,"b":"2025-12-13","src":"airbnb_csv"},{"id":"HMANKYTKRE","g":"Alice Peyrard","ph":"","pl":"airbnb","pi":"12619012","ci":"2025-12-16","co":"2025-12-18","n":1,"st":"accepted","ss":"stay_completed","a":205.33,"c":6.16,"b":"2025-11-30","src":"airbnb_csv"},{"id":"HMY5SR4ZX4","g":"François Bouville","ph":"","pl":"airbnb","pi":"12619012","ci":"2025-12-15","co":"2025-12-16","n":1,"st":"accepted","ss":"stay_completed","a":106.04,"c":3.18,"b":"2025-12-15","src":"airbnb_csv"},{"id":"HM4XTARFYZ","g":"Nadir","ph":"","pl":"airbnb","pi":"12619011","ci":"2025-12-15","co":"2025-12-16","n":1,"st":"cancelled","ss":"checkin_pending","a":0.0,"c":0.0,"b":"2025-12-12","src":"airbnb_csv"},{"id":"HMTEYC4YHN","g":"Bart Levert","ph":"","pl":"airbnb","pi":"12619011","ci":"2025-12-13","co":"2025-12-14","n":1,"st":"accepted","ss":"stay_completed","a":110.86,"c":3.33,"b":"2025-11-19","src":"airbnb_csv"},{"id":"HM8AKP3TXZ","g":"Maria Sol Riaño Ramí","ph":"","pl":"airbnb","pi":"12619012","ci":"2025-12-13","co":"2025-12-14","n":1,"st":"accepted","ss":"stay_completed","a":154.24,"c":4.63,"b":"2025-11-03","src":"airbnb_csv"},{"id":"HM4RHDDCT4","g":"Andrés Aranda","ph":"","pl":"airbnb","pi":"12619012","ci":"2026-03-22","co":"2026-03-23","n":1,"st":"accepted","ss":"stay_completed","a":138.82,"c":4.16,"b":"2026-03-22","src":"airbnb_csv"},{"id":"HMM5TENCD9","g":"Axel Odin","ph":"","pl":"airbnb","pi":"12619012","ci":"2026-03-21","co":"2026-03-22","n":1,"st":"accepted","ss":"stay_completed","a":129.18,"c":3.88,"b":"2026-03-18","src":"airbnb_csv"},{"id":"HMK2YS4Z98","g":"Guillaume Bonnet","ph":"","pl":"airbnb","pi":"12619012","ci":"2026-03-20","co":"2026-03-21","n":1,"st":"accepted","ss":"stay_completed","a":129.18,"c":3.88,"b":"2026-03-20","src":"airbnb_csv"},{"id":"HMNYNBZHDW","g":"Mathieu Adli","ph":"","pl":"airbnb","pi":"12619011","ci":"2026-03-19","co":"2026-03-20","n":1,"st":"accepted","ss":"stay_completed","a":77.12,"c":2.31,"b":"2026-03-18","src":"airbnb_csv"},{"id":"HMN5P8D2C2","g":"Nuria Gimenez","ph":"","pl":"airbnb","pi":"12619012","ci":"2026-03-16","co":"2026-03-18","n":1,"st":"accepted","ss":"stay_completed","a":205.33,"c":6.16,"b":"2026-03-13","src":"airbnb_csv"},{"id":"HMWRNNMCM8","g":"Donovan Siharath","ph":"","pl":"airbnb","pi":"12619012","ci":"2026-03-13","co":"2026-03-15","n":1,"st":"accepted","ss":"stay_completed","a":236.18,"c":7.09,"b":"2026-03-10","src":"airbnb_csv"},{"id":"HMSTZK2DJZ","g":"Abdellah Idbendriss","ph":"","pl":"airbnb","pi":"12619011","ci":"2026-03-12","co":"2026-03-13","n":1,"st":"accepted","ss":"stay_completed","a":91.58,"c":2.75,"b":"2026-03-04","src":"airbnb_csv"},{"id":"HMRXD52ERZ","g":"Romain Pelon","ph":"","pl":"airbnb","pi":"12619012","ci":"2026-03-08","co":"2026-03-10","n":1,"st":"accepted","ss":"stay_completed","a":205.33,"c":6.16,"b":"2026-02-25","src":"airbnb_csv"},{"id":"HMZ3HTEDEW","g":"Sofian Houdj","ph":"","pl":"airbnb","pi":"12619012","ci":"2026-03-07","co":"2026-03-08","n":1,"st":"accepted","ss":"stay_completed","a":115.68,"c":3.47,"b":"2026-03-07","src":"airbnb_csv"},{"id":"HMAY85ZMRN","g":"Lea","ph":"","pl":"airbnb","pi":"12619012","ci":"2026-03-07","co":"2026-03-08","n":1,"st":"cancelled","ss":"checkin_pending","a":0.0,"c":0.0,"b":"2026-02-24","src":"airbnb_csv"},{"id":"HMKB9MC3HJ","g":"Baptiste Blanc","ph":"","pl":"airbnb","pi":"12619011","ci":"2026-03-06","co":"2026-03-07","n":1,"st":"accepted","ss":"stay_completed","a":110.86,"c":3.33,"b":"2026-03-03","src":"airbnb_csv"},{"id":"HMHCJ8B5FD","g":"Clara","ph":"","pl":"airbnb","pi":"12619012","ci":"2026-03-06","co":"2026-03-07","n":1,"st":"cancelled","ss":"checkin_pending","a":0.0,"c":0.0,"b":"2026-02-28","src":"airbnb_csv"},{"id":"HMXJKCT4RH","g":"Florent Pla","ph":"","pl":"airbnb","pi":"12619012","ci":"2026-03-04","co":"2026-03-07","n":1,"st":"accepted","ss":"stay_completed","a":330.65,"c":9.92,"b":"2026-03-04","src":"airbnb_csv"},{"id":"HM8J32ZXDX","g":"Patrick Canigher","ph":"","pl":"airbnb","pi":"12619012","ci":"2026-03-01","co":"2026-03-04","n":1,"st":"accepted","ss":"stay_completed","a":353.79,"c":10.61,"b":"2026-02-06","src":"airbnb_csv"},{"id":"HMHKMHKYDJ","g":"Kahina Chahinez Sers","ph":"","pl":"airbnb","pi":"12619012","ci":"2026-02-28","co":"2026-03-01","n":1,"st":"accepted","ss":"stay_completed","a":115.68,"c":3.47,"b":"2026-02-28","src":"airbnb_csv"},{"id":"HMHXPEZ5SY","g":"Jeanpierre Rogalle","ph":"","pl":"airbnb","pi":"12619012","ci":"2026-02-27","co":"2026-02-28","n":1,"st":"accepted","ss":"stay_completed","a":134.96,"c":4.05,"b":"2026-02-27","src":"airbnb_csv"},{"id":"HMBC4Z2RE4","g":"Jeanne Alexandre","ph":"","pl":"airbnb","pi":"12619011","ci":"2026-02-23","co":"2026-02-25","n":1,"st":"accepted","ss":"stay_completed","a":163.88,"c":4.92,"b":"2026-02-15","src":"airbnb_csv"},{"id":"HMSRMM9YZ4","g":"Elisa","ph":"","pl":"airbnb","pi":"12619011","ci":"2026-02-22","co":"2026-02-23","n":1,"st":"cancelled","ss":"checkin_pending","a":0.0,"c":0.0,"b":"2026-02-02","src":"airbnb_csv"},{"id":"HMBYY4Z8HX","g":"Marie","ph":"","pl":"airbnb","pi":"12619012","ci":"2026-02-20","co":"2026-02-22","n":1,"st":"cancelled","ss":"checkin_pending","a":0.0,"c":0.0,"b":"2026-01-25","src":"airbnb_csv"},{"id":"HM9FXJHQHR","g":"Louis Lombardo","ph":"","pl":"airbnb","pi":"12619011","ci":"2026-02-19","co":"2026-02-20","n":1,"st":"accepted","ss":"stay_completed","a":91.58,"c":2.75,"b":"2026-01-24","src":"airbnb_csv"},{"id":"HM98RPJAYB","g":"Chloe Belhadi","ph":"","pl":"airbnb","pi":"12619012","ci":"2026-02-17","co":"2026-02-18","n":1,"st":"accepted","ss":"stay_completed","a":144.6,"c":4.34,"b":"2026-02-16","src":"airbnb_csv"},{"id":"HM8KHQ4BK4","g":"Akram Talbi","ph":"","pl":"airbnb","pi":"12619012","ci":"2026-02-16","co":"2026-02-17","n":1,"st":"accepted","ss":"stay_completed","a":125.32,"c":3.76,"b":"2026-02-16","src":"airbnb_csv"},{"id":"HMRJXW2HPZ","g":"Enzo Pagès","ph":"","pl":"airbnb","pi":"12619011","ci":"2026-02-15","co":"2026-02-16","n":1,"st":"accepted","ss":"stay_completed","a":96.4,"c":2.89,"b":"2026-02-13","src":"airbnb_csv"},{"id":"HMF8AJNWJB","g":"Lowan Gendre","ph":"","pl":"airbnb","pi":"12619012","ci":"2026-02-15","co":"2026-02-16","n":1,"st":"accepted","ss":"stay_completed","a":106.04,"c":3.18,"b":"2026-02-09","src":"airbnb_csv"},{"id":"HMAFAYZ4DN","g":"Jocelin Latorre","ph":"","pl":"airbnb","pi":"12619012","ci":"2026-02-14","co":"2026-02-15","n":1,"st":"accepted","ss":"stay_completed","a":178.34,"c":5.35,"b":"2026-01-13","src":"airbnb_csv"},{"id":"HM5W5DPJ42","g":"Bastien Comes","ph":"","pl":"airbnb","pi":"12619011","ci":"2026-02-14","co":"2026-02-15","n":1,"st":"accepted","ss":"stay_completed","a":163.88,"c":4.92,"b":"2026-01-10","src":"airbnb_csv"},{"id":"HMP4JTHJ8B","g":"Terryl Lopez","ph":"","pl":"airbnb","pi":"12619011","ci":"2026-02-13","co":"2026-02-14","n":1,"st":"accepted","ss":"stay_completed","a":110.86,"c":3.33,"b":"2026-01-28","src":"airbnb_csv"},{"id":"HMBYMQZYKH","g":"Mel Amel","ph":"","pl":"airbnb","pi":"12619012","ci":"2026-02-12","co":"2026-02-14","n":1,"st":"accepted","ss":"stay_completed","a":197.62,"c":5.93,"b":"2026-02-04","src":"airbnb_csv"},{"id":"HMZQ48PA4F","g":"Oceane Maillard","ph":"","pl":"airbnb","pi":"12619012","ci":"2026-02-09","co":"2026-02-12","n":1,"st":"accepted","ss":"stay_completed","a":241.0,"c":7.23,"b":"2026-02-04","src":"airbnb_csv"},{"id":"HMRET8ERCC","g":"Ilyes Boukhettame","ph":"","pl":"airbnb","pi":"12619012","ci":"2026-02-06","co":"2026-02-08","n":1,"st":"accepted","ss":"stay_completed","a":216.9,"c":6.51,"b":"2026-02-02","src":"airbnb_csv"},{"id":"HM3SEZ35NR","g":"Paula Jarque Esclusa","ph":"","pl":"airbnb","pi":"12619011","ci":"2026-02-06","co":"2026-02-08","n":1,"st":"accepted","ss":"stay_completed","a":202.44,"c":6.07,"b":"2026-01-20","src":"airbnb_csv"},{"id":"HMJHACQ35S","g":"Jade Didion","ph":"","pl":"airbnb","pi":"12619012","ci":"2026-02-04","co":"2026-02-06","n":1,"st":"accepted","ss":"stay_completed","a":168.7,"c":5.06,"b":"2026-02-03","src":"airbnb_csv"},{"id":"HMD2F8CCRE","g":"Kathleen Pizzuto","ph":"","pl":"airbnb","pi":"12619012","ci":"2026-02-03","co":"2026-02-04","n":1,"st":"accepted","ss":"stay_completed","a":101.22,"c":3.04,"b":"2026-02-03","src":"airbnb_csv"},{"id":"HMDXES5F34","g":"Kylian Hembert","ph":"","pl":"airbnb","pi":"12619011","ci":"2026-02-03","co":"2026-02-04","n":1,"st":"accepted","ss":"stay_completed","a":91.58,"c":2.75,"b":"2026-01-08","src":"airbnb_csv"},{"id":"HMBF9EC3A9","g":"Mathieu Fourquet","ph":"","pl":"airbnb","pi":"12619012","ci":"2026-02-02","co":"2026-02-03","n":1,"st":"accepted","ss":"stay_completed","a":106.04,"c":3.18,"b":"2026-02-02","src":"airbnb_csv"},{"id":"HMBANCNR4D","g":"Camille Tahir","ph":"","pl":"airbnb","pi":"12619012","ci":"2026-01-30","co":"2026-02-01","n":1,"st":"accepted","ss":"stay_completed","a":390.42,"c":11.71,"b":"2026-01-12","src":"airbnb_csv"},{"id":"HMJC3R854T","g":"Damien Bouchet","ph":"","pl":"airbnb","pi":"12619012","ci":"2026-01-27","co":"2026-01-28","n":1,"st":"accepted","ss":"stay_completed","a":119.54,"c":3.59,"b":"2026-01-20","src":"airbnb_csv"},{"id":"HMSACN9BJA","g":"Sarah Bligny","ph":"","pl":"airbnb","pi":"12619011","ci":"2026-01-25","co":"2026-01-27","n":1,"st":"accepted","ss":"stay_completed","a":163.88,"c":4.92,"b":"2025-12-17","src":"airbnb_csv"},{"id":"HMHZ9Y2YEC","g":"Marine Robyn","ph":"","pl":"airbnb","pi":"12619011","ci":"2026-01-24","co":"2026-01-25","n":1,"st":"accepted","ss":"stay_completed","a":96.4,"c":2.89,"b":"2026-01-14","src":"airbnb_csv"},{"id":"HMDTTASPDD","g":"France France","ph":"","pl":"airbnb","pi":"12619012","ci":"2026-01-24","co":"2026-01-25","n":1,"st":"accepted","ss":"stay_completed","a":154.24,"c":4.63,"b":"2026-01-09","src":"airbnb_csv"},{"id":"HMMH58545R","g":"Sabine Barrois","ph":"","pl":"airbnb","pi":"12619012","ci":"2026-09-26","co":"2026-09-27","n":1,"st":"accepted","ss":"checkin_pending","a":154.24,"c":4.63,"b":"2026-03-08","src":"airbnb_csv"},{"id":"HMMZT8A8SH","g":"Éric Petiteau","ph":"","pl":"airbnb","pi":"12619012","ci":"2026-08-19","co":"2026-08-21","n":1,"st":"accepted","ss":"checkin_pending","a":282.45,"c":8.47,"b":"2026-02-03","src":"airbnb_csv"},{"id":"HMMXAW2D54","g":"Marlène Garbies","ph":"","pl":"airbnb","pi":"12619011","ci":"2026-08-13","co":"2026-08-14","n":1,"st":"accepted","ss":"checkin_pending","a":91.58,"c":2.75,"b":"2026-02-19","src":"airbnb_csv"},{"id":"HMAWJR2QZK","g":"Léa Le Ralle","ph":"","pl":"airbnb","pi":"12619012","ci":"2026-08-08","co":"2026-08-15","n":1,"st":"accepted","ss":"checkin_pending","a":886.93,"c":26.61,"b":"2026-02-14","src":"airbnb_csv"},{"id":"HMPZJN35NP","g":"Sharon Kroeze","ph":"","pl":"airbnb","pi":"12619011","ci":"2026-08-08","co":"2026-08-11","n":1,"st":"accepted","ss":"checkin_pending","a":342.22,"c":10.27,"b":"2026-04-11","src":"airbnb_csv"},{"id":"HMTWMHNNFF","g":"Dany Kj","ph":"","pl":"airbnb","pi":"12619011","ci":"2026-08-01","co":"2026-08-08","n":1,"st":"accepted","ss":"checkin_pending","a":669.74,"c":20.09,"b":"2026-02-14","src":"airbnb_csv"},{"id":"HM4RTHZWWH","g":"Nadege Chiappe","ph":"","pl":"airbnb","pi":"12619012","ci":"2026-08-01","co":"2026-08-08","n":1,"st":"accepted","ss":"checkin_pending","a":944.96,"c":28.35,"b":"2025-12-24","src":"airbnb_csv"},{"id":"HMM9XQN3EW","g":"Mathilde Van Der Hen","ph":"","pl":"airbnb","pi":"12619012","ci":"2026-07-27","co":"2026-08-01","n":1,"st":"accepted","ss":"checkin_pending","a":674.8,"c":20.24,"b":"2026-02-21","src":"airbnb_csv"},{"id":"HM4YZ9H5D3","g":"Jordi Cabañas","ph":"","pl":"airbnb","pi":"12619011","ci":"2026-07-27","co":"2026-07-30","n":1,"st":"accepted","ss":"checkin_pending","a":342.22,"c":10.27,"b":"2026-03-24","src":"airbnb_csv"},{"id":"HMBKRESPHX","g":"Remi Sans","ph":"","pl":"airbnb","pi":"12619011","ci":"2026-07-13","co":"2026-07-17","n":1,"st":"accepted","ss":"checkin_pending","a":313.3,"c":9.4,"b":"2026-02-01","src":"airbnb_csv"},{"id":"HM8BZNCKCA","g":"Alexandre Torri","ph":"","pl":"airbnb","pi":"12619012","ci":"2026-07-12","co":"2026-07-13","n":1,"st":"accepted","ss":"checkin_pending","a":177.38,"c":5.32,"b":"2026-04-13","src":"airbnb_csv"},{"id":"HM5BFR4XY9","g":"Circée Capon","ph":"","pl":"airbnb","pi":"12619012","ci":"2026-07-06","co":"2026-07-10","n":1,"st":"accepted","ss":"checkin_pending","a":458.86,"c":13.77,"b":"2026-03-22","src":"airbnb_csv"},{"id":"HMPEZPBMP4","g":"Manon Brieux","ph":"","pl":"airbnb","pi":"12619011","ci":"2026-06-21","co":"2026-06-23","n":1,"st":"accepted","ss":"checkin_pending","a":192.8,"c":5.78,"b":"2026-03-05","src":"airbnb_csv"},{"id":"HMX8R54TX5","g":"Mark DuRocher","ph":"","pl":"airbnb","pi":"12619012","ci":"2026-06-16","co":"2026-06-17","n":1,"st":"accepted","ss":"checkin_pending","a":167.74,"c":5.03,"b":"2026-02-26","src":"airbnb_csv"},{"id":"HM5XTNBS2H","g":"Houcine-Antoine Ibra","ph":"","pl":"airbnb","pi":"12619011","ci":"2026-05-23","co":"2026-05-26","n":1,"st":"accepted","ss":"checkin_pending","a":260.28,"c":7.81,"b":"2026-03-17","src":"airbnb_csv"},{"id":"HM2H3R9ZZF","g":"Geoffrey Annel","ph":"","pl":"airbnb","pi":"12619011","ci":"2026-05-14","co":"2026-05-18","n":1,"st":"accepted","ss":"checkin_pending","a":351.86,"c":10.56,"b":"2026-03-25","src":"airbnb_csv"},{"id":"HMTAPWHR2B","g":"Fanny Jeandupeux","ph":"","pl":"airbnb","pi":"12619012","ci":"2026-05-02","co":"2026-06-16","n":1,"st":"accepted","ss":"checkin_pending","a":3706.4,"c":133.43,"b":"2026-03-19","src":"airbnb_csv"},{"id":"HM3AX35MK5","g":"Sarah Bournet","ph":"","pl":"airbnb","pi":"12619012","ci":"2026-04-26","co":"2026-04-29","n":1,"st":"accepted","ss":"checkin_pending","a":295.95,"c":8.88,"b":"2026-03-04","src":"airbnb_csv"},{"id":"HMPCCATCKC","g":"Sabrina Leroy","ph":"","pl":"airbnb","pi":"12619012","ci":"2026-04-20","co":"2026-04-21","n":1,"st":"accepted","ss":"checkin_pending","a":133.5,"c":4.0,"b":"2026-04-14","src":"airbnb_csv"},{"id":"HMZBEFJCR5","g":"Leo Girardeau","ph":"","pl":"airbnb","pi":"12619012","ci":"2026-04-18","co":"2026-04-19","n":1,"st":"accepted","ss":"checkin_pending","a":212.08,"c":6.36,"b":"2026-04-11","src":"airbnb_csv"},{"id":"HMPYFCERCX","g":"Urie Cody","ph":"","pl":"airbnb","pi":"12619011","ci":"2026-04-14","co":"2026-04-16","n":1,"st":"accepted","ss":"stay_completed","a":138.38,"c":4.15,"b":"2026-04-14","src":"airbnb_csv"},{"id":"HMCRRYR93J","g":"Julien Billotte","ph":"","pl":"airbnb","pi":"12619011","ci":"2026-04-13","co":"2026-04-14","n":1,"st":"accepted","ss":"stay_completed","a":91.58,"c":2.75,"b":"2026-04-09","src":"airbnb_csv"},{"id":"HMWTX9T5QC","g":"Gebril Belmokhtar","ph":"","pl":"airbnb","pi":"12619012","ci":"2026-04-12","co":"2026-04-18","n":1,"st":"accepted","ss":"stay_completed","a":588.04,"c":17.64,"b":"2026-03-14","src":"airbnb_csv"},{"id":"HM5CXDRX9C","g":"Ines","ph":"","pl":"airbnb","pi":"12619011","ci":"2026-04-12","co":"2026-04-15","n":1,"st":"cancelled","ss":"checkin_pending","a":0.0,"c":0.0,"b":"2026-04-04","src":"airbnb_csv"},{"id":"HMW88E8XH2","g":"Rafaele Salinie","ph":"","pl":"airbnb","pi":"12619012","ci":"2026-04-11","co":"2026-04-12","n":1,"st":"accepted","ss":"stay_completed","a":154.24,"c":4.63,"b":"2026-03-21","src":"airbnb_csv"},{"id":"HMFFXRCAJ3","g":"Maeva Joaille","ph":"","pl":"airbnb","pi":"12619011","ci":"2026-04-10","co":"2026-04-12","n":1,"st":"accepted","ss":"stay_completed","a":202.44,"c":6.07,"b":"2026-03-04","src":"airbnb_csv"},{"id":"HMCW4YD8AT","g":"Wahib Lastate","ph":"","pl":"airbnb","pi":"12619012","ci":"2026-04-10","co":"2026-04-11","n":1,"st":"accepted","ss":"stay_completed","a":125.32,"c":3.76,"b":"2026-04-10","src":"airbnb_csv"},{"id":"HM99KTXZB5","g":"Ludovic Montero","ph":"","pl":"airbnb","pi":"12619011","ci":"2026-04-07","co":"2026-04-08","n":1,"st":"accepted","ss":"stay_completed","a":91.58,"c":2.75,"b":"2026-04-07","src":"airbnb_csv"},{"id":"HMZSFRKKYE","g":"Artur Nogué","ph":"","pl":"airbnb","pi":"12619011","ci":"2026-04-05","co":"2026-04-06","n":1,"st":"accepted","ss":"stay_completed","a":91.58,"c":2.75,"b":"2026-02-01","src":"airbnb_csv"},{"id":"HMMR43NHWZ","g":"Saibo Camara","ph":"","pl":"airbnb","pi":"12619012","ci":"2026-04-04","co":"2026-04-06","n":1,"st":"accepted","ss":"stay_completed","a":240.04,"c":7.2,"b":"2026-03-06","src":"airbnb_csv"},{"id":"HMA5TDNQCM","g":"Iria","ph":"","pl":"airbnb","pi":"12619011","ci":"2026-04-03","co":"2026-04-05","n":1,"st":"cancelled","ss":"checkin_pending","a":0.0,"c":0.0,"b":"2026-03-08","src":"airbnb_csv"},{"id":"HMCJX8TDK3","g":"Uleimatu Baldeh Saho","ph":"","pl":"airbnb","pi":"12619012","ci":"2026-04-03","co":"2026-04-04","n":1,"st":"accepted","ss":"stay_completed","a":144.6,"c":4.34,"b":"2026-03-30","src":"airbnb_csv"},{"id":"HMEPQSXY4E","g":"Jaume Palau","ph":"","pl":"airbnb","pi":"12619011","ci":"2026-04-02","co":"2026-04-03","n":1,"st":"accepted","ss":"stay_completed","a":91.58,"c":2.75,"b":"2026-03-31","src":"airbnb_csv"},{"id":"HM2EZSHAA4","g":"Emy Mazeroles","ph":"","pl":"airbnb","pi":"12619012","ci":"2026-03-31","co":"2026-04-03","n":1,"st":"accepted","ss":"stay_completed","a":269.92,"c":8.1,"b":"2026-03-31","src":"airbnb_csv"},{"id":"HMTPZZYRQ3","g":"Pierre Orriols","ph":"","pl":"airbnb","pi":"12619012","ci":"2026-03-28","co":"2026-03-29","n":1,"st":"accepted","ss":"stay_completed","a":167.74,"c":5.03,"b":"2026-03-28","src":"airbnb_csv"},{"id":"HMXC552SW2","g":"Pierre Nama","ph":"","pl":"airbnb","pi":"12619012","ci":"2026-03-27","co":"2026-03-28","n":1,"st":"accepted","ss":"stay_completed","a":139.78,"c":4.19,"b":"2026-03-23","src":"airbnb_csv"},{"id":"HMNN4XXSPQ","g":"Eva Madoali","ph":"","pl":"airbnb","pi":"12619011","ci":"2026-03-25","co":"2026-03-26","n":1,"st":"accepted","ss":"stay_completed","a":91.58,"c":2.75,"b":"2026-03-06","src":"airbnb_csv"},{"id":"HMN2C3QS3J","g":"Eva","ph":"","pl":"airbnb","pi":"12619011","ci":"2026-03-25","co":"2026-03-26","n":1,"st":"cancelled","ss":"checkin_pending","a":0.0,"c":0.0,"b":"2026-03-04","src":"airbnb_csv"},{"id":"HMJ8SFNQWA","g":"Gabriel Viboud","ph":"","pl":"airbnb","pi":"12619012","ci":"2026-03-24","co":"2026-03-26","n":1,"st":"accepted","ss":"stay_completed","a":197.62,"c":5.93,"b":"2026-03-24","src":"airbnb_csv"},{"id":"HMZEYBBKHT","g":"Nathalie Achehboune","ph":"","pl":"airbnb","pi":"12619011","ci":"2026-03-23","co":"2026-03-25","n":1,"st":"accepted","ss":"stay_completed","a":163.88,"c":4.92,"b":"2026-03-22","src":"airbnb_csv"},{"id":"HMJKKT9QYT","g":"Natty Patural","ph":"","pl":"airbnb","pi":"12619011","ci":"2025-09-26","co":"2025-09-27","n":1,"st":"accepted","ss":"stay_completed","a":120.5,"c":3.61,"b":"2025-09-22","src":"airbnb_csv"},{"id":"HMY3C59HST","g":"Julian Wörner","ph":"","pl":"airbnb","pi":"12619011","ci":"2025-09-23","co":"2025-09-24","n":1,"st":"accepted","ss":"stay_completed","a":96.4,"c":2.89,"b":"2025-09-21","src":"airbnb_csv"},{"id":"HMZJ3FEYPP","g":"Benjamin MEGRET Form","ph":"","pl":"airbnb","pi":"12619012","ci":"2025-09-21","co":"2025-09-22","n":1,"st":"accepted","ss":"stay_completed","a":139.78,"c":4.19,"b":"2025-09-20","src":"airbnb_csv"},{"id":"HM4CQBZB3Y","g":"Jovane Emlek","ph":"","pl":"airbnb","pi":"12619012","ci":"2025-09-20","co":"2025-09-21","n":1,"st":"accepted","ss":"stay_completed","a":115.68,"c":3.47,"b":"2025-09-17","src":"airbnb_csv"},{"id":"HMTHTKEHHE","g":"Marie Sarda","ph":"","pl":"airbnb","pi":"12619011","ci":"2025-09-19","co":"2025-09-20","n":1,"st":"accepted","ss":"stay_completed","a":96.4,"c":2.89,"b":"2025-08-22","src":"airbnb_csv"},{"id":"HM99TTCTXJ","g":"Kevin Rochais","ph":"","pl":"airbnb","pi":"12619011","ci":"2025-09-18","co":"2025-09-19","n":1,"st":"accepted","ss":"stay_completed","a":96.4,"c":2.89,"b":"2025-09-18","src":"airbnb_csv"},{"id":"HMYCYHNTEQ","g":"Sarah Anar","ph":"","pl":"airbnb","pi":"12619011","ci":"2025-09-17","co":"2025-09-18","n":1,"st":"accepted","ss":"stay_completed","a":96.4,"c":2.89,"b":"2025-09-16","src":"airbnb_csv"},{"id":"HMFW2RSK98","g":"Abdelwahed Ould Hadj","ph":"","pl":"airbnb","pi":"12619012","ci":"2025-09-16","co":"2025-09-17","n":1,"st":"accepted","ss":"stay_completed","a":139.78,"c":4.19,"b":"2025-09-16","src":"airbnb_csv"},{"id":"HMSWQPXEKT","g":"Rainer Abbonizio","ph":"","pl":"airbnb","pi":"12619011","ci":"2025-09-15","co":"2025-09-16","n":1,"st":"accepted","ss":"stay_completed","a":96.4,"c":2.89,"b":"2025-09-14","src":"airbnb_csv"},{"id":"HMB2SX93SM","g":"Sandrine Clergue","ph":"","pl":"airbnb","pi":"12619011","ci":"2025-09-13","co":"2025-09-14","n":1,"st":"accepted","ss":"stay_completed","a":96.4,"c":2.89,"b":"2025-08-12","src":"airbnb_csv"},{"id":"HMP5MDWZXB","g":"Jennifer Prades","ph":"","pl":"airbnb","pi":"12619012","ci":"2025-09-09","co":"2025-09-14","n":1,"st":"accepted","ss":"stay_completed","a":482.0,"c":14.46,"b":"2025-09-08","src":"airbnb_csv"},{"id":"HMHCJBMW95","g":"Jennifer","ph":"","pl":"airbnb","pi":"12619012","ci":"2025-09-09","co":"2025-09-14","n":1,"st":"cancelled","ss":"checkin_pending","a":0.0,"c":0.0,"b":"2025-09-06","src":"airbnb_csv"},{"id":"HM9TKCACDR","g":"Hazim Abdallaoui","ph":"","pl":"airbnb","pi":"12619012","ci":"2025-09-08","co":"2025-09-09","n":1,"st":"accepted","ss":"stay_completed","a":139.78,"c":4.19,"b":"2025-09-08","src":"airbnb_csv"},{"id":"HMEDKZBKAS","g":"Romane Le Vourc'H","ph":"","pl":"airbnb","pi":"12619011","ci":"2025-09-07","co":"2025-09-13","n":1,"st":"accepted","ss":"stay_completed","a":482.0,"c":14.46,"b":"2025-07-27","src":"airbnb_csv"},{"id":"HMZN2Q3RYD","g":"Maria Peiroló Cros","ph":"","pl":"airbnb","pi":"12619011","ci":"2025-09-06","co":"2025-09-07","n":1,"st":"accepted","ss":"stay_completed","a":96.4,"c":2.89,"b":"2025-07-10","src":"airbnb_csv"},{"id":"HMFCQW3BAJ","g":"Léna Solana Sané","ph":"","pl":"airbnb","pi":"12619012","ci":"2025-09-05","co":"2025-09-06","n":1,"st":"accepted","ss":"stay_completed","a":168.7,"c":5.06,"b":"2025-09-05","src":"airbnb_csv"},{"id":"HM5SB29TR2","g":"Salima Benouali","ph":"","pl":"airbnb","pi":"12619011","ci":"2025-09-04","co":"2025-09-06","n":1,"st":"accepted","ss":"stay_completed","a":173.52,"c":5.21,"b":"2025-07-13","src":"airbnb_csv"},{"id":"HMB9JFD2WK","g":"Lauryn Barkati","ph":"","pl":"airbnb","pi":"12619011","ci":"2025-09-03","co":"2025-09-04","n":1,"st":"accepted","ss":"stay_completed","a":86.76,"c":2.6,"b":"2025-09-03","src":"airbnb_csv"},{"id":"HMZDP3REA3","g":"Nath Et Clem Laboill","ph":"","pl":"airbnb","pi":"12619012","ci":"2025-09-02","co":"2025-09-03","n":1,"st":"accepted","ss":"stay_completed","a":28.92,"c":0.87,"b":"2025-09-02","src":"airbnb_csv"},{"id":"HMHZP5TJYT","g":"Sébastien Segur","ph":"","pl":"airbnb","pi":"12619011","ci":"2025-09-02","co":"2025-09-03","n":1,"st":"accepted","ss":"stay_completed","a":86.76,"c":2.6,"b":"2025-09-01","src":"airbnb_csv"},{"id":"HMCB8PK4BW","g":"Alba Llopart Ruiz","ph":"","pl":"airbnb","pi":"12619011","ci":"2025-09-01","co":"2025-09-02","n":1,"st":"accepted","ss":"stay_completed","a":77.12,"c":2.31,"b":"2025-07-29","src":"airbnb_csv"},{"id":"HMS8T43TT8","g":"Rébecca Beurier","ph":"","pl":"airbnb","pi":"12619011","ci":"2025-08-30","co":"2025-08-31","n":1,"st":"accepted","ss":"stay_completed","a":96.4,"c":2.89,"b":"2025-07-15","src":"airbnb_csv"},{"id":"HMT39KR4EP","g":"Marine Wisniewski","ph":"","pl":"airbnb","pi":"12619011","ci":"2025-08-29","co":"2025-08-30","n":1,"st":"accepted","ss":"stay_completed","a":106.04,"c":3.18,"b":"2025-08-25","src":"airbnb_csv"},{"id":"HMBTQ25PEE","g":"Agathe Hevin","ph":"","pl":"airbnb","pi":"12619011","ci":"2025-08-28","co":"2025-08-29","n":1,"st":"accepted","ss":"stay_completed","a":96.4,"c":2.89,"b":"2025-08-13","src":"airbnb_csv"},{"id":"HM3DB52KMM","g":"Ikram Mansour-Safyou","ph":"","pl":"airbnb","pi":"12619011","ci":"2025-08-26","co":"2025-08-28","n":1,"st":"accepted","ss":"stay_completed","a":154.24,"c":4.63,"b":"2025-06-22","src":"airbnb_csv"},{"id":"HM4ACHC94B","g":"Karima Dabebi","ph":"","pl":"airbnb","pi":"12619011","ci":"2025-08-25","co":"2025-08-26","n":1,"st":"accepted","ss":"stay_completed","a":96.4,"c":2.89,"b":"2025-08-21","src":"airbnb_csv"},{"id":"HM2K4XPSRX","g":"Antony","ph":"","pl":"airbnb","pi":"12619011","ci":"2025-08-25","co":"2025-08-26","n":1,"st":"cancelled","ss":"checkin_pending","a":0.0,"c":0.0,"b":"2025-07-06","src":"airbnb_csv"},{"id":"HMRZP5HPZD","g":"Oussama Aambari","ph":"","pl":"airbnb","pi":"12619011","ci":"2025-08-22","co":"2025-08-24","n":1,"st":"accepted","ss":"stay_completed","a":192.8,"c":5.78,"b":"2025-07-05","src":"airbnb_csv"},{"id":"HMWPZ58MBS","g":"Anca Jurju","ph":"","pl":"airbnb","pi":"12619011","ci":"2025-08-21","co":"2025-08-22","n":1,"st":"accepted","ss":"stay_completed","a":96.4,"c":2.89,"b":"2025-07-10","src":"airbnb_csv"},{"id":"HMXJCSNB9W","g":"Isaac Bonilla","ph":"","pl":"airbnb","pi":"12619011","ci":"2025-08-18","co":"2025-08-21","n":1,"st":"accepted","ss":"stay_completed","a":231.36,"c":6.94,"b":"2025-06-25","src":"airbnb_csv"},{"id":"HME2R98XCT","g":"Joseph Lucas","ph":"","pl":"airbnb","pi":"12619011","ci":"2025-08-17","co":"2025-08-18","n":1,"st":"accepted","ss":"stay_completed","a":77.12,"c":2.31,"b":"2025-06-29","src":"airbnb_csv"},{"id":"HMMQWE4WN9","g":"Solène Roussel","ph":"","pl":"airbnb","pi":"12619011","ci":"2025-08-10","co":"2025-08-17","n":1,"st":"accepted","ss":"stay_completed","a":520.56,"c":15.62,"b":"2025-06-20","src":"airbnb_csv"},{"id":"HMZ3AZ3A89","g":"Fernando Alfaya Gonz","ph":"","pl":"airbnb","pi":"12619011","ci":"2025-08-09","co":"2025-08-10","n":1,"st":"accepted","ss":"stay_completed","a":96.4,"c":2.89,"b":"2025-06-29","src":"airbnb_csv"},{"id":"HMSAJAT5DW","g":"Mylene Marien","ph":"","pl":"airbnb","pi":"12619011","ci":"2025-08-08","co":"2025-08-09","n":1,"st":"accepted","ss":"stay_completed","a":96.4,"c":2.89,"b":"2025-07-09","src":"airbnb_csv"},{"id":"HM5RDDXJSD","g":"Apoline Conjard","ph":"","pl":"airbnb","pi":"12619011","ci":"2025-08-04","co":"2025-08-08","n":1,"st":"accepted","ss":"stay_completed","a":308.48,"c":9.25,"b":"2025-06-24","src":"airbnb_csv"},{"id":"HMDZABZYQ5","g":"Maryam","ph":"","pl":"airbnb","pi":"12619011","ci":"2025-08-03","co":"2025-08-10","n":1,"st":"cancelled","ss":"checkin_pending","a":0.0,"c":0.0,"b":"2025-06-20","src":"airbnb_csv"},{"id":"HMECZS9ASZ","g":"Fabrice Ache","ph":"","pl":"airbnb","pi":"12619011","ci":"2025-08-03","co":"2025-08-04","n":1,"st":"accepted","ss":"stay_completed","a":77.12,"c":2.31,"b":"2025-06-25","src":"airbnb_csv"},{"id":"HM3KWKHMYT","g":"Emelyne Diximus","ph":"","pl":"airbnb","pi":"12619011","ci":"2025-08-01","co":"2025-08-03","n":1,"st":"accepted","ss":"stay_completed","a":212.08,"c":6.36,"b":"2025-07-01","src":"airbnb_csv"},{"id":"HMYFP5TKPF","g":"Ousmane Soumare","ph":"","pl":"airbnb","pi":"12619011","ci":"2025-07-31","co":"2025-08-01","n":1,"st":"accepted","ss":"stay_completed","a":96.4,"c":2.89,"b":"2025-07-29","src":"airbnb_csv"},{"id":"9-5770013295-ic869tvbim","g":"Mireia Gomez Toran","ph":"+34 636 92 53 28","pl":"booking.com","pi":"12619011","ci":"2026-05-01","co":"2026-05-04","n":2,"st":"accepted","ss":"checkin_pending","a":186.84,"c":28.51,"b":"2026-04-15 23:20:54","src":"csv_import"},{"id":"9-6825637368-ic7fdgterp","g":"K Tigelaar","ph":"+31 6 51087085","pl":"booking.com","pi":"12619011","ci":"2026-04-19","co":"2026-04-21","n":2,"st":"accepted","ss":"checkin_pending","a":98.82,"c":15.5,"b":"2026-04-15 07:50:09","src":"csv_import"},{"id":"9-5427597300-ic6mtnwyq5","g":"quentin beauthauvill","ph":"","pl":"booking.com","pi":"12619011","ci":"2026-05-08","co":"2026-05-10","n":2,"st":"accepted","ss":"checkin_pending","a":162.0,"c":0.0,"b":"2026-04-13 23:13:53","src":"csv_import"},{"id":"9-5080590572-ic6mtowxmd","g":"Joaquin Gonzalez Sil","ph":"","pl":"booking.com","pi":"12619011","ci":"2026-08-16","co":"2026-08-17","n":2,"st":"accepted","ss":"checkin_pending","a":130.0,"c":0.0,"b":"2026-04-13 22:03:01","src":"csv_import"},{"id":"9-5867255614-ic6mtofqc5","g":"Patrice Poyet","ph":"","pl":"booking.com","pi":"12619011","ci":"2026-07-31","co":"2026-08-01","n":4,"st":"accepted","ss":"checkin_pending","a":117.0,"c":0.0,"b":"2026-04-10 00:05:13","src":"csv_import"},{"id":"9-6209667109-ic6mtngyt1","g":"Cyril VIZOR","ph":"","pl":"booking.com","pi":"12619011","ci":"2026-04-17","co":"2026-04-18","n":3,"st":"accepted","ss":"checkin_pending","a":81.0,"c":0.0,"b":"2026-04-07 00:58:03","src":"csv_import"},{"id":"9-6913937032-ic6mtoar05","g":"Georgina Vilà","ph":"","pl":"booking.com","pi":"12619011","ci":"2026-07-25","co":"2026-07-26","n":3,"st":"accepted","ss":"checkin_pending","a":117.0,"c":0.0,"b":"2026-04-06 02:24:15","src":"csv_import"},{"id":"9-6199538377-ic6mto23k5","g":"Chloé Peres","ph":"","pl":"booking.com","pi":"12619011","ci":"2026-07-11","co":"2026-07-12","n":2,"st":"accepted","ss":"checkin_pending","a":117.0,"c":0.0,"b":"2026-03-28 16:37:09","src":"csv_import"},{"id":"9-5449516413-ic6mtnky09","g":"Monica Fernandez","ph":"","pl":"booking.com","pi":"12619011","ci":"2026-04-18","co":"2026-04-19","n":2,"st":"accepted","ss":"checkin_pending","a":81.0,"c":0.0,"b":"2026-03-04 12:37:30","src":"csv_import"},{"id":"9-6549076756-ic6mtnswve","g":"Antoine Eripret","ph":"","pl":"booking.com","pi":"12619011","ci":"2026-04-25","co":"2026-04-26","n":3,"st":"accepted","ss":"checkin_pending","a":90.0,"c":0.0,"b":"2026-02-27 23:39:40","src":"csv_import"},{"id":"9-5528086948-ic6mtp0tka","g":"Timéo Messina","ph":"","pl":"booking.com","pi":"12619011","ci":"2026-08-18","co":"2026-08-22","n":4,"st":"accepted","ss":"checkin_pending","a":324.0,"c":0.0,"b":"2026-02-26 23:00:02","src":"csv_import"},{"id":"9-5258760301-ic6mtosxqp","g":"Sylvie Michaël Geort","ph":"","pl":"booking.com","pi":"12619011","ci":"2026-08-06","co":"2026-08-07","n":2,"st":"accepted","ss":"checkin_pending","a":81.0,"c":0.0,"b":"2026-02-22 22:18:50","src":"csv_import"},{"id":"9-6423222052-ic6mtok8hq","g":"Sylvie Michaël Geort","ph":"","pl":"booking.com","pi":"12619011","ci":"2026-08-05","co":"2026-08-06","n":2,"st":"accepted","ss":"checkin_pending","a":81.0,"c":0.0,"b":"2026-02-21 16:14:09","src":"csv_import"},{"id":"9-6227770662-ic6mtnoxsj","g":"K Tigelaar","ph":"+31 6 51087085","pl":"booking.com","pi":"12619011","ci":"2026-04-19","co":"2026-04-21","n":2,"st":"cancelled","ss":"checkin_pending","a":0.0,"c":0.0,"b":"2026-02-14 18:39:59","src":"csv_import"},{"id":"9-6518300572-ic6mtnnw0v","g":"Stéphanie Francisco","ph":"","pl":"booking.com","pi":"12619011","ci":"2026-07-22","co":"2026-07-24","n":3,"st":"accepted","ss":"checkin_pending","a":202.5,"c":0.0,"b":"2026-02-08 22:18:23","src":"csv_import"},{"id":"9-6490678436-ic6mto668p","g":"Becker Björn","ph":"","pl":"booking.com","pi":"12619011","ci":"2026-07-12","co":"2026-07-13","n":3,"st":"accepted","ss":"checkin_pending","a":81.0,"c":0.0,"b":"2026-01-18 19:22:09","src":"csv_import"},{"id":"9-5813983676-booking","g":"adela mihaela ALEXAN","ph":"","pl":"booking.com","pi":"12619011","ci":"2025-09-20","co":"2025-09-21","n":2,"st":"accepted","ss":"stay_completed","a":81.0,"c":13.284,"b":"14 septembre 2025","src":"booking_csv"},{"id":"9-6790154121-booking","g":"Rosa Botet Freixes","ph":"","pl":"booking.com","pi":"12619011","ci":"2025-09-27","co":"2025-09-28","n":2,"st":"accepted","ss":"stay_completed","a":81.0,"c":13.284,"b":"27 août 2025","src":"booking_csv"},{"id":"9-6751924511-booking","g":"Anass Aharrouy","ph":"","pl":"booking.com","pi":"12619011","ci":"2025-10-03","co":"2025-10-04","n":2,"st":"accepted","ss":"stay_completed","a":81.0,"c":13.284,"b":"3 octobre 2025","src":"booking_csv"},{"id":"9-6559409698-booking","g":"Adja Touré","ph":"","pl":"booking.com","pi":"12619011","ci":"2025-10-04","co":"2025-10-06","n":2,"st":"accepted","ss":"stay_completed","a":162.0,"c":26.568,"b":"30 septembre 2025","src":"booking_csv"},{"id":"9-5934655536-booking","g":"Alexandra Mas","ph":"","pl":"booking.com","pi":"12619011","ci":"2025-10-10","co":"2025-10-11","n":2,"st":"accepted","ss":"stay_completed","a":81.0,"c":13.284,"b":"29 septembre 2025","src":"booking_csv"},{"id":"9-5165118689-booking","g":"Benjamin MAS","ph":"","pl":"booking.com","pi":"12619011","ci":"2025-10-11","co":"2025-10-12","n":2,"st":"accepted","ss":"stay_completed","a":90.0,"c":14.76,"b":"26 septembre 2025","src":"booking_csv"},{"id":"9-6071644329-booking","g":"Dina El Salamouni","ph":"","pl":"booking.com","pi":"12619012","ci":"2025-10-11","co":"2025-10-12","n":2,"st":"accepted","ss":"stay_completed","a":132.3,"c":21.6922,"b":"8 octobre 2025","src":"booking_csv"},{"id":"9-5986263664-booking","g":"Guillaume Vesvres","ph":"","pl":"booking.com","pi":"12619011","ci":"2025-10-16","co":"2025-10-17","n":2,"st":"accepted","ss":"stay_completed","a":81.0,"c":13.284,"b":"16 octobre 2025","src":"booking_csv"},{"id":"9-6249927390-booking","g":"Guillem Piquemal","ph":"","pl":"booking.com","pi":"12619011","ci":"2025-10-17","co":"2025-10-18","n":2,"st":"accepted","ss":"stay_completed","a":81.0,"c":13.284,"b":"6 octobre 2025","src":"booking_csv"},{"id":"9-5377541267-booking","g":"Céline Faure","ph":"","pl":"booking.com","pi":"12619011","ci":"2025-10-18","co":"2025-10-19","n":2,"st":"accepted","ss":"stay_completed","a":81.0,"c":13.284,"b":"13 octobre 2025","src":"booking_csv"},{"id":"9-5419086753-booking","g":"Neveux Adeline","ph":"","pl":"booking.com","pi":"12619012","ci":"2025-10-18","co":"2025-10-19","n":2,"st":"cancelled","ss":"checkin_pending","a":132.3,"c":0.0,"b":"16 octobre 2025","src":"booking_csv"},{"id":"9-6365833032-booking","g":"jean-louis garrigues","ph":"","pl":"booking.com","pi":"12619012","ci":"2025-10-18","co":"2025-10-19","n":2,"st":"cancelled","ss":"checkin_pending","a":130.98,"c":0.0,"b":"16 octobre 2025","src":"booking_csv"},{"id":"9-6844101119-booking","g":"Laetitia Vivenzio","ph":"","pl":"booking.com","pi":"12619011","ci":"2025-10-18","co":"2025-10-19","n":2,"st":"cancelled","ss":"checkin_pending","a":90.0,"c":0.0,"b":"4 octobre 2025","src":"booking_csv"},{"id":"9-5018589029-booking","g":"Aurélie Bernard","ph":"","pl":"booking.com","pi":"12619011","ci":"2025-10-19","co":"2025-10-20","n":2,"st":"accepted","ss":"stay_completed","a":81.0,"c":13.284,"b":"3 octobre 2025","src":"booking_csv"},{"id":"9-6056593542-booking","g":"Chinarro Frederic","ph":"","pl":"booking.com","pi":"12619011","ci":"2025-10-20","co":"2025-10-23","n":2,"st":"accepted","ss":"stay_completed","a":243.0,"c":39.852,"b":"19 octobre 2025","src":"booking_csv"},{"id":"9-5452585848-booking","g":"Benjamin Geay","ph":"","pl":"booking.com","pi":"12619011","ci":"2025-10-23","co":"2025-10-24","n":2,"st":"accepted","ss":"stay_completed","a":81.0,"c":13.284,"b":"20 octobre 2025","src":"booking_csv"},{"id":"9-5600565675-booking","g":"Aurore Nunes","ph":"","pl":"booking.com","pi":"12619011","ci":"2025-10-24","co":"2025-10-25","n":2,"st":"accepted","ss":"stay_completed","a":81.0,"c":13.284,"b":"23 octobre 2025","src":"booking_csv"},{"id":"9-5815861622-booking","g":"Nacima Bouzeroura","ph":"","pl":"booking.com","pi":"12619011","ci":"2025-10-25","co":"2025-10-26","n":2,"st":"accepted","ss":"stay_completed","a":90.0,"c":14.76,"b":"15 octobre 2025","src":"booking_csv"},{"id":"9-6196062556-booking","g":"jean claude martinez","ph":"","pl":"booking.com","pi":"12619012","ci":"2025-10-25","co":"2025-10-26","n":2,"st":"cancelled","ss":"checkin_pending","a":176.72,"c":0.0,"b":"25 octobre 2025","src":"booking_csv"},{"id":"9-5238331276-booking","g":"Sabrina PIERROT","ph":"","pl":"booking.com","pi":"12619011","ci":"2025-10-26","co":"2025-10-27","n":2,"st":"accepted","ss":"stay_completed","a":81.0,"c":13.284,"b":"19 octobre 2025","src":"booking_csv"},{"id":"9-5101664614-booking","g":"SANDRINE TONETTO","ph":"","pl":"booking.com","pi":"12619011","ci":"2025-10-27","co":"2025-10-28","n":2,"st":"accepted","ss":"stay_completed","a":90.0,"c":14.76,"b":"25 octobre 2025","src":"booking_csv"},{"id":"9-6456432608-booking","g":"Henry Maxime","ph":"","pl":"booking.com","pi":"12619011","ci":"2025-10-28","co":"2025-10-29","n":2,"st":"accepted","ss":"stay_completed","a":90.0,"c":14.76,"b":"20 octobre 2025","src":"booking_csv"},{"id":"9-6417244897-booking","g":"Mathis Joly","ph":"","pl":"booking.com","pi":"12619011","ci":"2025-11-02","co":"2025-11-03","n":2,"st":"accepted","ss":"stay_completed","a":81.0,"c":13.284,"b":"2 novembre 2025","src":"booking_csv"},{"id":"9-5953839660-booking","g":"Emmanuel ANDRIEUX","ph":"","pl":"booking.com","pi":"12619011","ci":"2025-11-09","co":"2025-11-10","n":2,"st":"accepted","ss":"stay_completed","a":90.0,"c":14.76,"b":"4 octobre 2025","src":"booking_csv"},{"id":"9-6776519204-booking","g":"Rebecca Hudelle","ph":"","pl":"booking.com","pi":"12619011","ci":"2025-11-10","co":"2025-11-11","n":2,"st":"accepted","ss":"stay_completed","a":81.0,"c":13.284,"b":"7 octobre 2025","src":"booking_csv"},{"id":"9-6957211717-booking","g":"Laura Cornart","ph":"","pl":"booking.com","pi":"12619011","ci":"2025-11-11","co":"2025-11-12","n":2,"st":"accepted","ss":"stay_completed","a":81.0,"c":13.284,"b":"10 novembre 2025","src":"booking_csv"},{"id":"9-5122812871-booking","g":"Mélanie Lelièvre","ph":"","pl":"booking.com","pi":"12619011","ci":"2025-11-13","co":"2025-11-14","n":2,"st":"accepted","ss":"stay_completed","a":81.0,"c":13.284,"b":"13 octobre 2025","src":"booking_csv"},{"id":"9-5758759808-booking","g":"Aharrouy Anass","ph":"","pl":"booking.com","pi":"12619011","ci":"2025-11-17","co":"2025-11-19","n":2,"st":"accepted","ss":"stay_completed","a":162.0,"c":26.568,"b":"16 novembre 2025","src":"booking_csv"},{"id":"9-5444063163-booking","g":"Manel Badia Busquets","ph":"","pl":"booking.com","pi":"12619011","ci":"2025-11-20","co":"2025-11-21","n":2,"st":"accepted","ss":"stay_completed","a":81.0,"c":13.284,"b":"20 novembre 2025","src":"booking_csv"},{"id":"9-5444082360-booking","g":"Ines Carriedo Bonill","ph":"","pl":"booking.com","pi":"12619011","ci":"2025-11-21","co":"2025-11-22","n":2,"st":"accepted","ss":"stay_completed","a":81.0,"c":13.284,"b":"20 novembre 2025","src":"booking_csv"},{"id":"9-6354083123-booking","g":"Frederic Roux","ph":"","pl":"booking.com","pi":"12619011","ci":"2025-11-21","co":"2025-11-23","n":2,"st":"cancelled","ss":"checkin_pending","a":180.0,"c":0.0,"b":"15 octobre 2025","src":"booking_csv"},{"id":"9-5138870066-booking","g":"green Clim","ph":"","pl":"booking.com","pi":"12619011","ci":"2025-11-25","co":"2025-11-26","n":2,"st":"cancelled","ss":"checkin_pending","a":81.0,"c":0.0,"b":"25 novembre 2025","src":"booking_csv"},{"id":"9-6425628369-booking","g":"Petra van der Spek","ph":"","pl":"booking.com","pi":"12619011","ci":"2025-11-28","co":"2025-11-30","n":2,"st":"accepted","ss":"stay_completed","a":162.0,"c":26.568,"b":"19 septembre 2025","src":"booking_csv"},{"id":"9-6925440932-booking","g":"Gonzalez Fosa Raul","ph":"","pl":"booking.com","pi":"12619011","ci":"2025-12-05","co":"2025-12-07","n":2,"st":"accepted","ss":"stay_completed","a":178.2,"c":29.2248,"b":"8 novembre 2025","src":"booking_csv"},{"id":"9-6356495343-booking","g":"Emmanuel Fernandes L","ph":"","pl":"booking.com","pi":"12619012","ci":"2025-12-06","co":"2025-12-08","n":2,"st":"accepted","ss":"stay_completed","a":264.6,"c":43.3944,"b":"11 novembre 2025","src":"booking_csv"},{"id":"9-5924317514-booking","g":"zuriñe ventosa","ph":"","pl":"booking.com","pi":"12619011","ci":"2025-12-07","co":"2025-12-08","n":2,"st":"accepted","ss":"stay_completed","a":81.0,"c":13.284,"b":"11 septembre 2025","src":"booking_csv"},{"id":"9-6065809699-booking","g":"Tània Tarrés Gonzále","ph":"","pl":"booking.com","pi":"12619011","ci":"2025-12-08","co":"2025-12-09","n":2,"st":"accepted","ss":"stay_completed","a":90.0,"c":14.76,"b":"25 novembre 2025","src":"booking_csv"},{"id":"9-5072313018-booking","g":"CHRISTELLE CREVISY T","ph":"","pl":"booking.com","pi":"12619011","ci":"2025-12-10","co":"2025-12-11","n":2,"st":"accepted","ss":"stay_completed","a":90.0,"c":14.76,"b":"3 décembre 2025","src":"booking_csv"},{"id":"9-5430497319-booking","g":"maxime strozik","ph":"","pl":"booking.com","pi":"12619011","ci":"2025-12-11","co":"2025-12-12","n":2,"st":"accepted","ss":"stay_completed","a":90.0,"c":14.76,"b":"11 décembre 2025","src":"booking_csv"},{"id":"9-5099447430-booking","g":"emilie PRIETO","ph":"","pl":"booking.com","pi":"12619011","ci":"2025-12-12","co":"2025-12-13","n":2,"st":"accepted","ss":"stay_completed","a":89.1,"c":14.6174,"b":"11 décembre 2025","src":"booking_csv"},{"id":"9-6337415727-booking","g":"gallart júlia","ph":"","pl":"booking.com","pi":"12619011","ci":"2025-12-14","co":"2025-12-15","n":2,"st":"accepted","ss":"stay_completed","a":81.0,"c":13.284,"b":"13 décembre 2025","src":"booking_csv"},{"id":"9-6502487042-booking","g":"Ambre Bertelle","ph":"","pl":"booking.com","pi":"12619011","ci":"2025-12-15","co":"2025-12-16","n":2,"st":"accepted","ss":"stay_completed","a":81.0,"c":13.284,"b":"15 décembre 2025","src":"booking_csv"},{"id":"9-6937483618-booking","g":"emilie PRIETO","ph":"","pl":"booking.com","pi":"12619011","ci":"2025-12-18","co":"2025-12-19","n":2,"st":"accepted","ss":"stay_completed","a":81.0,"c":13.284,"b":"14 décembre 2025","src":"booking_csv"},{"id":"9-5051770576-booking","g":"Lorena Marin","ph":"","pl":"booking.com","pi":"12619011","ci":"2025-12-19","co":"2025-12-20","n":2,"st":"accepted","ss":"stay_completed","a":89.1,"c":14.6174,"b":"15 décembre 2025","src":"booking_csv"},{"id":"9-5354510967-booking","g":"Sandra Dufay","ph":"","pl":"booking.com","pi":"12619011","ci":"2025-12-21","co":"2025-12-22","n":2,"st":"accepted","ss":"stay_completed","a":81.0,"c":13.284,"b":"7 novembre 2025","src":"booking_csv"},{"id":"9-5940432472-booking","g":"philippe Martel","ph":"","pl":"booking.com","pi":"12619011","ci":"2025-12-22","co":"2025-12-24","n":2,"st":"accepted","ss":"stay_completed","a":180.0,"c":29.52,"b":"29 octobre 2025","src":"booking_csv"},{"id":"9-5538881682-booking","g":"Solène Lefebvre","ph":"","pl":"booking.com","pi":"12619011","ci":"2025-12-26","co":"2025-12-27","n":2,"st":"accepted","ss":"stay_completed","a":89.1,"c":14.6174,"b":"21 décembre 2025","src":"booking_csv"},{"id":"9-6332253351-booking","g":"Blazquez Roger","ph":"","pl":"booking.com","pi":"12619011","ci":"2025-12-27","co":"2025-12-28","n":2,"st":"accepted","ss":"stay_completed","a":110.0,"c":18.04,"b":"10 novembre 2025","src":"booking_csv"},{"id":"9-6384761221-booking","g":"Hamza Ouhourmt","ph":"","pl":"booking.com","pi":"12619011","ci":"2026-01-04","co":"2026-01-05","n":2,"st":"cancelled","ss":"checkin_pending","a":72.9,"c":1.0206,"b":"4 janvier 2026","src":"booking_csv"},{"id":"9-6029336174-booking","g":"Aoulad Rachid","ph":"","pl":"booking.com","pi":"12619011","ci":"2026-01-11","co":"2026-01-16","n":2,"st":"accepted","ss":"stay_completed","a":364.5,"c":59.773,"b":"9 janvier 2026","src":"booking_csv"},{"id":"9-6764510889-booking","g":"Gabriel Charpentier","ph":"","pl":"booking.com","pi":"12619011","ci":"2026-01-16","co":"2026-01-17","n":2,"st":"accepted","ss":"stay_completed","a":72.9,"c":11.9606,"b":"15 janvier 2026","src":"booking_csv"},{"id":"9-6880508541-booking","g":"Carmen Munoz","ph":"","pl":"booking.com","pi":"12619011","ci":"2026-01-16","co":"2026-01-18","n":2,"st":"cancelled","ss":"checkin_pending","a":162.0,"c":0.0,"b":"9 janvier 2026","src":"booking_csv"},{"id":"9-5811285533-booking","g":"daniel brocal martin","ph":"","pl":"booking.com","pi":"12619011","ci":"2026-01-17","co":"2026-01-18","n":2,"st":"accepted","ss":"stay_completed","a":72.9,"c":11.9606,"b":"12 janvier 2026","src":"booking_csv"},{"id":"9-5028302036-booking","g":"anthony koessler","ph":"","pl":"booking.com","pi":"12619011","ci":"2026-01-23","co":"2026-01-24","n":2,"st":"accepted","ss":"stay_completed","a":72.9,"c":11.9606,"b":"20 janvier 2026","src":"booking_csv"},{"id":"9-6303984456-booking","g":"Rachid Azouigui","ph":"","pl":"booking.com","pi":"12619011","ci":"2026-01-27","co":"2026-01-28","n":2,"st":"accepted","ss":"stay_completed","a":72.9,"c":11.9606,"b":"25 janvier 2026","src":"booking_csv"},{"id":"9-6641188330-booking","g":"ROSER DORDA","ph":"","pl":"booking.com","pi":"12619011","ci":"2026-01-30","co":"2026-02-01","n":2,"st":"accepted","ss":"stay_completed","a":180.0,"c":29.52,"b":"21 novembre 2025","src":"booking_csv"},{"id":"9-6811134933-booking","g":"Kenny Anthenor","ph":"","pl":"booking.com","pi":"12619011","ci":"2026-02-04","co":"2026-02-05","n":2,"st":"accepted","ss":"stay_completed","a":72.9,"c":11.9606,"b":"3 février 2026","src":"booking_csv"},{"id":"9-6990121134-booking","g":"Naouel Bessaad","ph":"","pl":"booking.com","pi":"12619011","ci":"2026-02-05","co":"2026-02-06","n":2,"st":"accepted","ss":"stay_completed","a":72.9,"c":11.9606,"b":"3 février 2026","src":"booking_csv"},{"id":"9-6894788351-booking","g":"Brigitte Mira","ph":"","pl":"booking.com","pi":"12619011","ci":"2026-02-06","co":"2026-02-08","n":2,"st":"cancelled","ss":"checkin_pending","a":162.0,"c":0.0,"b":"5 octobre 2025","src":"booking_csv"},{"id":"9-6990510892-booking","g":"Laura Panza","ph":"","pl":"booking.com","pi":"12619011","ci":"2026-02-06","co":"2026-02-08","n":2,"st":"cancelled","ss":"checkin_pending","a":145.8,"c":2.0412,"b":"5 janvier 2026","src":"booking_csv"},{"id":"9-6592146218-booking","g":"benjamin marnas","ph":"","pl":"booking.com","pi":"12619011","ci":"2026-02-09","co":"2026-02-10","n":2,"st":"accepted","ss":"stay_completed","a":72.9,"c":11.9606,"b":"9 février 2026","src":"booking_csv"},{"id":"9-5859316573-booking","g":"Tarik Adda","ph":"","pl":"booking.com","pi":"12619011","ci":"2026-02-10","co":"2026-02-11","n":2,"st":"accepted","ss":"stay_completed","a":72.9,"c":11.9606,"b":"7 février 2026","src":"booking_csv"},{"id":"9-5688069471-booking","g":"belhaji abdelmoumaim","ph":"","pl":"booking.com","pi":"12619011","ci":"2026-02-15","co":"2026-02-16","n":2,"st":"cancelled","ss":"checkin_pending","a":72.9,"c":0.0,"b":"15 février 2026","src":"booking_csv"},{"id":"9-6488474177-booking","g":"Marion Vidal","ph":"","pl":"booking.com","pi":"12619011","ci":"2026-02-15","co":"2026-02-16","n":2,"st":"cancelled","ss":"checkin_pending","a":72.9,"c":0.0,"b":"14 février 2026","src":"booking_csv"},{"id":"9-6179596903-booking","g":"Aharrouy Anass","ph":"","pl":"booking.com","pi":"12619011","ci":"2026-02-16","co":"2026-02-17","n":2,"st":"accepted","ss":"stay_completed","a":72.9,"c":11.9606,"b":"14 février 2026","src":"booking_csv"},{"id":"9-5090935120-booking","g":"Arnau Garriga","ph":"","pl":"booking.com","pi":"12619011","ci":"2026-02-17","co":"2026-02-18","n":2,"st":"accepted","ss":"stay_completed","a":72.9,"c":11.9606,"b":"13 février 2026","src":"booking_csv"},{"id":"9-6917206400-booking","g":"Lucie Quintana","ph":"","pl":"booking.com","pi":"12619011","ci":"2026-02-18","co":"2026-02-19","n":2,"st":"accepted","ss":"stay_completed","a":72.9,"c":11.9606,"b":"18 février 2026","src":"booking_csv"},{"id":"9-5436340998-booking","g":"Ophelie esteban","ph":"","pl":"booking.com","pi":"12619011","ci":"2026-02-20","co":"2026-02-22","n":2,"st":"accepted","ss":"stay_completed","a":180.0,"c":29.52,"b":"5 janvier 2026","src":"booking_csv"},{"id":"9-5723896483-booking","g":"Frédérique Clauzel","ph":"","pl":"booking.com","pi":"12619012","ci":"2026-02-21","co":"2026-02-22","n":2,"st":"accepted","ss":"stay_completed","a":130.98,"c":21.48372,"b":"10 février 2026","src":"booking_csv"},{"id":"9-5341627664-booking","g":"Valentyna Mostova","ph":"","pl":"booking.com","pi":"12619011","ci":"2026-02-22","co":"2026-02-23","n":2,"st":"accepted","ss":"stay_completed","a":72.9,"c":11.9606,"b":"15 février 2026","src":"booking_csv"},{"id":"9-6117642624-booking","g":"Gregory Guiraudon","ph":"","pl":"booking.com","pi":"12619011","ci":"2026-02-24","co":"2026-02-25","n":2,"st":"cancelled","ss":"checkin_pending","a":72.9,"c":0.0,"b":"23 février 2026","src":"booking_csv"},{"id":"9-6622415405-booking","g":"marion da silva","ph":"","pl":"booking.com","pi":"12619011","ci":"2026-02-24","co":"2026-02-25","n":2,"st":"cancelled","ss":"checkin_pending","a":72.9,"c":0.0,"b":"23 février 2026","src":"booking_csv"},{"id":"9-5656422838-booking","g":"aurelie joly","ph":"","pl":"booking.com","pi":"12619011","ci":"2026-02-25","co":"2026-02-26","n":2,"st":"accepted","ss":"stay_completed","a":81.0,"c":13.284,"b":"12 janvier 2026","src":"booking_csv"},{"id":"9-5999261028-booking","g":"Kelly Wallon","ph":"","pl":"booking.com","pi":"12619011","ci":"2026-02-27","co":"2026-02-28","n":2,"st":"accepted","ss":"stay_completed","a":72.9,"c":11.9606,"b":"17 février 2026","src":"booking_csv"},{"id":"9-5558626644-booking","g":"sandrine weder","ph":"","pl":"booking.com","pi":"12619011","ci":"2026-02-28","co":"2026-03-01","n":2,"st":"accepted","ss":"stay_completed","a":72.9,"c":11.9606,"b":"24 février 2026","src":"booking_csv"},{"id":"9-6185701137-booking","g":"annick Leveau","ph":"","pl":"booking.com","pi":"12619011","ci":"2026-03-01","co":"2026-03-02","n":2,"st":"accepted","ss":"stay_completed","a":72.9,"c":11.9606,"b":"28 février 2026","src":"booking_csv"},{"id":"9-5173699855-booking","g":"maeva recuerda","ph":"","pl":"booking.com","pi":"12619011","ci":"2026-03-02","co":"2026-03-03","n":2,"st":"accepted","ss":"stay_completed","a":72.9,"c":11.9606,"b":"2 mars 2026","src":"booking_csv"},{"id":"9-5219633861-booking","g":"Aurore Aurore","ph":"","pl":"booking.com","pi":"12619011","ci":"2026-03-03","co":"2026-03-04","n":2,"st":"accepted","ss":"stay_completed","a":72.9,"c":11.9606,"b":"3 mars 2026","src":"booking_csv"},{"id":"9-6980011764-booking","g":"Jessica Garcia","ph":"","pl":"booking.com","pi":"12619011","ci":"2026-03-04","co":"2026-03-05","n":2,"st":"accepted","ss":"stay_completed","a":81.0,"c":13.284,"b":"4 mars 2026","src":"booking_csv"},{"id":"9-6553248164-booking","g":"Sébastien Ségur","ph":"","pl":"booking.com","pi":"12619011","ci":"2026-03-07","co":"2026-03-08","n":2,"st":"accepted","ss":"stay_completed","a":81.0,"c":13.284,"b":"1 mars 2026","src":"booking_csv"},{"id":"9-5312404575-booking","g":"Myriam Bensaid","ph":"","pl":"booking.com","pi":"12619011","ci":"2026-03-09","co":"2026-03-10","n":2,"st":"accepted","ss":"stay_completed","a":81.0,"c":13.284,"b":"9 mars 2026","src":"booking_csv"},{"id":"9-6910674322-booking","g":"Mohamed Tahraoui","ph":"","pl":"booking.com","pi":"12619011","ci":"2026-03-10","co":"2026-03-12","n":2,"st":"accepted","ss":"stay_completed","a":145.8,"c":23.9112,"b":"3 mars 2026","src":"booking_csv"},{"id":"9-6998323511-booking","g":"Raphaël MALET","ph":"","pl":"booking.com","pi":"12619011","ci":"2026-03-13","co":"2026-03-14","n":2,"st":"accepted","ss":"stay_completed","a":90.0,"c":14.76,"b":"5 mars 2026","src":"booking_csv"},{"id":"9-5843644107-booking","g":"Ana Arribas","ph":"","pl":"booking.com","pi":"12619011","ci":"2026-03-14","co":"2026-03-15","n":2,"st":"accepted","ss":"stay_completed","a":81.0,"c":13.284,"b":"29 novembre 2025","src":"booking_csv"},{"id":"9-6635277459-booking","g":"Simon Girard","ph":"","pl":"booking.com","pi":"12619011","ci":"2026-03-20","co":"2026-03-22","n":2,"st":"accepted","ss":"stay_completed","a":145.8,"c":23.9112,"b":"17 février 2026","src":"booking_csv"},{"id":"9-6595836088-booking","g":"Tarik Adda","ph":"","pl":"booking.com","pi":"12619011","ci":"2026-03-22","co":"2026-03-23","n":2,"st":"accepted","ss":"stay_completed","a":72.9,"c":11.9606,"b":"5 mars 2026","src":"booking_csv"},{"id":"9-5046729980-booking","g":"Thomas Marsa","ph":"","pl":"booking.com","pi":"12619011","ci":"2026-03-27","co":"2026-03-28","n":2,"st":"accepted","ss":"stay_completed","a":81.0,"c":13.284,"b":"27 mars 2026","src":"booking_csv"},{"id":"9-5817941952-booking","g":"Emma Caspani","ph":"","pl":"booking.com","pi":"12619011","ci":"2026-03-28","co":"2026-03-29","n":2,"st":"accepted","ss":"stay_completed","a":72.9,"c":11.9606,"b":"15 février 2026","src":"booking_csv"},{"id":"9-6753883058-booking","g":"mathis Cros","ph":"","pl":"booking.com","pi":"12619011","ci":"2026-03-29","co":"2026-03-31","n":2,"st":"accepted","ss":"stay_completed","a":145.8,"c":23.9112,"b":"22 mars 2026","src":"booking_csv"},{"id":"9-6923255393-booking","g":"Anna Estella","ph":"","pl":"booking.com","pi":"12619011","ci":"2026-03-31","co":"2026-04-01","n":2,"st":"accepted","ss":"stay_completed","a":81.0,"c":13.284,"b":"13 février 2026","src":"booking_csv"},{"id":"9-6460036922-booking","g":"Tarik Adda","ph":"","pl":"booking.com","pi":"12619011","ci":"2026-04-01","co":"2026-04-02","n":2,"st":"accepted","ss":"stay_completed","a":81.0,"c":13.284,"b":"31 mars 2026","src":"booking_csv"},{"id":"9-5902506248-booking","g":"toni esteve","ph":"","pl":"booking.com","pi":"12619011","ci":"2026-04-03","co":"2026-04-05","n":2,"st":"cancelled","ss":"checkin_pending","a":162.0,"c":0.0,"b":"8 février 2026","src":"booking_csv"},{"id":"9-6358338676-booking","g":"Raquel Cela","ph":"","pl":"booking.com","pi":"12619011","ci":"2026-04-03","co":"2026-04-05","n":2,"st":"accepted","ss":"stay_completed","a":162.0,"c":26.568,"b":"16 mars 2026","src":"booking_csv"},{"id":"9-5387304387-booking","g":"Aranzazu de Zarraga","ph":"","pl":"booking.com","pi":"12619011","ci":"2026-04-04","co":"2026-04-05","n":2,"st":"cancelled","ss":"checkin_pending","a":81.0,"c":0.0,"b":"2 février 2026","src":"booking_csv"},{"id":"9-5440428004-booking","g":"Miriam Mestre","ph":"","pl":"booking.com","pi":"12619012","ci":"2026-04-04","co":"2026-04-05","n":2,"st":"cancelled","ss":"checkin_pending","a":130.98,"c":0.0,"b":"27 mars 2026","src":"booking_csv"},{"id":"9-5691997354-booking","g":"Jessica Garcia","ph":"","pl":"booking.com","pi":"12619011","ci":"2026-04-08","co":"2026-04-09","n":2,"st":"accepted","ss":"stay_completed","a":81.0,"c":13.284,"b":"8 avril 2026","src":"booking_csv"},{"id":"9-5636997581-booking","g":"Jean luc Vernet","ph":"","pl":"booking.com","pi":"12619011","ci":"2026-04-12","co":"2026-04-13","n":2,"st":"accepted","ss":"stay_completed","a":81.0,"c":13.284,"b":"12 avril 2026","src":"booking_csv"},{"id":"9-6884741198-booking","g":"Jessica Garcia","ph":"","pl":"booking.com","pi":"12619011","ci":"2026-04-15","co":"2026-04-16","n":2,"st":"cancelled","ss":"checkin_pending","a":81.0,"c":0.0,"b":"8 avril 2026","src":"booking_csv"},{"id":"9-6209667109-booking","g":"Cyril VIZOR","ph":"","pl":"booking.com","pi":"12619011","ci":"2026-04-17","co":"2026-04-18","n":2,"st":"accepted","ss":"checkin_pending","a":81.0,"c":13.284,"b":"6 avril 2026","src":"booking_csv"}];
+const MONTHS=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+const DAYS=['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
+
+const S={page:'dashboard',props:[],reservations:[],conversations:[],selectedProp:null,currentMonth:new Date(),resFilter:'Toutes',isLive:false,ratesProp:null,ratesMonth:null,ratesPrices:{},ratesMinStay:{},ratesLoaded:{},calView:'single'};
+
+async function api(path,method='GET',body=null,timeoutMs=6000){
+  const ctrl=new AbortController();
+  const timer=setTimeout(()=>ctrl.abort(),timeoutMs);
+  try{
+    const opts={method,headers:{'Content-Type':'application/json'},signal:ctrl.signal};
+    if(body)opts.body=JSON.stringify(body);
+    const r=await fetch(PROXY+'/api'+path,opts);
+    clearTimeout(timer);
+    return r.json();
+  }catch(e){clearTimeout(timer);throw e;}
+}
+
+function fmt(s){if(!s)return '';const d=new Date(s+'T00:00:00');return d.toLocaleDateString('fr-FR',{day:'numeric',month:'short'});}
+function dStr(d){return d.toISOString().slice(0,10);}
+function parseD(s){const[y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d);}
+function nights(a,b){return Math.round((parseD(b)-parseD(a))/86400000);}
+function platClass(p){if(!p)return 'direct';const l=p.toLowerCase();if(l.includes('airbnb'))return 'airbnb';if(l.includes('booking'))return 'booking';return 'direct';}
+function platLabel(p){if(!p)return 'Direct';const l=p.toLowerCase();if(l.includes('airbnb'))return 'Airbnb';if(l.includes('booking'))return 'Booking.com';return p;}
+
+function mapRes(r){return{id:String(r.reservation_code||r.id||r.code),guest:r.guest_name||'Voyageur',platform:r.channel_type||r.channel||'direct',check_in:r.check_in_date||r.check_in||r.arrival,check_out:r.check_out_date||r.check_out||r.departure,amount:parseFloat(r.rates?.total_rate?.amount||r.total_price||0),currency:r.rates?.total_rate?.currency||r.currency||'EUR',commission:parseFloat(r.rates?.total_commission?.amount||0),status:r.status||'confirmed',stay_status:r.stay_status||'',guests:r.number_of_guests||1,phone:r.guest_phone||'',email:r.guest_email||'',prop_id:String(r.property_id||''),booked_at:r.booked_at||''};}
+
+function loadFromCSV(){
+  const map={};
+  for(const r of CSV_DATA){
+    const key=r.reservation_code||r.id;
+    map[key]=mapRes(r);
+  }
+  return Object.values(map).sort((a,b)=>(b.check_in||'').localeCompare(a.check_in||''));
+}
+
+async function syncLive(){
+  try{
+    const controller=new AbortController();
+    const timeout=setTimeout(()=>controller.abort(),8000);
+    const rd=await fetch(PROXY+'/all-reservations',{signal:controller.signal});
+    clearTimeout(timeout);
+    const data=await rd.json();
+    const liveRes=data.data?.reservations||[];
+    if(!liveRes.length)return;
+    const map={};
+    for(const r of S.reservations)map[r.id]=r;
+    for(const r of liveRes){const key=r.reservation_code||r.id;map[key]=mapRes(r);}
+    S.reservations=Object.values(map).sort((a,b)=>(b.check_in||'').localeCompare(a.check_in||''));
+    document.getElementById('conn-label').innerHTML='&#10003; '+S.reservations.length+' r\u00e9servations';
+    document.getElementById('live-badge').innerHTML='<span class="badge b-ok">Live</span>';
+    if(S.page==='dashboard'||S.page==='calendar')render();
+  }catch(e){
+    document.getElementById('live-badge').innerHTML='<span class="badge" style="background:#f5f4f0;color:#888">CSV</span>';
+  }
+}
+
+async function loadAll(){
+  document.getElementById('conn-label').innerHTML='Chargement...';
+
+  // 1. Affichage instantané depuis le CSV embarqué
+  S.reservations=loadFromCSV();
+
+  // 2. Biens hardcodés (pas d'attente API)
+  if(!S.props||!S.props.length){
+    S.props=[
+      {id:'12619011',name:'Suite Illiberis',checkin:'15:00',checkout:'12:00',channels:[{channel_type:'airbnb',listing_id:'1444758558715417027',currency:'EUR'},{channel_type:'booking.com',listing_id:'1481914101',currency:'EUR'}]},
+      {id:'12619012',name:'Loft Cinema Illiberis',checkin:'15:00',checkout:'12:00',channels:[{channel_type:'airbnb',listing_id:'1499112879728152781',currency:'EUR'}]}
+    ];
+    S.selectedProp=S.props[0].id;if(!S.ratesProp)S.ratesProp=S.props[0].id;
+  }
+
+  document.getElementById('conn-label').innerHTML='&#10003; '+S.reservations.length+' r\u00e9servations';
+  document.getElementById('live-badge').innerHTML='<span class="badge" style="background:#f5f4f0;color:#888">CSV</span>';
+  render();
+
+  // 3. Tout en arrière-plan, rien ne bloque
+  setTimeout(()=>{
+    syncLive();
+    api('/conversations?page_size=50').then(cd=>{
+      S.conversations=(cd.data?.conversations||cd.data||[]).map(c=>({id:String(c.id),guest:c.guest_name||'Voyageur',platform:c.channel_type||c.channel||'direct',preview:c.last_message||'',unread:!!(c.unread||c.has_unread),prop_id:String(c.property_id||'')}));
+      if(S.page==='messages'||S.page==='dashboard')render();
+    }).catch(()=>{S.conversations=[];});
+  },100);
+}
+const navDef=[{id:'dashboard',label:'Tableau de bord',icon:'◈'},{id:'reservations',label:'Réservations',icon:'≡'},{id:'calendar',label:'Calendrier',icon:'▦'},{id:'rates',label:'Tarifs',icon:'€'},{id:'properties',label:'Mes biens',icon:'⌂'},{id:'messages',label:'Messages',icon:'✉'}];
+
+function navigate(p){S.page=p;render();}
+
+function render(){
+  const unread=S.conversations.filter(c=>c.unread).length;
+  document.getElementById('nav').innerHTML=navDef.map(n=>`<div class="nav-item ${S.page===n.id?'active':''}" onclick="navigate('${n.id}')"><span style="font-size:12px">${n.icon}</span><span>${n.label}</span>${n.id==='messages'&&unread?`<span class="nav-badge">${unread}</span>`:''}</div>`).join('');
+  const titles={dashboard:'Tableau de bord',reservations:'Réservations',calendar:'Calendrier',rates:'Tarifs & Prix',properties:'Mes biens',messages:'Messages voyageurs'};
+  document.getElementById('page-title').textContent=titles[S.page]||'';
+  const ta=document.getElementById('topbar-actions');
+  ta.innerHTML='';
+  if(S.page==='reservations')ta.innerHTML=`<button class="btn btn-green" onclick="openAddRes()">+ Nouvelle réservation</button>`;
+  if(S.page==='calendar')ta.innerHTML=`<button class="btn" onclick="openBlock()">Bloquer dates</button>`;
+  if(S.page==='rates')ta.innerHTML=`<button class="btn btn-green" onclick="loadAll()">↻ Sync Hostex</button>`;
+  const pages={dashboard:renderDash,reservations:renderRes,calendar:renderCal,rates:renderRates,properties:renderProps,messages:renderMsgs};
+  (pages[S.page]||renderDash)();
+}
+
+function checkConflicts(){
+  const c=[];
+  for(const prop of S.props){
+    const res=S.reservations.filter(r=>r.prop_id===prop.id&&r.check_in&&r.check_out);
+    for(let i=0;i<res.length;i++)for(let j=i+1;j<res.length;j++)
+      if(parseD(res[i].check_in)<parseD(res[j].check_out)&&parseD(res[i].check_out)>parseD(res[j].check_in))c.push({a:res[i],b:res[j]});
+  }
+  return c;
+}
+
+function renderDash(){
+  const now=new Date();
+  const past=S.reservations.filter(r=>r.check_in&&r.check_out&&r.status!=='cancelled');
+  const monthRes=past.filter(r=>{const d=parseD(r.check_in);return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();});
+  const rev=monthRes.reduce((s,r)=>s+r.amount,0);
+  const totalRev=past.reduce((s,r)=>s+r.amount,0);
+  const upcoming=S.reservations.filter(r=>r.check_in&&parseD(r.check_in)>=now).sort((a,b)=>a.check_in.localeCompare(b.check_in)).slice(0,5);
+  const unread=S.conversations.filter(c=>c.unread).length;
+  const conflicts=checkConflicts();
+
+  // Calcul revenus 12 derniers mois
+  const months12=[];
+  for(let i=11;i>=0;i--){
+    const d=new Date(now.getFullYear(),now.getMonth()-i,1);
+    const label=MONTHS[d.getMonth()].slice(0,3)+' '+String(d.getFullYear()).slice(2);
+    const res=past.filter(r=>{if(!r.check_in)return false;const rd=parseD(r.check_in);return rd.getMonth()===d.getMonth()&&rd.getFullYear()===d.getFullYear();});
+    const rv=res.reduce((s,r)=>s+r.amount,0);
+    const airbnbRv=res.filter(r=>platClass(r.platform)==='airbnb').reduce((s,r)=>s+r.amount,0);
+    const bookingRv=res.filter(r=>platClass(r.platform)==='booking').reduce((s,r)=>s+r.amount,0);
+    const directRv=res.filter(r=>platClass(r.platform)==='direct').reduce((s,r)=>s+r.amount,0);
+    months12.push({label,rv,airbnbRv,bookingRv,directRv,count:res.length});
+  }
+
+  // Taux occupation par bien (30 derniers jours)
+  const occ30=S.props.map(p=>{
+    const days30=30;
+    let occupied=0;
+    const today=new Date();
+    for(let d=0;d<days30;d++){
+      const dd=new Date(today.getFullYear(),today.getMonth(),today.getDate()-d);
+      const dds=dStr(dd);
+      const isOcc=past.some(r=>r.prop_id===p.id&&r.check_in&&r.check_out&&parseD(r.check_in)<=dd&&parseD(r.check_out)>dd);
+      if(isOcc)occupied++;
+    }
+    return{name:p.name,pct:Math.round(occupied/days30*100)};
+  });
+
+  // Répartition plateformes
+  const platData=['airbnb','booking','direct'].map(pl=>{
+    const lst=past.filter(r=>platClass(r.platform)===pl);
+    return{pl,count:lst.length,rev:lst.reduce((s,r)=>s+r.amount,0)};
+  }).filter(d=>d.count>0);
+  const totalCount=platData.reduce((s,d)=>s+d.count,0);
+
+  document.getElementById('main-content').innerHTML=`
+    ${conflicts.length?`<div class="conflict-banner"><span style="font-size:13px;font-weight:500;color:#854F0B">⚠ ${conflicts.length} conflit(s) détecté(s)</span><button class="btn btn-red" style="font-size:11px" onclick="navigate('reservations')">Voir</button></div>`:''}
+    <div class="grid4">
+      <div class="stat"><div class="stat-l">Revenus ce mois</div><div class="stat-v">${Math.round(rev).toLocaleString('fr-FR')} €</div><div class="stat-s">${MONTHS[now.getMonth()]}</div></div>
+      <div class="stat"><div class="stat-l">Revenus total</div><div class="stat-v">${Math.round(totalRev).toLocaleString('fr-FR')} €</div><div class="stat-s">${past.length} réservations</div></div>
+      <div class="stat"><div class="stat-l">Messages non lus</div><div class="stat-v" style="color:${unread?'#E24B4A':'#1D9E75'}">${unread}</div><div class="stat-s">${unread?'À répondre':'Tout lu'}</div></div>
+      <div class="stat"><div class="stat-l">Arrivées à venir</div><div class="stat-v">${upcoming.length}</div><div class="stat-s">Prochaines</div></div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+      <div class="card" style="padding:14px">
+        <div style="font-size:12px;font-weight:600;margin-bottom:12px">Revenus par mois (12 mois)</div>
+        <canvas id="chart-rev" height="160"></canvas>
+      </div>
+      <div class="card" style="padding:14px">
+        <div style="font-size:12px;font-weight:600;margin-bottom:12px">Répartition plateformes</div>
+        <canvas id="chart-plat" height="160"></canvas>
+      </div>
+    </div>
+
+    <div class="card" style="padding:14px;margin-bottom:14px">
+      <div style="font-size:12px;font-weight:600;margin-bottom:12px">Taux d'occupation — 30 derniers jours</div>
+      ${occ30.map(o=>`
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+          <div style="font-size:12px;color:#666;min-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${o.name}</div>
+          <div style="flex:1;background:#f0efe9;border-radius:20px;height:10px;overflow:hidden">
+            <div style="width:${o.pct}%;background:${o.pct>70?'#1D9E75':o.pct>40?'#EF9F27':'#E24B4A'};height:100%;border-radius:20px;transition:width 0.5s"></div>
+          </div>
+          <div style="font-size:12px;font-weight:600;min-width:36px;text-align:right">${o.pct}%</div>
+        </div>`).join('')}
+    </div>
+
+    <div class="section-h">Prochaines arrivées</div>
+    <div class="card">${upcoming.length?upcoming.map(r=>{const prop=S.props.find(p=>p.id===r.prop_id);return`<div class="res-row"><div><div class="res-guest">${r.guest}</div><div class="res-meta">${prop?prop.name:'—'} • ${fmt(r.check_in)} → ${fmt(r.check_out)}</div></div><div class="res-right"><span class="badge b-${platClass(r.platform)}">${platLabel(r.platform)}</span><span style="font-size:13px;font-weight:600">${Math.round(r.amount).toLocaleString('fr-FR')} €</span></div></div>`;}).join(''):'<div style="color:#888;font-size:13px">Aucune réservation à venir.</div>'}</div>
+  `;
+
+  // Graphique revenus barres empilées
+  setTimeout(function(){
+    const c1=document.getElementById('chart-rev');
+    if(!c1)return;
+    const ctx1=c1.getContext('2d');
+    const W=c1.offsetWidth;const H=160;c1.width=W;c1.height=H;
+    const pad={l:40,r:10,t:10,b:28};
+    const bw=Math.floor((W-pad.l-pad.r)/months12.length)-3;
+    const maxRv=Math.max(...months12.map(m=>m.rv),1);
+    ctx1.clearRect(0,0,W,H);
+    months12.forEach(function(m,i){
+      const x=pad.l+i*(bw+3);
+      const chartH=H-pad.t-pad.b;
+      const airH=Math.round(m.airbnbRv/maxRv*chartH);
+      const bookH=Math.round(m.bookingRv/maxRv*chartH);
+      const dirH=Math.round(m.directRv/maxRv*chartH);
+      let y=H-pad.b;
+      if(airH>0){ctx1.fillStyle='#FFB3B3';ctx1.fillRect(x,y-airH,bw,airH);y-=airH;}
+      if(bookH>0){ctx1.fillStyle='#85B7EB';ctx1.fillRect(x,y-bookH,bw,bookH);y-=bookH;}
+      if(dirH>0){ctx1.fillStyle='#5DCAA5';ctx1.fillRect(x,y-dirH,bw,dirH);}
+      ctx1.fillStyle='#aaa';ctx1.font='9px sans-serif';ctx1.textAlign='center';
+      ctx1.fillText(m.label,x+bw/2,H-pad.b+11);
+      if(m.rv>0){ctx1.fillStyle='#444';ctx1.font='8px sans-serif';ctx1.fillText(Math.round(m.rv/1000*10)/10+'k',x+bw/2,H-pad.b-Math.round(m.rv/maxRv*(H-pad.t-pad.b))-3);}
+    });
+    // Légende
+    const leg=[['#FFB3B3','Airbnb'],['#85B7EB','Booking'],['#5DCAA5','Direct']];
+    leg.forEach(function(l,i){
+      ctx1.fillStyle=l[0];ctx1.fillRect(pad.l+i*70,4,10,8);
+      ctx1.fillStyle='#666';ctx1.font='9px sans-serif';ctx1.textAlign='left';
+      ctx1.fillText(l[1],pad.l+i*70+13,11);
+    });
+
+    // Graphique camembert plateformes
+    const c2=document.getElementById('chart-plat');
+    if(!c2)return;
+    const ctx2=c2.getContext('2d');
+    const W2=c2.offsetWidth;c2.width=W2;c2.height=160;
+    const cx=W2/2-40,cy=75,radius=60;
+    const colors={'airbnb':'#FFB3B3','booking':'#85B7EB','direct':'#5DCAA5'};
+    let startAngle=-Math.PI/2;
+    platData.forEach(function(d){
+      const slice=d.count/totalCount*2*Math.PI;
+      ctx2.beginPath();ctx2.moveTo(cx,cy);
+      ctx2.arc(cx,cy,radius,startAngle,startAngle+slice);
+      ctx2.closePath();ctx2.fillStyle=colors[d.pl]||'#ccc';ctx2.fill();
+      ctx2.strokeStyle='#fff';ctx2.lineWidth=2;ctx2.stroke();
+      startAngle+=slice;
+    });
+    // Légende camembert
+    let ly=30;
+    platData.forEach(function(d){
+      ctx2.fillStyle=colors[d.pl]||'#ccc';ctx2.fillRect(W2-80,ly,12,12);
+      ctx2.fillStyle='#333';ctx2.font='11px sans-serif';ctx2.textAlign='left';
+      ctx2.fillText(platLabel(d.pl),W2-64,ly+10);
+      ctx2.fillStyle='#888';ctx2.font='10px sans-serif';
+      ctx2.fillText(Math.round(d.rev).toLocaleString('fr-FR')+'€',W2-64,ly+22);
+      ctx2.fillText(d.count+' rés. ('+Math.round(d.count/totalCount*100)+'%)',W2-64,ly+34);
+      ly+=50;
+    });
+  },50);
+}
+
+function renderRes(){
+  const filter=S.resFilter;
+  const filtered=S.reservations.filter(r=>filter==='Toutes'||platClass(r.platform)===filter.toLowerCase()).sort((a,b)=>(b.check_in||'').localeCompare(a.check_in||''));
+  document.getElementById('main-content').innerHTML=`
+    <div class="tabs">${['Toutes','Airbnb','Booking','Direct'].map(t=>`<div class="tab ${filter===t?'active':''}" onclick="S.resFilter='${t}';render()">${t}</div>`).join('')}</div>
+    <div class="card">${filtered.length?filtered.map(r=>{const prop=S.props.find(p=>p.id===r.prop_id);const n=r.check_in&&r.check_out?nights(r.check_in,r.check_out):'?';return`<div class="res-row"><div><div class="res-guest">${r.guest}</div><div class="res-meta">${prop?prop.name:'—'} • ${fmt(r.check_in)} → ${fmt(r.check_out)} • ${n} nuits</div></div><div class="res-right"><span class="badge b-${platClass(r.platform)}">${platLabel(r.platform)}</span><span style="font-size:13px;font-weight:600">${Math.round(r.amount).toLocaleString('fr-FR')} €</span><button class="btn" style="font-size:11px" onclick="openResDetail('${r.id}')">Détail</button></div></div>`;}).join(''):'<div style="color:#888;font-size:13px">Aucune réservation.</div>'}</div>`;
+}
+
+function renderCal(){
+  const year=S.currentMonth.getFullYear(), month=S.currentMonth.getMonth();
+  const dim=new Date(year,month+1,0).getDate();
+  const firstDay=new Date(year,month,1).getDay();
+  const dPrev=new Date(year,month,0).getDate();
+  const total=Math.ceil((firstDay+dim)/7)*7;
+  const JOURS=["Dim","Lun","Mar","Mer","Jeu","Ven","Sam"];
+  const MOIS=["Janvier","F\u00e9vrier","Mars","Avril","Mai","Juin","Juillet","Ao\u00fbt","Septembre","Octobre","Novembre","D\u00e9cembre"];
+  const view=S.calView||"single";
+
+  const CP={"airbnb":"#C8523E","booking.com":"#2E5F9E","booking":"#2E5F9E","direct":"#3D8B78"};
+  const CPN={"airbnb":"Airbnb","booking.com":"Booking","booking":"Booking","direct":"Direct"};
+  const CBG=["#6B5B9E","#3D8B6A"];
+  const RAD="7px";
+
+  // Comparaison de dates UNIQUEMENT sur la string YYYY-MM-DD (pas d'objet Date)
+  // Evite tous les bugs de comparaison d'objets Date en JS
+  function ds2n(s){return parseInt(s.replace(/-/g,""),10);}  // "2026-04-17" -> 20260417
+
+  // Attribue un index de ligne FIXE a chaque reservation pour tout l'historique
+  // Toutes les resa du bien, triees par check_in
+  // rowEnd[i] = numero de date de fin de la ligne i (string YYYY-MM-DD)
+  function computeRows(propId){
+    const res=S.reservations
+      .filter(function(r){return r.prop_id===propId&&r.check_in&&r.check_out&&r.status!=="cancelled";})
+      .slice()
+      .sort(function(a,b){return a.check_in<b.check_in?-1:a.check_in>b.check_in?1:0;});
+    const rowEnd=[]; // stocke la date check_out (string) de chaque ligne
+    const rowOf={};
+    res.forEach(function(r){
+      const ciN=ds2n(r.check_in);
+      var row=-1;
+      for(var i=0;i<rowEnd.length;i++){
+        // La ligne est libre si le check_in de r est >= check_out de ce qui occupe la ligne
+        if(ciN>=ds2n(rowEnd[i])){row=i;break;}
+      }
+      if(row===-1){row=rowEnd.length;rowEnd.push("");}
+      rowEnd[row]=r.check_out;
+      rowOf[r.id]=row;
+    });
+    return {rowOf:rowOf, nRows:Math.max(1,rowEnd.length)};
+  }
+
+  // Genere les divs de barres pour une cellule (ds=date string)
+  function cellBars(ds, propRes, rowOf, topOff, barH, colorFn){
+    const dsN=ds2n(ds);
+    var out="";
+    propRes.forEach(function(r){
+      const ciN=ds2n(r.check_in), coN=ds2n(r.check_out);
+      // Actif si check_in<=date ET check_out>=date (check_out inclus = jour depart)
+      if(ciN>dsN||coN<dsN)return;
+      const row=rowOf[r.id]||0;
+      const col=colorFn(r);
+      const arr=r.check_in===ds, dep=r.check_out===ds;
+      const top=topOff+row*(barH+2);
+      const name=(r.guest||"").split(" ")[0];
+
+      // ARRONDI : arrivee=gauche arrondi+droite carree, depart=gauche carre+droite arrondie
+      var L,R,TL,BL,TR,BR;
+      if(arr&&dep){L="3px";R="3px";TL=RAD;BL=RAD;TR=RAD;BR=RAD;}
+      else if(arr){L="50%";R="0";  TL=RAD;BL=RAD;TR="0"; BR="0"; }
+      else if(dep){L="0";  R="50%";TL="0"; BL="0"; TR=RAD;BR=RAD;}
+      else        {L="0";  R="0";  TL="0"; BL="0"; TR="0"; BR="0";}
+
+      // Nom affiché UNE SEULE FOIS : case arrivée ou 1er jour visible du mois
+      const isFirstVisible=(!arr&&ds===dStr(new Date(year,month,1)));
+      const label=(arr||isFirstVisible)&&name?('<span style="position:absolute;left:8px;top:50%;transform:translateY(-50%);font-size:8px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;pointer-events:none;max-width:90%">'+name+'</span>'):"";
+
+      out+="<div onclick=\"event.stopPropagation();openResDetail('"+r.id+"')\" title=\""+(r.guest||"")+" - "+platLabel(r.platform)+" - "+fmt(r.check_in)+" -> "+fmt(r.check_out)+"\" style=\"position:absolute;left:"+L+";right:"+R+";top:"+top+"px;height:"+barH+"px;background:"+col+";border-top-left-radius:"+TL+";border-bottom-left-radius:"+BL+";border-top-right-radius:"+TR+";border-bottom-right-radius:"+BR+";cursor:pointer;overflow:hidden;box-shadow:0 1px 2px rgba(0,0,0,0.18);\" onmouseover=\"this.style.opacity=.75\" onmouseout=\"this.style.opacity=1\">"+label+"</div>";
+    });
+    return out;
+  }
+
+  const TH="font-size:10px;color:#888;text-align:center;padding:6px 2px;font-weight:600;background:#f5f4f0;border:1px solid #e5e4e0;";
+  const thead="<tr>"+JOURS.map(function(d){return"<th style=\""+TH+"\">"+d+"</th>";}).join("")+"</tr>";
+
+  function mStats(propId){
+    var r=S.reservations.filter(function(r){return r.prop_id===propId&&r.check_in&&r.status!=="cancelled"&&(function(){var d=parseD(r.check_in);return d.getMonth()===month&&d.getFullYear()===year;})();});
+    return {n:r.length,rev:r.reduce(function(s,x){return s+x.amount;},0)};
+  }
+
+  const legItems=["airbnb","booking.com","direct"].map(function(k){
+    return "<span style=\"display:inline-flex;align-items:center;gap:4px;font-size:10px\"><span style=\"width:18px;height:10px;border-radius:5px;background:"+CP[k]+";display:inline-block\"></span><b style=\"color:#555\">"+CPN[k]+"</b></span>";
+  }).join("");
+
+  const nav="<div style=\"display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px\">"
+    +"<div style=\"display:flex;align-items:center;gap:8px\">"
+    +"<button class=\"btn\" onclick=\"chgMonth(-1)\" style=\"font-size:16px;padding:4px 14px\">\u2039</button>"
+    +"<span style=\"font-size:15px;font-weight:700;min-width:160px;text-align:center\">"+MOIS[month]+" "+year+"</span>"
+    +"<button class=\"btn\" onclick=\"chgMonth(1)\" style=\"font-size:16px;padding:4px 14px\">\u203a</button>"
+    +"<button class=\"btn\" style=\"font-size:11px\" onclick=\"S.currentMonth=new Date();render()\">Auj.</button>"
+    +"</div>"
+    +"<div style=\"display:flex;align-items:center;gap:10px;flex-wrap:wrap\">"
+    +(view==="single"?legItems:"")
+    +"<div style=\"display:flex;gap:4px\">"
+    +"<button class=\"btn"+(view==="single"?" btn-green":"")+"\" style=\"font-size:11px\" onclick=\"S.calView='single';render()\">Par bien</button>"
+    +"<button class=\"btn"+(view==="global"?" btn-green":"")+"\" style=\"font-size:11px\" onclick=\"S.calView='global';render()\">Vue globale</button>"
+    +"</div></div></div>";
+
+  // ── VUE PAR BIEN ─────────────────────────────────────────────────────
+  if(view==="single"){
+    const BAR=18, LABEL=20;
+    const propRes=S.reservations.filter(function(r){return r.prop_id===S.selectedProp&&r.check_in&&r.check_out&&r.status!=="cancelled";});
+    const info=computeRows(S.selectedProp);
+    const cellH=Math.max(62, LABEL+info.nRows*(BAR+2)+6);
+    var tds="";
+    for(var i=0;i<total;i++){
+      var day,cur=true;
+      if(i<firstDay){day=dPrev-firstDay+i+1;cur=false;}
+      else if(i>=firstDay+dim){day=i-firstDay-dim+1;cur=false;}
+      else day=i-firstDay+1;
+      const date=cur?new Date(year,month,day):i<firstDay?new Date(year,month-1,day):new Date(year,month+1,day);
+      const ds=dStr(date);
+      const isToday=ds===dStr(new Date());
+      const isWE=date.getDay()===0||date.getDay()===6;
+      const bg=isToday?"#FFFBF0":isWE&&cur?"#FAFAFA":"#fff";
+      const bd=isToday?"2px solid #F59E0B":"1px solid #e5e4e0";
+      const bars=cellBars(ds,propRes,info.rowOf,LABEL,BAR,function(r){return CP[r.platform]||CP["direct"];});
+      tds+="<td onclick=\"_dc('"+ds+"','"+S.selectedProp+"')\" style=\"border:"+bd+";height:"+cellH+"px;vertical-align:top;padding:4px 2px 2px;cursor:pointer;background:"+bg+";opacity:"+(cur?1:0.3)+";position:relative;\" onmouseover=\"if("+(cur?1:0)+")this.style.background='"+(isToday?"#FFF3D0":"#F5F4F0")+"'\" onmouseout=\"this.style.background='"+bg+"'\">"
+        +"<div style=\"font-size:10px;font-weight:"+(isToday?700:400)+";color:"+(isToday?"#92400E":"#ccc")+"\">"+day+(propRes.some(r=>r.check_out===ds)?" 🧹":"")+"</div>"
+        +bars+"</td>";
+      if((i+1)%7===0&&i<total-1)tds+="</tr><tr>";
+    }
+    const st=mStats(S.selectedProp);
+    const prop=S.props.find(function(p){return p.id===S.selectedProp;})||{name:""};
+    document.getElementById("main-content").innerHTML=nav
+      +"<div style=\"display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap\">"
+      +S.props.map(function(p){return"<button class=\"btn"+(S.selectedProp===p.id?" btn-green":"")+"\" style=\"font-size:11px\" onclick=\"S.selectedProp='"+p.id+"';render()\">"+p.name+"</button>";}).join("")
+      +"</div>"
+      +"<div style=\"font-size:11px;color:#888;margin-bottom:10px\">"+prop.name+" \u2014 "+st.n+"\u00a0r\u00e9s. \u00b7 "+Math.round(st.rev).toLocaleString("fr-FR")+"\u00a0\u20ac</div>"
+      +"<div style=\"overflow-x:auto\"><table style=\"width:100%;border-collapse:collapse;min-width:560px\">"+thead+"<tr>"+tds+"</tr></table></div>";
+
+  // ── VUE GLOBALE ──────────────────────────────────────────────────────
+  } else {
+    const BAR=17, LABEL=18, SEP=10;
+    const info0=S.props[0]?computeRows(S.props[0].id):{rowOf:{},nRows:1};
+    const info1=S.props[1]?computeRows(S.props[1].id):{rowOf:{},nRows:1};
+    const res0=S.props[0]?S.reservations.filter(function(r){return r.prop_id===S.props[0].id&&r.check_in&&r.check_out&&r.status!=="cancelled";}):[];
+    const res1=S.props[1]?S.reservations.filter(function(r){return r.prop_id===S.props[1].id&&r.check_in&&r.check_out&&r.status!=="cancelled";}):[];
+    const OFF0=LABEL;
+    const OFF1=OFF0+info0.nRows*(BAR+2)+SEP;
+    const CELL_H=OFF1+info1.nRows*(BAR+2)+8;
+
+    var tds="";
+    for(var i=0;i<total;i++){
+      var day,cur=true;
+      if(i<firstDay){day=dPrev-firstDay+i+1;cur=false;}
+      else if(i>=firstDay+dim){day=i-firstDay-dim+1;cur=false;}
+      else day=i-firstDay+1;
+      const date=cur?new Date(year,month,day):i<firstDay?new Date(year,month-1,day):new Date(year,month+1,day);
+      const ds=dStr(date);
+      const isToday=ds===dStr(new Date());
+      const isWE=date.getDay()===0||date.getDay()===6;
+      const bg=isToday?"#FFFBF0":isWE&&cur?"#FAFAFA":"#fff";
+      const bd=isToday?"2px solid #F59E0B":"1px solid #e5e4e0";
+      const sep="<div style=\"position:absolute;left:4px;right:4px;top:"+(OFF1-SEP/2)+"px;height:1px;background:#e0ddd8;pointer-events:none\"></div>";
+      const b0=cellBars(ds,res0,info0.rowOf,OFF0,BAR,function(){return CBG[0];});
+      const b1=cellBars(ds,res1,info1.rowOf,OFF1,BAR,function(){return CBG[1];});
+      tds+="<td onclick=\"_dg('"+ds+"')\" style=\"border:"+bd+";height:"+CELL_H+"px;vertical-align:top;padding:4px 2px 2px;cursor:pointer;background:"+bg+";opacity:"+(cur?1:0.3)+";position:relative;\" onmouseover=\"if("+(cur?1:0)+")this.style.background='"+(isToday?"#FFF3D0":"#F5F4F0")+"'\" onmouseout=\"this.style.background='"+bg+"'\">"
+        +"<div style=\"font-size:10px;font-weight:"+(isToday?700:400)+";color:"+(isToday?"#92400E":"#ccc")+"\">"+day+"</div>"
+        +sep+b0+b1+"</td>";
+      if((i+1)%7===0&&i<total-1)tds+="</tr><tr>";
+    }
+    const propLeg=S.props.map(function(p,i){
+      const st=mStats(p.id);
+      return"<span style=\"display:inline-flex;align-items:center;gap:5px;font-size:11px\"><span style=\"width:14px;height:14px;border-radius:4px;background:"+CBG[i]+";display:inline-block;flex-shrink:0\"></span><b>"+p.name+"</b> \u2014 "+st.n+"\u00a0r\u00e9s. \u00b7 "+Math.round(st.rev).toLocaleString("fr-FR")+"\u00a0\u20ac</span>";
+    }).join("<span style=\"color:#ddd;margin:0 8px\">|</span>");
+
+    document.getElementById("main-content").innerHTML=nav
+      +"<div style=\"padding:10px 14px;background:#f9f9f9;border:1px solid #e5e4e0;border-radius:8px;margin-bottom:12px;display:flex;gap:12px;flex-wrap:wrap;align-items:center\">"+propLeg+"</div>"
+      +"<div style=\"overflow-x:auto\"><table style=\"width:100%;border-collapse:collapse;min-width:600px\">"+thead+"<tr>"+tds+"</tr></table></div>";
+  }
+}
+function chgMonth(d){S.currentMonth=new Date(S.currentMonth.getFullYear(),S.currentMonth.getMonth()+d,1);render();}
+
+function _dc(ds,propId){
+  const date=new Date(ds+"T00:00:00");
+  const res=S.reservations.filter(function(r){return r.prop_id===propId&&r.check_in&&r.check_out&&r.status!=="cancelled"&&parseD(r.check_in)<=date&&parseD(r.check_out)>=date;});
+  if(res.length)_calModal(ds,res);
+}
+function _dg(ds){
+  const date=new Date(ds+"T00:00:00");
+  const res=S.reservations.filter(function(r){return r.check_in&&r.check_out&&r.status!=="cancelled"&&parseD(r.check_in)<=date&&parseD(r.check_out)>=date;});
+  if(res.length)_calModal(ds,res);
+}
+function _calModal(ds,res){
+  const date=new Date(ds+"T00:00:00");
+  const BG={"airbnb":"#C8523E","booking.com":"#2E5F9E","booking":"#2E5F9E","direct":"#3D8B78"};
+  showModal("<h3>"+date.toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"})+"</h3>"
+    +res.map(function(r){
+      const bg=BG[r.platform]||"#3D8B78";
+      const arr=dStr(parseD(r.check_in))===ds, dep=dStr(parseD(r.check_out))===ds;
+      const prop=S.props.find(function(p){return p.id===r.prop_id;});
+      return"<div style=\"border-left:4px solid "+bg+";background:#f9f9f9;border-radius:0 8px 8px 0;padding:10px 12px;margin-bottom:8px\">"
+        +"<div style=\"font-size:12px;font-weight:600;display:flex;align-items:center;gap:6px;flex-wrap:wrap\">"+(r.guest||"")
+        +(arr?" <span style=\"font-size:10px;background:#E1F5EE;color:#0F6E56;padding:1px 7px;border-radius:10px\">Arriv\u00e9e</span>":"")
+        +(dep?" <span style=\"font-size:10px;background:#FCEBEB;color:#A32D2D;padding:1px 7px;border-radius:10px\">D\u00e9part</span>":"")
+        +"</div>"
+        +"<div style=\"font-size:11px;color:#888;margin-top:3px\">"+(prop?prop.name:"")+" \u00b7 "+platLabel(r.platform)+" \u00b7 "+fmt(r.check_in)+"\u2192"+fmt(r.check_out)+" \u00b7 "+r.amount.toLocaleString("fr-FR")+"\u00a0\u20ac</div>"
+        +"<button class=\"btn\" style=\"font-size:10px;margin-top:6px;padding:3px 8px\" onclick=\"closeModal();openResDetail('"+r.id+"')\">D\u00e9tail</button>"
+        +"</div>";
+    }).join("")
+    +"<div class=\"modal-actions\"><button class=\"btn\" onclick=\"closeModal()\">Fermer</button></div>");
+}
+function renderRates(){
+  // Si les props ne sont pas encore chargées, réessayer dans 300ms
+  if(!S.props||!S.props.length){
+    document.getElementById('main-content').innerHTML='<div style="color:#888;padding:30px;text-align:center"><div class="spinner"></div> Chargement des biens...</div>';
+    setTimeout(renderRates, 300);
+    return;
+  }
+  if(!S.ratesProp) S.ratesProp=S.props[0].id;
+  const prop=S.props.find(p=>p.id===S.ratesProp)||S.props[0];
+  if(!prop){document.getElementById('main-content').innerHTML='<div style="color:#888;padding:20px">Aucun bien disponible.</div>';return;}
+  const m=S.ratesMonth||new Date();
+  const year=m.getFullYear(), month=m.getMonth();
+  const dim=new Date(year,month+1,0).getDate();
+  const firstDay=new Date(year,month,1).getDay();
+  const MOIS=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+  const JOURS=['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
+  const total=Math.ceil((firstDay+dim)/7)*7;
+
+  // Récupérer les tarifs stockés localement (S.ratesPrices)
+  if(!S.ratesPrices) S.ratesPrices={};
+  if(!S.ratesMinStay) S.ratesMinStay={};
+
+  // Construire grille
+  let cells='';
+  for(let i=0;i<total;i++){
+    let day,cur=true;
+    const dPrev=new Date(year,month,0).getDate();
+    if(i<firstDay){day=dPrev-firstDay+i+1;cur=false;}
+    else if(i>=firstDay+dim){day=i-firstDay-dim+1;cur=false;}
+    else day=i-firstDay+1;
+    const date=cur?new Date(year,month,day):i<firstDay?new Date(year,month-1,day):new Date(year,month+1,day);
+    const ds=dStr(date);
+    const isToday=ds===dStr(new Date());
+    const isPast=date<new Date(new Date().toDateString());
+    const isWE=date.getDay()===0||date.getDay()===6;
+
+    // Tarif stocké pour ce jour / ce bien
+    const key=prop.id+'_'+ds;
+    const airPrice=S.ratesPrices[key+'_air']||null;
+    const bkPrice=S.ratesPrices[key+'_bk']||null;
+    const minStay=S.ratesMinStay[key]||null;
+
+    // Réservation ce jour ?
+    const isBooked=S.reservations.some(r=>r.prop_id===prop.id&&r.check_in&&r.check_out&&r.status!=='cancelled'&&parseD(r.check_in)<=date&&parseD(r.check_out)>date);
+    const isCheckout=S.reservations.some(r=>r.prop_id===prop.id&&r.check_out&&dStr(parseD(r.check_out))===ds&&r.status!=='cancelled');
+
+    const bgCell=!cur?'#fafafa':isPast?'#f9f9f9':isBooked?'#FFF0ED':isWE?'#F8F9FF':'#fff';
+    const borderCell=isToday?'2px solid #F59E0B':'1px solid #e5e4e0';
+    const opacity=cur?1:0.3;
+
+    let priceContent='';
+    if(cur){
+      if(isPast){
+        // Passé : afficher seulement si prix connu
+        priceContent=airPrice||bkPrice
+          ?`<div style="font-size:9px;color:#ccc;margin-top:2px">${airPrice?'🏠'+airPrice+'€':''}${bkPrice?' 🏨'+bkPrice+'€':''}</div>`
+          :`<div style="font-size:9px;color:#ddd;margin-top:2px">—</div>`;
+      } else if(isBooked){
+        // Réservé : afficher prix + badge
+        priceContent=`<div style="font-size:9px;color:#C8523E;font-weight:600;margin-top:1px">Réservé</div>`;
+        if(airPrice||bkPrice) priceContent+=`<div style="font-size:8px;color:#aaa">${airPrice?airPrice+'€ ':''}${bkPrice?bkPrice+'€':''}</div>`;
+      } else {
+        // Disponible : afficher prix par plateforme avec possibilité d'édition
+        priceContent=`<div style="margin-top:2px">`;
+        // Airbnb
+        priceContent+=`<div style="display:flex;align-items:center;gap:2px;margin-bottom:1px">
+          <span style="font-size:7px;background:#FFE8EC;color:#C8523E;padding:0 3px;border-radius:3px;font-weight:700">A</span>
+          <span style="font-size:9px;font-weight:600;color:${airPrice?'#1a1a1a':'#bbb'}">${airPrice?airPrice+'€':'?'}</span>
+        </div>`;
+        // Booking
+        priceContent+=`<div style="display:flex;align-items:center;gap:2px">
+          <span style="font-size:7px;background:#E6EFF8;color:#2E5F9E;padding:0 3px;border-radius:3px;font-weight:700">B</span>
+          <span style="font-size:9px;font-weight:600;color:${bkPrice?'#1a1a1a':'#bbb'}">${bkPrice?bkPrice+'€':'?'}</span>
+        </div>`;
+        if(minStay) priceContent+=`<div style="font-size:7px;color:#aaa;margin-top:1px">min ${minStay}n</div>`;
+        priceContent+=`</div>`;
+      }
+    }
+
+    const clickHandler=cur&&!isPast?`onclick="_openRateDay('${ds}','${prop.id}')"`:'' ;
+    cells+=`<td ${clickHandler} style="border:${borderCell};height:72px;vertical-align:top;padding:3px 4px 2px;${cur&&!isPast?'cursor:pointer;':''}background:${bgCell};opacity:${opacity};position:relative;" ${cur&&!isPast?`onmouseover="this.style.background='#F0F4FF'" onmouseout="this.style.background='${bgCell}'"`:''}">
+      <div style="font-size:10px;font-weight:${isToday?700:400};color:${isToday?'#92400E':'#bbb'};display:flex;justify-content:space-between">
+        <span>${day}</span>${isCheckout?'<span title="Ménage" style="font-size:10px">🧹</span>':''}
+      </div>
+      ${priceContent}
+    </td>`;
+    if((i+1)%7===0&&i<total-1)cells+='</tr><tr>';
+  }
+
+  // Actions groupées
+  const TH='font-size:10px;color:#888;text-align:center;padding:6px 2px;font-weight:600;background:#f5f4f0;border:1px solid #e5e4e0;';
+
+  document.getElementById('main-content').innerHTML=
+    // Sélection bien + nav mois
+    `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        ${S.props.map(p=>`<button class="btn${S.ratesProp===p.id?' btn-green':''}" style="font-size:11px" onclick="S.ratesProp='${p.id}';renderRates()">${p.name}</button>`).join('')}
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <button class="btn" onclick="chgRatesMonth(-1)" style="font-size:15px;padding:4px 12px">‹</button>
+        <span style="font-size:14px;font-weight:700;min-width:150px;text-align:center">${MOIS[month]} ${year}</span>
+        <button class="btn" onclick="chgRatesMonth(1)" style="font-size:15px;padding:4px 12px">›</button>
+      </div>
+    </div>`
+
+    // Barre d'actions groupées
+    +`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;padding:10px 14px;background:#f9f9f9;border:1px solid #e5e4e0;border-radius:8px;align-items:center">
+      <span style="font-size:11px;color:#888;font-weight:600">Actions groupées :</span>
+      <button class="btn" style="font-size:11px" onclick="_ratesBulk('month')">Tout le mois</button>
+      <button class="btn" style="font-size:11px" onclick="_ratesBulk('weekends')">Week-ends seuls</button>
+      <button class="btn" style="font-size:11px" onclick="_ratesBulk('weekdays')">Semaine seule</button>
+      <button class="btn" style="font-size:11px" onclick="openMinStay('${prop.id}')">Séjour minimum</button>
+      <button class="btn" style="font-size:11px" onclick="_loadPricesFromAPI('${prop.id}')">↻ Charger tarifs Hostex</button>
+    </div>`
+
+    // Légende
+    +`<div style="display:flex;gap:12px;margin-bottom:8px;font-size:10px;color:#888;flex-wrap:wrap">
+      <span style="display:inline-flex;align-items:center;gap:4px"><span style="background:#FFE8EC;color:#C8523E;padding:0 4px;border-radius:3px;font-weight:700;font-size:9px">A</span>Airbnb</span>
+      <span style="display:inline-flex;align-items:center;gap:4px"><span style="background:#E6EFF8;color:#2E5F9E;padding:0 4px;border-radius:3px;font-weight:700;font-size:9px">B</span>Booking</span>
+      <span style="background:#FFF0ED;padding:0 6px;border-radius:3px">Réservé</span>
+      <span>Cliquer sur un jour pour modifier le tarif</span>
+    </div>`
+
+    // Calendrier
+    +`<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;min-width:580px">
+      <tr>${JOURS.map(d=>`<th style="${TH}">${d}</th>`).join('')}</tr>
+      <tr>${cells}</tr>
+    </table></div>`;
+
+  // Charger les tarifs depuis l'API si pas encore fait pour ce mois
+  const monthKey=year+'-'+String(month+1).padStart(2,'0');
+  if(!S.ratesLoaded) S.ratesLoaded={};
+  if(!S.ratesLoaded[prop.id+'_'+monthKey]){
+    _loadPricesFromAPI(prop.id);
+    S.ratesLoaded[prop.id+'_'+monthKey]=true;
+  }
+}
+
+function chgRatesMonth(d){
+  const m=S.ratesMonth||new Date();
+  S.ratesMonth=new Date(m.getFullYear(),m.getMonth()+d,1);
+  S.ratesLoaded={};
+  renderRates();
+}
+
+async function _loadPricesFromAPI(propId){
+  const prop=S.props.find(p=>p.id===propId);
+  if(!prop)return;
+  const m=S.ratesMonth||new Date();
+  const from=dStr(new Date(m.getFullYear(),m.getMonth(),1));
+  const to=dStr(new Date(m.getFullYear(),m.getMonth()+1,0));
+  showToast('Chargement tarifs...');
+  try{
+    // Récupérer les tarifs via l'API Hostex
+    const data=await api('/listings/prices?listing_id='+prop.channels[0]?.listing_id+'&start_date='+from+'&end_date='+to);
+    if(!S.ratesPrices) S.ratesPrices={};
+    const prices=data?.data?.prices||data?.data||[];
+    prices.forEach(function(p){
+      const key=propId+'_'+p.date;
+      if(p.price){
+        S.ratesPrices[key+'_air']=p.price;
+        S.ratesPrices[key+'_bk']=p.price;
+      }
+    });
+    showToast('✓ Tarifs chargés');
+    renderRates();
+  }catch(e){
+    showToast('Tarifs non disponibles — saisie manuelle possible');
+  }
+}
+
+function _openRateDay(ds, propId){
+  const date=new Date(ds+'T00:00:00');
+  const key=propId+'_'+ds;
+  const airPrice=S.ratesPrices[key+'_air']||'';
+  const bkPrice=S.ratesPrices[key+'_bk']||'';
+  const minStay=S.ratesMinStay[key]||'';
+  const prop=S.props.find(p=>p.id===propId);
+  const dateStr=date.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});
+
+  showModal(`<h3>Tarifs — ${dateStr}</h3>
+    <div style="font-size:12px;color:#888;margin-bottom:14px">${prop?prop.name:''}</div>
+
+    <div style="display:grid;gap:12px">
+      <div style="padding:12px;background:#FFF8F7;border:1px solid #FFE8EC;border-radius:8px">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
+          <span style="background:#FF385C;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700">Airbnb</span>
+          <span style="font-size:11px;color:#888">tarif nuit</span>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input type="number" id="rate-air-${ds}" value="${airPrice}" placeholder="€/nuit" min="0" style="width:100px;font-size:14px;font-weight:600;text-align:center">
+          <span style="font-size:12px;color:#888">€ / nuit</span>
+        </div>
+      </div>
+
+      <div style="padding:12px;background:#F0F6FF;border:1px solid #E6EFF8;border-radius:8px">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
+          <span style="background:#003580;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700">Booking</span>
+          <span style="font-size:11px;color:#888">tarif nuit</span>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input type="number" id="rate-bk-${ds}" value="${bkPrice}" placeholder="€/nuit" min="0" style="width:100px;font-size:14px;font-weight:600;text-align:center">
+          <span style="font-size:12px;color:#888">€ / nuit</span>
+        </div>
+        <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
+          <div style="display:flex;align-items:center;gap:4px">
+            <span style="font-size:11px;color:#666">Séjour min :</span>
+            <input type="number" id="rate-ms-${ds}" value="${minStay}" placeholder="nuits" min="1" max="30" style="width:60px;font-size:12px;text-align:center">
+            <span style="font-size:11px;color:#888">nuits</span>
+          </div>
+        </div>
+      </div>
+
+      <div style="padding:10px;background:#f9f9f9;border-radius:8px">
+        <div style="font-size:11px;color:#888;margin-bottom:6px">Appliquer le même tarif sur :</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="btn" style="font-size:10px" onclick="_fillSamePrice('${ds}','${propId}',1)">Ce jour</button>
+          <button class="btn" style="font-size:10px" onclick="_fillSamePrice('${ds}','${propId}',7)">7 jours</button>
+          <button class="btn" style="font-size:10px" onclick="_fillSamePrice('${ds}','${propId}',30)">30 jours</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal()">Annuler</button>
+      <button class="btn btn-green" onclick="_saveRateDay('${ds}','${propId}')">✓ Appliquer sur Airbnb + Booking</button>
+    </div>`);
+}
+
+async function _saveRateDay(ds, propId){
+  const airVal=parseInt(document.getElementById('rate-air-'+ds)?.value||0);
+  const bkVal=parseInt(document.getElementById('rate-bk-'+ds)?.value||0);
+  const msVal=parseInt(document.getElementById('rate-ms-'+ds)?.value||0);
+  if(!S.ratesPrices) S.ratesPrices={};
+  if(!S.ratesMinStay) S.ratesMinStay={};
+  const key=propId+'_'+ds;
+  const prop=S.props.find(p=>p.id===propId);
+  closeModal();
+  showToast('Envoi à Hostex...');
+  let ok=0, errors=0;
+
+  // Envoyer pour chaque listing du bien
+  for(const ch of (prop?.channels||[])){
+    const price=(ch.channel_type==='airbnb'?airVal:bkVal)||airVal||bkVal;
+    if(price>0){
+      try{
+        await api('/listings/prices','POST',{listing_id:ch.listing_id,prices:[{date:ds,price:price}]});
+        ok++;
+      }catch(e){errors++;}
+    }
+  }
+
+  // Si pas de channels connus, envoyer quand même avec listing_id du bien
+  if(!prop?.channels?.length && (airVal||bkVal)){
+    try{
+      await api('/listings/prices','POST',{property_id:propId,prices:[{date:ds,price:airVal||bkVal}]});
+      ok++;
+    }catch(e){errors++;}
+  }
+
+  // Séjour minimum
+  if(msVal>0){
+    try{await api('/listings/restrictions','POST',{property_id:propId,min_nights:msVal,start_date:ds,end_date:ds});}catch(e){}
+    S.ratesMinStay[key]=msVal;
+  }
+
+  // Mettre à jour localement
+  if(airVal>0) S.ratesPrices[key+'_air']=airVal;
+  if(bkVal>0) S.ratesPrices[key+'_bk']=bkVal;
+
+  showToast(errors===0?`✓ Tarif appliqué : ${airVal||bkVal}€`:`✓ Partiellement appliqué (${errors} erreur(s))`);
+  renderRates();
+}
+
+function _fillSamePrice(ds, propId, days){
+  const airVal=document.getElementById('rate-air-'+ds)?.value||'';
+  const bkVal=document.getElementById('rate-bk-'+ds)?.value||'';
+  const msVal=document.getElementById('rate-ms-'+ds)?.value||'';
+  if(!airVal&&!bkVal){showToast('Entre un prix d\'abord.');return;}
+  if(!S.ratesPrices) S.ratesPrices={};
+  const start=new Date(ds+'T00:00:00');
+  for(let d=0;d<days;d++){
+    const dd=new Date(start.getFullYear(),start.getMonth(),start.getDate()+d);
+    const k=propId+'_'+dStr(dd);
+    if(airVal) S.ratesPrices[k+'_air']=parseInt(airVal);
+    if(bkVal) S.ratesPrices[k+'_bk']=parseInt(bkVal);
+    if(msVal) S.ratesMinStay[k]=parseInt(msVal);
+  }
+  closeModal();
+  // Envoyer tout en une fois à l'API
+  _sendBulkPrices(propId, ds, days, parseInt(airVal||bkVal));
+}
+
+async function _sendBulkPrices(propId, fromDs, days, price){
+  if(!price||price<=0)return;
+  const prop=S.props.find(p=>p.id===propId);
+  const start=new Date(fromDs+'T00:00:00');
+  const prices=[];
+  for(let d=0;d<days;d++){
+    const dd=new Date(start.getFullYear(),start.getMonth(),start.getDate()+d);
+    prices.push({date:dStr(dd),price:price});
+  }
+  showToast('Envoi de '+days+' tarifs...');
+  try{
+    for(const ch of (prop?.channels||[])){
+      await api('/listings/prices','POST',{listing_id:ch.listing_id,prices:prices});
+    }
+    showToast('✓ '+days+' jours mis à jour');
+  }catch(e){showToast('Erreur : '+e.message);}
+  renderRates();
+}
+
+function _ratesBulk(mode){
+  const prop=S.props.find(p=>p.id===S.ratesProp)||S.props[0];
+  if(!prop)return;
+  const m=S.ratesMonth||new Date();
+  const year=m.getFullYear(),month=m.getMonth();
+  const dim=new Date(year,month+1,0).getDate();
+  const label={'month':'tout le mois','weekends':'week-ends','weekdays':'jours de semaine'}[mode]||mode;
+  showModal(`<h3>Tarif groupé — ${label}</h3>
+    <div style="font-size:12px;color:#888;margin-bottom:14px">${prop.name}</div>
+    <div style="display:grid;gap:10px">
+      <div style="display:flex;gap:8px;align-items:center">
+        <span style="background:#FF385C;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700">Airbnb</span>
+        <input type="number" id="bulk-air" placeholder="€/nuit" min="0" style="width:90px;font-size:14px;text-align:center">€/nuit
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span style="background:#003580;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700">Booking</span>
+        <input type="number" id="bulk-bk" placeholder="€/nuit" min="0" style="width:90px;font-size:14px;text-align:center">€/nuit
+      </div>
+      <div style="font-size:11px;color:#888">⚠ Sera appliqué sur tous les jours disponibles (non réservés)</div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal()">Annuler</button>
+      <button class="btn btn-green" onclick="_applyBulk('${mode}','${prop.id}',${year},${month},${dim})">Appliquer</button>
+    </div>`);
+}
+
+async function _applyBulk(mode, propId, year, month, dim){
+  const airVal=parseInt(document.getElementById('bulk-air')?.value||0);
+  const bkVal=parseInt(document.getElementById('bulk-bk')?.value||0);
+  if(!airVal&&!bkVal){showToast('Entre un prix.');return;}
+  closeModal();
+  if(!S.ratesPrices) S.ratesPrices={};
+  const prop=S.props.find(p=>p.id===propId);
+  const prices=[];
+  for(let d=1;d<=dim;d++){
+    const date=new Date(year,month,d);
+    if(date<new Date(new Date().toDateString()))continue;
+    const isBooked=S.reservations.some(r=>r.prop_id===propId&&r.check_in&&r.check_out&&r.status!=='cancelled'&&parseD(r.check_in)<=date&&parseD(r.check_out)>date);
+    if(isBooked)continue;
+    const dow=date.getDay();
+    const isWE=dow===0||dow===5||dow===6;
+    if(mode==='weekends'&&!isWE)continue;
+    if(mode==='weekdays'&&isWE)continue;
+    const ds=dStr(date);
+    const key=propId+'_'+ds;
+    const price=airVal||bkVal;
+    S.ratesPrices[key+'_air']=airVal||price;
+    S.ratesPrices[key+'_bk']=bkVal||price;
+    prices.push({date:ds,price:price});
+  }
+  showToast('Envoi de '+prices.length+' tarifs à Hostex...');
+  try{
+    for(const ch of (prop?.channels||[])){
+      // Envoyer par lot de 30
+      for(let i=0;i<prices.length;i+=30){
+        await api('/listings/prices','POST',{listing_id:ch.listing_id,prices:prices.slice(i,i+30)});
+      }
+    }
+    showToast('✓ '+prices.length+' tarifs mis à jour sur Airbnb + Booking');
+  }catch(e){showToast('✓ Tarifs locaux mis à jour (API: '+e.message+')');}
+  renderRates();
+}
+
+async function applyRate(propId,listingId,channel){
+  const val=parseInt(document.getElementById('rate-'+propId+'-'+listingId)?.value);
+  if(isNaN(val)||val<=0){showToast('Entre un prix valide.');return;}
+  showToast('Envoi à Hostex...');
+  try{await api('/listings/prices','POST',{listing_id:listingId,prices:[{date:dStr(new Date()),price:val}]});showToast('✓ Tarif '+platLabel(channel)+' mis à jour : '+val+' €/nuit');}
+  catch(e){showToast('Erreur API : '+e.message);}
+}
+
+
+function openMinStay(propId){showModal(`<h3>Séjour minimum</h3><div class="form-row"><label class="form-label">Nuits minimum</label><input class="form-input" type="number" id="ms-val" value="2" min="1"></div><div class="modal-actions"><button class="btn" onclick="closeModal()">Annuler</button><button class="btn btn-green" onclick="saveMinStay('${propId}')">Appliquer</button></div>`);}
+async function saveMinStay(propId){const v=parseInt(document.getElementById('ms-val').value)||1;try{await api('/listings/restrictions','POST',{property_id:propId,min_nights:v});showToast(`✓ Séjour min ${v} nuits appliqué`);}catch(e){showToast('Erreur : '+e.message);}closeModal();}
+function openWeekend(){showModal(`<h3>Supplément week-end</h3><div class="form-row"><label class="form-label">Majoration ven-sam (%)</label><input class="form-input" type="number" id="wk-val" value="15" min="0" max="200"></div><div class="modal-actions"><button class="btn" onclick="closeModal()">Annuler</button><button class="btn btn-green" onclick="closeModal();showToast('✓ Supplément week-end enregistré')">Appliquer</button></div>`);}
+
+function showModal(html){document.getElementById('modal-inner').innerHTML=html;document.getElementById('modal').style.display='flex';}
+function closeModal(){document.getElementById('modal').style.display='none';}
+document.getElementById('modal').addEventListener('click',function(e){if(e.target===this)closeModal();});
+
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3500);}
+
+setTimeout(loadAll, 50);
+
+
+
+</script>
+</body>
+</html>
