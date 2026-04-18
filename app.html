@@ -959,7 +959,7 @@ function openMinStay(propId){showModal(`<h3>Séjour minimum</h3><div class="form
 async function saveMinStay(propId){const v=parseInt(document.getElementById('ms-val').value)||1;try{await api('/listings/restrictions','POST',{property_id:propId,min_nights:v});showToast(`✓ Séjour min ${v} nuits appliqué`);}catch(e){showToast('Erreur : '+e.message);}closeModal();}
 function openWeekend(){showModal(`<h3>Supplément week-end</h3><div class="form-row"><label class="form-label">Majoration ven-sam (%)</label><input class="form-input" type="number" id="wk-val" value="15" min="0" max="200"></div><div class="modal-actions"><button class="btn" onclick="closeModal()">Annuler</button><button class="btn btn-green" onclick="closeModal();showToast('✓ Supplément week-end enregistré')">Appliquer</button></div>`);}
 
-function showModal(html){document.getElementById('modal-body').innerHTML=html;document.getElementById('modal').style.display='flex';}
+function showModal(html){document.getElementById('modal-inner').innerHTML=html;document.getElementById('modal').style.display='flex';}
 function closeModal(){document.getElementById('modal').style.display='none';}
 document.getElementById('modal').addEventListener('click',function(e){if(e.target===this)closeModal();});
 
