@@ -756,12 +756,12 @@ function renderRates(){
         +'<div style="display:flex;align-items:center;justify-content:space-between;"><label style="font-size:11px;color:#666;">Base</label><div style="display:flex;align-items:center;gap:3px;"><input type="number" id="cl-base" value="'+cleaning.base+'" style="width:55px;font-size:13px;text-align:center;border:1px solid #ddd;border-radius:5px;padding:3px;"><span style="font-size:11px;color:#888;">€</span></div></div>'
         +'<div style="display:flex;align-items:center;justify-content:space-between;"><label style="font-size:11px;color:#666;">Nuit supp.</label><div style="display:flex;align-items:center;gap:3px;"><input type="number" id="cl-extra" value="'+cleaning.extra+'" style="width:55px;font-size:13px;text-align:center;border:1px solid #ddd;border-radius:5px;padding:3px;"><span style="font-size:11px;color:#888;">€</span></div></div>'
       +'</div>'
-      +'<button onclick="_saveClean(''+prop.id+'')" style="width:100%;margin-top:10px;padding:8px;border-radius:6px;border:none;background:#1D9E75;color:#fff;font-size:12px;cursor:pointer;font-weight:600;">✓ Enregistrer</button>'
+      +'<button onclick="_saveClean(this.dataset.pid)" data-pid="'+prop.id+'" style="width:100%;margin-top:10px;padding:8px;border-radius:6px;border:none;background:#1D9E75;color:#fff;font-size:12px;cursor:pointer;font-weight:600;">✓ Enregistrer</button>'
     +'</div></div>';
 
   document.getElementById('main-content').innerHTML=
     '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">'
-      +'<div style="display:flex;gap:6px;flex-wrap:wrap;">'+S.props.map(function(p){return'<button class="btn'+(S.ratesProp===p.id?' btn-green':'')+'" style="font-size:11px;border-radius:20px;" onclick="S.ratesProp=''+p.id+'';S.ratesSelected={};S.ratesLoaded={};renderRates()">'+p.name+'</button>';}).join('')+'</div>'
+      +'<div style="display:flex;gap:6px;flex-wrap:wrap;">'+S.props.map(function(p){return'<button class="btn'+(S.ratesProp===p.id?' btn-green':'')+'" style="font-size:11px;border-radius:20px;" onclick="S.ratesProp=this.dataset.pid;S.ratesSelected={};S.ratesLoaded={};renderRates()" data-pid="'+p.id+'">'+p.name+'</button>';}).join('')+'</div>'
       +'<div style="display:flex;align-items:center;gap:10px;">'
         +'<button class="btn" onclick="chgRatesMonth(-1)" style="width:28px;height:28px;border-radius:50%;padding:0;font-size:14px;">‹</button>'
         +'<span style="font-size:15px;font-weight:600;min-width:150px;text-align:center;">'+MOIS[month]+' '+year+'</span>'
