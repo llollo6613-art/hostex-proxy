@@ -737,15 +737,21 @@ function renderRates(){
       content+='<div style="background:'+pb+';color:'+pc+';font-size:10px;font-weight:500;border-radius:4px;padding:2px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+(resOnDay.guest||'').split(' ')[0]+'</div>';
       if(ap||bp)content+='<div style="margin-top:3px;font-size:10px;color:#aaa;">'+(ap||'—')+(bp?' / '+bp:'')+'</div>';
     } else {
+      var ai=(!isPast&&!isBooked)?_aiSuggestPrice(ds,prop.id):null;
       content+='<div style="margin-top:2px;">'
-        +'<div style="display:flex;align-items:center;gap:4px;margin-bottom:3px;">'
+        +'<div style="display:flex;align-items:center;gap:4px;margin-bottom:2px;">'
           +'<div style="width:14px;height:14px;background:#FF385C;border-radius:3px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;"><span style="color:#fff;font-size:7px;font-weight:700;">A</span></div>'
-          +'<span style="font-size:'+(isPast?'13':'16')+'px;font-weight:500;color:'+(ap?(isPast?'#bbb':'#1a1a1a'):'#ccc')+';">'+(ap?ap+'€':'—')+'</span>'
+          +'<span style="font-size:'+(isPast?'12':'15')+'px;font-weight:500;color:'+(ap?(isPast?'#bbb':'#1a1a1a'):'#ccc')+';">'+(ap?ap+'€':'—')+'</span>'
         +'</div>'
-        +'<div style="display:flex;align-items:center;gap:4px;">'
+        +'<div style="display:flex;align-items:center;gap:4px;margin-bottom:2px;">'
           +'<div style="width:14px;height:14px;background:#003580;border-radius:3px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;"><span style="color:#fff;font-size:7px;font-weight:700;">B</span></div>'
-          +'<span style="font-size:'+(isPast?'13':'16')+'px;font-weight:500;color:'+(bp?(isPast?'#bbb':'#1a1a1a'):'#ccc')+';">'+(bp?bp+'€':'—')+'</span>'
+          +'<span style="font-size:'+(isPast?'12':'15')+'px;font-weight:500;color:'+(bp?(isPast?'#bbb':'#1a1a1a'):'#ccc')+';">'+(bp?bp+'€':'—')+'</span>'
         +'</div>'
+        +(ai?'<div style="display:flex;align-items:center;gap:3px;padding-top:1px;border-top:0.5px solid #f0efe9;">'
+          +'<div style="width:14px;height:14px;background:#7C3AED;border-radius:3px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;"><span style="color:#fff;font-size:6px;font-weight:700;">AI</span></div>'
+          +'<span style="font-size:11px;font-weight:600;color:#7C3AED;">'+ai.price+'€</span>'
+          +'<span style="font-size:9px;color:'+(ai.pct>0?'#16a34a':'#dc2626')+';">'+(ai.pct>0?'+':'')+ai.pct+'%</span>'
+        +'</div>':'')
       +'</div>';
     }
     cells+='<td id="rc-'+ds+'" data-ds="'+ds+'" data-past="'+(isPast?1:0)+'" data-booked="'+(isBooked?1:0)+'" style="height:100px;vertical-align:top;padding:6px 8px;background:'+bg+';border:'+bdr+';border-radius:8px;cursor:'+(isBooked?'default':'pointer')+';transition:border .1s,background .1s;" '
