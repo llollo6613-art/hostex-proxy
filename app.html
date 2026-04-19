@@ -302,6 +302,7 @@ function renderDash(){
       +'<div class="stat-v">'+Math.round(yearRev).toLocaleString('fr-FR')+' \u20ac</div>'
       +'<div class="stat-s">'+yearRes.length+' r\u00e9s.</div>'
     +'</div>'
+      +(function(){var cl=0;monthRes.forEach(function(r){var c=S.cleaning&&S.cleaning[r.prop_id]?S.cleaning[r.prop_id]:{base:35,extra:10};cl+=c.base;});return cl>0?'<div style="font-size:10px;color:#888;margin-top:3px;">Net menage : <b style="color:#1D9E75;">'+Math.round(rev-cl).toLocaleString('fr-FR')+'\u20ac</b> <span style="color:#ccc;">(\u2212'+Math.round(cl)+'\u20ac)</span></div>':'';})()
     +'<div class="stat"><div class="stat-l">Messages non lus</div><div class="stat-v" style="color:'+(unread?'#E24B4A':'#1D9E75')+'">'+unread+'</div><div class="stat-s">'+(unread?'A r\u00e9pondre':'Tout lu')+'</div></div>'
     +'<div class="stat"><div class="stat-l">Arriv\u00e9es \u00e0 venir</div><div class="stat-v">'+upcoming.length+'</div><div class="stat-s">Prochaines</div></div>'
     +'</div>'
@@ -1059,24 +1060,8 @@ function _toggleSelMode(){
 }
 
 function chgRatesMonth(d){var m=S.ratesMonth||new Date();S.ratesMonth=new Date(m.getFullYear(),m.getMonth()+d,1);S.ratesLoaded={};S.ratesSelected={};renderRates();}
-function _saveClean(propId){if(!S.cleaning)S.cleaning={};var b=parseInt(document.getElementById('cl-base').value)||0;var e=parseInt(document.getElementById('cl-extra').value)||0;S.cleaning[propId]={base:b,extra:e};showToast('✓ Frais ménage enregistrés');renderRates();}
-
-function _openRateDay(ds,propId){window._rds=ds;window._rpid=propId;
-  var key=propId+'_'+ds;var ap=S.ratesPrices[key+'_air']||'';var bp=S.ratesPrices[key+'_bk']||'';
-  var d=new Date(ds+'T00:00:00');var lbl=d.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});
-  var bkBase=parseInt(bp||ap||80);
-  var BK_OPTIONS=[{id:'standard',label:'Tarif standard',desc:'Annulation gratuite 48h',factor:1},{id:'nonref',label:'Non remboursable',desc:'-15%',factor:0.85},{id:'early',label:'Réservation anticipée',desc:'-10% si 30j avant',factor:0.90},{id:'lastmin',label:'Dernière minute',desc:'+5% si -7j',factor:1.05}];
-  showModal('<h3>Tarifs — '+lbl+'</h3>'
-    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">'
-      +'<div style="padding:12px;background:#FFF5F5;border-radius:8px;"><div style="background:#FF385C;border-radius:4px;padding:2px 8px;font-size:11px;color:#fff;font-weight:700;display:inline-block;margin-bottom:10px;">Airbnb</div><div style="display:flex;align-items:baseline;gap:4px;"><input type="number" id="r-air" value="'+ap+'" placeholder="€" min="0" style="font-size:24px;width:90px;border:none;background:transparent;font-weight:500;outline:none;padding:0;"><span style="font-size:14px;color:#888;">€/nuit</span></div></div>'
-      +'<div style="padding:12px;background:#F0F4FF;border-radius:8px;"><div style="background:#003580;border-radius:4px;padding:2px 8px;font-size:11px;color:#fff;font-weight:700;display:inline-block;margin-bottom:10px;">Booking</div><div style="display:flex;align-items:baseline;gap:4px;"><input type="number" id="r-bk" value="'+bp+'" placeholder="€" min="0" style="font-size:24px;width:90px;border:none;background:transparent;font-weight:500;outline:none;padding:0;"><span style="font-size:14px;color:#888;">€/nuit</span></div></div>'
-    +'</div>'
-    +'<div style="margin-bottom:12px;"><div style="font-size:11px;font-weight:600;color:#666;margin-bottom:6px;">Options Booking</div><div style="display:grid;gap:4px;">'+BK_OPTIONS.map(function(o){var oP=Math.round(bkBase*o.factor);return'<label style="display:flex;align-items:center;gap:8px;padding:7px 10px;border:0.5px solid #e5e4e0;border-radius:6px;cursor:pointer;background:#fff;"><input type="radio" name="bk-opt" value="'+o.id+'" '+(o.id==='standard'?'checked':'')+' style="margin:0;"><div style="flex:1;"><div style="font-size:11px;font-weight:600;">'+o.label+'</div><div style="font-size:10px;color:#888;">'+o.desc+'</div></div><span id="bkp-'+o.id+'" style="font-size:12px;font-weight:600;">'+oP+'€</span></label>';}).join('')+'</div></div>'
-    +'<div style="padding:8px 10px;background:#f5f4f0;border-radius:6px;font-size:11px;color:#888;margin-bottom:10px;">Répliquer sur : <button onclick="_rApplyRange(window._rds,window._rpid,7)" style="font-size:10px;padding:2px 8px;border-radius:4px;border:0.5px solid #ddd;background:#fff;cursor:pointer;margin:0 3px;">7j</button><button onclick="_rApplyRange(window._rds,window._rpid,30)" style="font-size:10px;padding:2px 8px;border-radius:4px;border:0.5px solid #ddd;background:#fff;cursor:pointer;">30j</button></div>'
-    +'<div style="font-size:11px;color:#666;margin-bottom:10px;">Séjour min : <input type="number" id="r-ms" value="'+(S.ratesMinStay[key]||'')+'" placeholder="nuits" min="1" style="width:55px;font-size:12px;text-align:center;margin-left:4px;"> nuits</div>'
-    +'<div class="modal-actions"><button class="btn" onclick="closeModal()">Annuler</button><button class="btn btn-green" onclick="_rSaveDay(window._rds,window._rpid)">&#10003; Appliquer</button></div>');
-  setTimeout(function(){var ri=document.getElementById('r-bk');if(ri)ri.oninput=function(){var bv=parseInt(ri.value)||bkBase;BK_OPTIONS.forEach(function(o){var el=document.getElementById('bkp-'+o.id);if(el)el.textContent=Math.round(bv*o.factor)+'€';});};},50);
-}
+function _saveClean(propId){if(!S.cleaning)S.cleaning={};var b=parseInt(document.getElementById("cl-base").value)||0;var e=parseInt(document.getElementById("cl-extra").value)||0;S.cleaning[propId]={base:b,extra:e};try{localStorage.setItem("cleaning_"+propId,JSON.stringify({base:b,extra:e}));}catch(ex){}showToast("\u26a0 Memo local - modifier sur Airbnb/Booking");renderRates();}
+function _loadCleaningFromStorage(){if(!S.cleaning)S.cleaning={};if(!S.props)return;S.props.forEach(function(p){try{var v=localStorage.getItem("cleaning_"+p.id);if(v)S.cleaning[p.id]=JSON.parse(v);}catch(ex){}});}
 
 async function _rSaveDay(ds,propId){
   var av=parseInt(document.getElementById('r-air').value)||0;var bv=parseInt(document.getElementById('r-bk').value)||0;var msv=parseInt(document.getElementById('r-ms').value)||0;
