@@ -384,7 +384,19 @@ function renderDash(){
     }).join(''):'<div style="color:#888;font-size:13px;padding:14px">Aucune r\u00e9servation \u00e0 venir.</div>')
     +'</div>';
 
-  setTimeout(function(){_drawDash(months12,platData,totalCount);},50);
+  setTimeout(function(){_drawDash(months12,platData,totalCount);
+    // Revenu net apres frais menage
+    var firstStat=document.querySelector('.stat');
+    if(firstStat&&!document.getElementById('net-cleaning')){
+      var cl2=0;
+      monthRes.forEach(function(r){var c=S.cleaning&&S.cleaning[r.prop_id]?S.cleaning[r.prop_id]:{base:35,extra:10};cl2+=c.base;});
+      var nd=document.createElement('div');
+      nd.id='net-cleaning';
+      nd.style.cssText='font-size:10px;color:#888;margin-top:3px;';
+      nd.innerHTML='Net menage : <b style="color:#1D9E75;">'+Math.round(rev-cl2).toLocaleString('fr-FR')+'\u20ac</b> <span style="color:#ccc;">(\u2212'+Math.round(cl2)+'\u20ac / '+monthRes.length+' s\xe9j.)</span>';
+      firstStat.appendChild(nd);
+    }
+  },50);
 }
 
 function _showYearDetail(){var e=document.getElementById('yd');if(e)e.style.display=e.style.display==='none'?'block':'none';}
