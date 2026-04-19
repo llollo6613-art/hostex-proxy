@@ -863,19 +863,15 @@ async function _loadPricesFromAPI(propId){
     var ch=prop.channels[ci];
     var type=platClass(ch.channel_type);
     try{
-      var data=await api('/listings/calendar','POST',{listing_ids:[ch.listing_id],start_date:from,end_date:to});
+      var data=await api('/listings/calendar','POST',{listings:[{listing_id:ch.listing_id,channel_type:ch.channel_type}],start_date:from,end_date:to});
       console.log('Prices API response:', JSON.stringify(data).slice(0,200));
-      var calendars=[];
-      if(data&&data.data&&Array.isArray(data.data.listing_calendars))calendars=data.data.listing_calendars;
-      else if(data&&data.data&&Array.isArray(data.data))calendars=data.data;
-      console.log('Calendar found:', calendars.length, 'for', ch.listing_id);
-      calendars.forEach(function(cal){
-        var days=cal.days||cal.dates||[];
+      var listings=(data&&data.data&&data.data.listings)||[];
+      console.log('Calendar found:', listings.length, 'for', ch.listing_id);
+      listings.forEach(function(lst){
+        var days=lst.calendar||[];
         days.forEach(function(p){
-          var date=p.date||p.day;
-          var price=p.price||p.nightly_price||p.rate;
-          if(price&&date){
-            S.ratesPrices[propId+'_'+date+'_'+(type==='airbnb'?'air':'bk')]=parseInt(price);
+          if(p.price&&p.date){
+            S.ratesPrices[propId+'_'+p.date+'_'+(type==='airbnb'?'air':'bk')]=parseInt(p.price);
             total++;
           }
         });
