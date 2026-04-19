@@ -296,9 +296,7 @@ function renderDash(){
   document.getElementById('main-content').innerHTML=
     (conflicts.length?'<div class="conflict-banner"><span style="font-size:13px;font-weight:500;color:#854F0B">&#9888; '+conflicts.length+' conflit(s)</span><button class="btn btn-red" style="font-size:11px" onclick="navigate(\'reservations\')">Voir</button></div>':'')
     +'<div class="grid4">'
-    +'<div class="stat"><div class="stat-l">Revenus ce mois</div><div class="stat-v">'+Math.round(rev).toLocaleString('fr-FR')+' \u20ac</div><div class="stat-s">'+MONTHS[now.getMonth()]+'</div>';});
-    return {n:r.length,rev:r.reduce(function(s,x){return s+x.amount;},0)};
-  }
+    +'<div class="stat"><div class="stat-l">Revenus ce mois</div><div class="stat-v">'+Math.round(rev).toLocaleString('fr-FR')+' \u20ac</div><div class="stat-s">'+MONTHS[now.getMonth()]+'</div>'+(function(){var cl=0;monthRes.forEach(function(r){var c=S.cleaning&&S.cleaning[r.prop_id]?S.cleaning[r.prop_id]:{base:20,extra:5};cl+=c.base;});return cl>0?'<div style="font-size:10px;color:#888;margin-top:2px;">Net: <b style="color:#1D9E75;">'+Math.round(rev-cl).toLocaleString('fr-FR')+'\u20ac</b> <span style="color:#bbb;">(\u2212'+Math.round(cl)+'\u20ac)</span></div>':'';})()+' </div>'
 
   const legItems=["airbnb","booking.com","direct"].map(function(k){
     return "<span style=\"display:inline-flex;align-items:center;gap:4px;font-size:10px\"><span style=\"width:18px;height:10px;border-radius:5px;background:"+CP[k]+";display:inline-block\"></span><b style=\"color:#555\">"+CPN[k]+"</b></span>";
