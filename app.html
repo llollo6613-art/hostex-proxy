@@ -852,18 +852,39 @@ async function _rSaveBulk(){
 }
 
 async function _loadPricesFromAPI(propId){
-  var prop=S.props.find(function(p){return p.id===propId;});if(!prop||!prop.channels.length)return;
-  var m=S.ratesMonth||new Date();var from=dStr(new Date(m.getFullYear(),m.getMonth(),1));var to=dStr(new Date(m.getFullYear(),m.getMonth()+1,0));
-  showToast('Chargement tarifs…');
-  try{
-    for(var ci=0;ci<prop.channels.length;ci++){
-      var ch=prop.channels[ci];var type=platClass(ch.channel_type);
+  var prop=S.props.find(function(p){return p.id===propId;});
+  if(!prop||!prop.channels.length){showToast('Aucun channel');return;}
+  var m=S.ratesMonth||new Date();
+  var from=dStr(new Date(m.getFullYear(),m.getMonth(),1));
+  var to=dStr(new Date(m.getFullYear(),m.getMonth()+1,0));
+  showToast('Chargement '+prop.channels.length+' canaux...');
+  var total=0;
+  for(var ci=0;ci<prop.channels.length;ci++){
+    var ch=prop.channels[ci];
+    var type=platClass(ch.channel_type);
+    try{
       var data=await api('/listings/prices?listing_id='+ch.listing_id+'&start_date='+from+'&end_date='+to);
-      var prices=(data&&data.data&&data.data.prices)||[];
-      prices.forEach(function(p){if(p.price&&p.date)S.ratesPrices[propId+'_'+p.date+'_'+(type==='airbnb'?'air':'bk')]=p.price;});
+      console.log('Prices API response:', JSON.stringify(data).slice(0,200));
+      var prices=[];
+      if(data&&data.data&&Array.isArray(data.data.prices))prices=data.data.prices;
+      else if(data&&data.data&&Array.isArray(data.data))prices=data.data;
+      else if(Array.isArray(data))prices=data;
+      console.log('Prices found:', prices.length, 'for', ch.listing_id);
+      prices.forEach(function(p){
+        var date=p.date||p.day||p.start_date;
+        var price=p.price||p.rate||p.nightly_price;
+        if(price&&date){
+          S.ratesPrices[propId+'_'+date+'_'+(type==='airbnb'?'air':'bk')]=parseInt(price);
+          total++;
+        }
+      });
+    }catch(e){
+      console.error('Error loading prices for',ch.listing_id,e.message);
+      showToast('Erreur canal '+type+': '+e.message);
     }
-    showToast('✓ Tarifs chargés');renderRates();
-  }catch(e){showToast('Tarifs non disponibles');}
+  }
+  showToast(total>0?('✓ '+total+' tarifs chargés'):'Aucun tarif retourné par Hostex');
+  renderRates();
 }
 
 function openMinStay(propId){showModal(`<h3>Séjour minimum</h3><div class="form-row"><label class="form-label">Nuits minimum</label><input class="form-input" type="number" id="ms-val" value="2" min="1"></div><div class="modal-actions"><button class="btn" onclick="closeModal()">Annuler</button><button class="btn btn-green" onclick="saveMinStay('${propId}')">Appliquer</button></div>`);}
