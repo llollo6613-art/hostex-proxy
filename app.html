@@ -796,7 +796,7 @@ function _rcClick(ds){
 function chgRatesMonth(d){var m=S.ratesMonth||new Date();S.ratesMonth=new Date(m.getFullYear(),m.getMonth()+d,1);S.ratesLoaded={};S.ratesSelected={};renderRates();}
 function _saveClean(propId){if(!S.cleaning)S.cleaning={};var b=parseInt(document.getElementById('cl-base').value)||0;var e=parseInt(document.getElementById('cl-extra').value)||0;S.cleaning[propId]={base:b,extra:e};showToast('✓ Frais ménage enregistrés');renderRates();}
 
-function _openRateDay(ds,propId){
+function _openRateDay(ds,propId){window._rds=ds;window._rpid=propId;
   var key=propId+'_'+ds;var ap=S.ratesPrices[key+'_air']||'';var bp=S.ratesPrices[key+'_bk']||'';
   var d=new Date(ds+'T00:00:00');var lbl=d.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});
   var bkBase=parseInt(bp||ap||80);
