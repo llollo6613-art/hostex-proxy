@@ -746,6 +746,8 @@ function renderRates(){
         +'<div style="display:flex;align-items:center;gap:4px;margin-bottom:2px;">'
           +'<div style="width:14px;height:14px;background:#003580;border-radius:3px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;"><span style="color:#fff;font-size:7px;font-weight:700;">B</span></div>'
           +'<span style="font-size:'+(isPast?'12':'15')+'px;font-weight:500;color:'+(bp?(isPast?'#bbb':'#1a1a1a'):'#ccc')+';">'+(bp?bp+'€':'—')+'</span>'
+          +(bp&&ap&&bp<ap?'<span style="font-size:9px;color:#dc2626;font-weight:600;">−'+Math.round((ap-bp)/ap*100)+'%</span>':'')
+          +(bp&&ap&&bp>ap?'<span style="font-size:9px;color:#16a34a;font-weight:600;">+'+Math.round((bp-ap)/ap*100)+'%</span>':'')
         +'</div>'
         +(ai?'<div style="display:flex;align-items:center;gap:3px;padding-top:1px;border-top:0.5px solid #f0efe9;">'
           +'<div style="width:14px;height:14px;background:#7C3AED;border-radius:3px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;"><span style="color:#fff;font-size:6px;font-weight:700;">AI</span></div>'
