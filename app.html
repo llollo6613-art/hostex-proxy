@@ -793,7 +793,7 @@ function renderRates(){
 }
 
 
-function _renderRules(prop){
+function _renderRules(prop){window._rpropId=prop.id;
   if(!S.ratesRules)S.ratesRules={};
   var r=S.ratesRules[prop.id]||{airWeek:75,bkWeek:70,airWE:95,bkWE:88,minStay:2,nonref:{on:true,pct:15},early:{on:false,pct:10,days:30},lastmin:{on:false,pct:5,days:7},weekly:{on:false,pct:10}};
   function tog(id,on){return '<div id="tog-'+id+'" style="width:36px;height:20px;background:'+(on?'#1D9E75':'#ddd')+';border-radius:10px;position:relative;flex-shrink:0;"><div style="width:16px;height:16px;background:#fff;border-radius:50%;position:absolute;top:2px;'+(on?'right:2px;':'left:2px;')+'"></div></div>';}
