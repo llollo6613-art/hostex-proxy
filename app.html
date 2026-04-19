@@ -797,7 +797,7 @@ function _renderRules(prop){window._rpropId=prop.id;
   if(!S.ratesRules)S.ratesRules={};
   var r=S.ratesRules[prop.id]||{airWeek:75,bkWeek:70,airWE:95,bkWE:88,minStay:2,nonref:{on:true,pct:15},early:{on:false,pct:10,days:30},lastmin:{on:false,pct:5,days:7},weekly:{on:false,pct:10}};
   function tog(id,on){return '<div id="tog-'+id+'" style="width:36px;height:20px;background:'+(on?'#1D9E75':'#ddd')+';border-radius:10px;position:relative;flex-shrink:0;"><div style="width:16px;height:16px;background:#fff;border-radius:50%;position:absolute;top:2px;'+(on?'right:2px;':'left:2px;')+'"></div></div>';}
-  function optCard(id,label,desc){var o=r[id]||{on:false,pct:10};return '<div id="opt-'+id+'" onclick="_togRule(this.id.replace('opt-',''),window._rpropId)" style="padding:12px;border:1px solid #e5e4e0;border-radius:8px;cursor:pointer;opacity:'+(o.on?1:0.5)+';transition:opacity .2s;">'
+  function optCard(id,label,desc){var o=r[id]||{on:false,pct:10};return '<div id="opt-'+id+'" onclick="window._rtogId=this.id.replace('opt-','');_togRule(window._rtogId,window._rpropId)" style="padding:12px;border:1px solid #e5e4e0;border-radius:8px;cursor:pointer;opacity:'+(o.on?1:0.5)+';transition:opacity .2s;">'
     +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;"><div style="font-size:13px;font-weight:600;">'+label+'</div>'+tog(id,o.on)+'</div>'
     +'<div style="font-size:11px;color:#888;">'+desc+'</div>'
     +'</div>';}
