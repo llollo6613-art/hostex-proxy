@@ -229,7 +229,7 @@ function checkConflicts(){
   return c;
 }
 
-function renderDash(){var CP={"airbnb":"#C8523E","booking.com":"#2E5F9E","booking":"#2E5F9E","direct":"#3D8B78"};var CPN={"airbnb":"Airbnb","booking.com":"Booking","booking":"Booking","direct":"Direct"};var MONTHS=['Janvier','F\u00e9vrier','Mars','Avril','Mai','Juin','Juillet','Ao\u00fbt','Septembre','Octobre','Novembre','D\u00e9cembre'];var MOIS=MONTHS;
+function renderDash(){var CP={"airbnb":"#C8523E","booking.com":"#2E5F9E","booking":"#2E5F9E","direct":"#3D8B78"};var CPN={"airbnb":"Airbnb","booking.com":"Booking","booking":"Booking","direct":"Direct"};var MONTHS=["Janvier","F\u00e9vrier","Mars","Avril","Mai","Juin","Juillet","Ao\u00fbt","Septembre","Octobre","Novembre","D\u00e9cembre"];var MOIS=MONTHS;
   var now=new Date();var curYear=now.getFullYear();
   var past=S.reservations.filter(function(r){return r.check_in&&r.check_out&&r.status!=='cancelled';});
   var monthRes=past.filter(function(r){var d=parseD(r.check_in);return d.getMonth()===now.getMonth()&&d.getFullYear()===curYear;});
