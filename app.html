@@ -812,6 +812,46 @@ function renderRates(){
       +cleanHtml
     +'</div>';
 
+  // Drag-select sur le tableau
+  var tbl=document.getElementById('rates-table');
+  if(tbl){
+    var dragStart=null,isDragging=false;
+    tbl.addEventListener('mousedown',function(e){
+      var td=e.target.closest('td[data-ds]');
+      if(!td||td.dataset.past==='1'||td.dataset.booked==='1')return;
+      isDragging=true;dragStart=td.dataset.ds;
+      e.preventDefault();
+    });
+    tbl.addEventListener('mouseover',function(e){
+      if(!isDragging||!dragStart)return;
+      var td=e.target.closest('td[data-ds]');
+      if(!td||td.dataset.past==='1')return;
+      var s=new Date(Math.min(new Date(dragStart+'T00:00:00'),new Date(td.dataset.ds+'T00:00:00')));
+      var en=new Date(Math.max(new Date(dragStart+'T00:00:00'),new Date(td.dataset.ds+'T00:00:00')));
+      var ns={};
+      for(var d=new Date(s);d<=en;d.setDate(d.getDate()+1)){
+        var ds2=dStr(new Date(d));
+        var c2=document.getElementById('rc-'+ds2);
+        if(c2&&c2.dataset.booked!=='1'&&c2.dataset.past!=='1')ns[ds2]=true;
+      }
+      S.ratesSelected=ns;
+      for(var k2 in ns){var c3=document.getElementById('rc-'+k2);if(c3){c3.style.background='#EEF4FF';c3.style.border='2px solid #6366F1';}}
+    });
+    document.addEventListener('mouseup',function(e){
+      if(!isDragging)return;
+      isDragging=false;
+      var n=Object.keys(S.ratesSelected).filter(function(k){return S.ratesSelected[k];}).length;
+      if(n===1&&dragStart){
+        var ds3=dragStart;dragStart=null;
+        S.ratesSelected={};
+        var c4=document.getElementById('rc-'+ds3);
+        if(c4&&c4.dataset.booked!=='1'&&c4.dataset.past!=='1')_rcClick(ds3);
+        else renderRates();
+      } else if(n>1){dragStart=null;renderRates();}
+      else{dragStart=null;}
+    });
+  }
+
   if(!S.ratesLoaded)S.ratesLoaded={};
   var mk=year+'-'+String(month+1).padStart(2,'0');
   if(!S.ratesLoaded[prop.id+'_'+mk]){_loadPricesFromAPI(prop.id);S.ratesLoaded[prop.id+'_'+mk]=true;}
