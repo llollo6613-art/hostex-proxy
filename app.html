@@ -108,7 +108,7 @@ const CSV_DATA=[{"id":"HM38S3ZYCF","g":"Alexandre Bariller","ph":"","pl":"airbnb
 const MONTHS=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
 const DAYS=['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
 
-const S={page:'dashboard',props:[],reservations:[],conversations:[],selectedProp:null,currentMonth:new Date(),resFilter:'Toutes',isLive:false,ratesProp:null,ratesMonth:null,ratesPrices:{},ratesMinStay:{},ratesLoaded:{},calView:'single',ratesSelected:{},cleaning:{},ratesTab:'cal',ratesRules:{}};
+const S={page:'dashboard',props:[],reservations:[],conversations:[],selectedProp:null,currentMonth:new Date(),resFilter:'Toutes',isLive:false,ratesProp:null,ratesMonth:null,ratesPrices:{},ratesMinStay:{},ratesLoaded:{},calView:'single',ratesSelected:{},cleaning:{},ratesTab:'cal',ratesRules:{},basePrices:{'12619011':{airWeek:80,bkWeek:70,airWE:95,bkWE:88},'12619012':{airWeek:90,bkWeek:80,airWE:110,bkWE:100}}};
 
 async function api(path,method='GET',body=null,timeoutMs=6000){
   const ctrl=new AbortController();
@@ -748,7 +748,7 @@ function renderRates(){
         +'</div>'
       +'</div>';
     }
-    cells+='<td id="rc-'+ds+'" data-ds="'+ds+'" data-past="'+(isPast?1:0)+'" data-booked="'+(isBooked?1:0)+'" style="height:88px;vertical-align:top;padding:6px 8px;background:'+bg+';border:'+bdr+';border-radius:8px;cursor:'+(isBooked?'default':'pointer')+';transition:border .1s,background .1s;" '
+    cells+='<td id="rc-'+ds+'" data-ds="'+ds+'" data-past="'+(isPast?1:0)+'" data-booked="'+(isBooked?1:0)+'" style="height:100px;vertical-align:top;padding:6px 8px;background:'+bg+';border:'+bdr+';border-radius:8px;cursor:'+(isBooked?'default':'pointer')+';transition:border .1s,background .1s;" '
       +(isBooked?'':
         'onclick="_rcClick(this.dataset.ds)"')+'>'+content+'</td>';
     if((i+1)%7===0&&i<total-1)cells+='</tr><tr>';
@@ -941,6 +941,38 @@ async function _saveBookingOptions(propId){
     showToast('Enregistré localement (API: '+e.message+')');
   }
   renderRates();
+}
+
+
+function _aiSuggestPrice(date, propId){
+  var d = new Date(date+'T00:00:00');
+  var month = d.getMonth(); // 0=jan
+  var dow = d.getDay(); // 0=dim
+  var isWE = dow===0||dow===5||dow===6;
+  var bp = (S.basePrices&&S.basePrices[propId])||{airWeek:80,airWE:95};
+  var base = isWE ? bp.airWE : bp.airWeek;
+  
+  // Coefficients saisonniers pour Perpignan/Languedoc-Roussillon
+  var seasonal = [0.75,0.75,0.85,0.90,1.05,1.20,1.50,1.55,1.25,0.90,0.80,0.80];
+  var coef = seasonal[month];
+  
+  // Bonus week-end été
+  if(isWE && (month>=5 && month<=8)) coef *= 1.10;
+  
+  // Événements locaux Perpignan
+  var ds = date;
+  var events = {
+    '2026-07-14':1.3,'2026-07-15':1.3, // Fête nationale
+    '2026-08-15':1.2,'2026-08-16':1.2, // Assomption
+    '2026-05-01':1.1,'2026-05-08':1.1, // Jours fériés
+    '2026-06-21':1.15, // Fête de la musique
+  };
+  if(events[ds]) coef *= events[ds];
+  
+  var suggested = Math.round(base * coef / 5) * 5; // Arrondi à 5€
+  var diff = suggested - base;
+  var pct = Math.round(diff/base*100);
+  return {price: suggested, pct: pct, coef: coef};
 }
 
 function _rcClick(ds){
