@@ -108,7 +108,7 @@ const CSV_DATA=[{"id":"HM38S3ZYCF","g":"Alexandre Bariller","ph":"","pl":"airbnb
 const MONTHS=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
 const DAYS=['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
 
-const S={page:'dashboard',props:[],reservations:[],conversations:[],selectedProp:null,currentMonth:new Date(),resFilter:'Toutes',isLive:false,ratesProp:null,ratesMonth:null,ratesPrices:{},ratesMinStay:{},ratesLoaded:{},calView:'single'};
+const S={page:'dashboard',props:[],reservations:[],conversations:[],selectedProp:null,currentMonth:new Date(),resFilter:'Toutes',isLive:false,ratesProp:null,ratesMonth:null,ratesPrices:{},ratesMinStay:{},ratesLoaded:{},calView:'single',ratesSelected:{},cleaning:{}};
 
 async function api(path,method='GET',body=null,timeoutMs=6000){
   const ctrl=new AbortController();
@@ -572,388 +572,158 @@ function _calModal(ds,res){
     +"<div class=\"modal-actions\"><button class=\"btn\" onclick=\"closeModal()\">Fermer</button></div>");
 }
 function renderRates(){
-  // Si les props ne sont pas encore chargées, réessayer dans 300ms
-  if(!S.props||!S.props.length){
-    document.getElementById('main-content').innerHTML='<div style="color:#888;padding:30px;text-align:center"><div class="spinner"></div> Chargement des biens...</div>';
-    setTimeout(renderRates, 300);
-    return;
-  }
-  if(!S.ratesProp) S.ratesProp=S.props[0].id;
-  const prop=S.props.find(p=>p.id===S.ratesProp)||S.props[0];
-  if(!prop){document.getElementById('main-content').innerHTML='<div style="color:#888;padding:20px">Aucun bien disponible.</div>';return;}
-  const m=S.ratesMonth||new Date();
-  const year=m.getFullYear(), month=m.getMonth();
-  const dim=new Date(year,month+1,0).getDate();
-  const firstDay=new Date(year,month,1).getDay();
-  const MOIS=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
-  const JOURS=['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
-  const total=Math.ceil((firstDay+dim)/7)*7;
-
-  // Récupérer les tarifs stockés localement (S.ratesPrices)
-  if(!S.ratesPrices) S.ratesPrices={};
-  if(!S.ratesMinStay) S.ratesMinStay={};
-
-  // Construire grille
-  let cells='';
-  for(let i=0;i<total;i++){
-    let day,cur=true;
-    const dPrev=new Date(year,month,0).getDate();
-    if(i<firstDay){day=dPrev-firstDay+i+1;cur=false;}
+  if(!S.props||!S.props.length){document.getElementById('main-content').innerHTML='<div style="padding:30px;text-align:center"><div class="spinner"></div></div>';setTimeout(renderRates,300);return;}
+  if(!S.ratesProp)S.ratesProp=S.props[0].id;
+  if(!S.ratesPrices)S.ratesPrices={};
+  if(!S.ratesMinStay)S.ratesMinStay={};
+  if(!S.ratesSelected)S.ratesSelected={};
+  if(!S.ratesMonth)S.ratesMonth=new Date();
+  if(!S.cleaning)S.cleaning={};
+  var prop=S.props.find(function(p){return p.id===S.ratesProp;})||S.props[0];
+  var m=S.ratesMonth;
+  var year=m.getFullYear(),month=m.getMonth();
+  var dim=new Date(year,month+1,0).getDate();
+  var firstDay=(new Date(year,month,1).getDay()+6)%7;
+  var total=Math.ceil((firstDay+dim)/7)*7;
+  var MOIS=['Janvier','F\xE9vrier','Mars','Avril','Mai','Juin','Juillet','Ao\xFBt','Septembre','Octobre','Novembre','D\xE9cembre'];
+  var JOURS=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
+  var today=dStr(new Date());
+  var selCount=Object.keys(S.ratesSelected).filter(function(k){return S.ratesSelected[k];}).length;
+  var cleaning=S.cleaning[prop.id]||{base:35,extra:10};
+  var cells='';
+  for(var i=0;i<total;i++){
+    var day,cur=true;
+    if(i<firstDay){day=new Date(year,month,0).getDate()-firstDay+i+1;cur=false;}
     else if(i>=firstDay+dim){day=i-firstDay-dim+1;cur=false;}
     else day=i-firstDay+1;
-    const date=cur?new Date(year,month,day):i<firstDay?new Date(year,month-1,day):new Date(year,month+1,day);
-    const ds=dStr(date);
-    const isToday=ds===dStr(new Date());
-    const isPast=date<new Date(new Date().toDateString());
-    const isWE=date.getDay()===0||date.getDay()===6;
-
-    // Tarif stocké pour ce jour / ce bien
-    const key=prop.id+'_'+ds;
-    const airPrice=S.ratesPrices[key+'_air']||null;
-    const bkPrice=S.ratesPrices[key+'_bk']||null;
-    const minStay=S.ratesMinStay[key]||null;
-
-    // Réservation ce jour ?
-    const isBooked=S.reservations.some(r=>r.prop_id===prop.id&&r.check_in&&r.check_out&&r.status!=='cancelled'&&parseD(r.check_in)<=date&&parseD(r.check_out)>date);
-    const isCheckout=S.reservations.some(r=>r.prop_id===prop.id&&r.check_out&&dStr(parseD(r.check_out))===ds&&r.status!=='cancelled');
-
-    const bgCell=!cur?'#fafafa':isPast?'#f9f9f9':isBooked?'#FFF0ED':isWE?'#F8F9FF':'#fff';
-    const borderCell=isToday?'2px solid #F59E0B':'1px solid #e5e4e0';
-    const opacity=cur?1:0.3;
-
-    let priceContent='';
-    if(cur){
-      if(isPast){
-        // Passé : afficher seulement si prix connu
-        priceContent=airPrice||bkPrice
-          ?`<div style="font-size:9px;color:#ccc;margin-top:2px">${airPrice?'🏠'+airPrice+'€':''}${bkPrice?' 🏨'+bkPrice+'€':''}</div>`
-          :`<div style="font-size:9px;color:#ddd;margin-top:2px">—</div>`;
-      } else if(isBooked){
-        // Réservé : afficher prix + badge
-        priceContent=`<div style="font-size:9px;color:#C8523E;font-weight:600;margin-top:1px">Réservé</div>`;
-        if(airPrice||bkPrice) priceContent+=`<div style="font-size:8px;color:#aaa">${airPrice?airPrice+'€ ':''}${bkPrice?bkPrice+'€':''}</div>`;
-      } else {
-        // Disponible : afficher prix par plateforme avec possibilité d'édition
-        priceContent=`<div style="margin-top:2px">`;
-        // Airbnb
-        priceContent+=`<div style="display:flex;align-items:center;gap:2px;margin-bottom:1px">
-          <span style="font-size:7px;background:#FFE8EC;color:#C8523E;padding:0 3px;border-radius:3px;font-weight:700">A</span>
-          <span style="font-size:9px;font-weight:600;color:${airPrice?'#1a1a1a':'#bbb'}">${airPrice?airPrice+'€':'?'}</span>
-        </div>`;
-        // Booking
-        priceContent+=`<div style="display:flex;align-items:center;gap:2px">
-          <span style="font-size:7px;background:#E6EFF8;color:#2E5F9E;padding:0 3px;border-radius:3px;font-weight:700">B</span>
-          <span style="font-size:9px;font-weight:600;color:${bkPrice?'#1a1a1a':'#bbb'}">${bkPrice?bkPrice+'€':'?'}</span>
-        </div>`;
-        if(minStay) priceContent+=`<div style="font-size:7px;color:#aaa;margin-top:1px">min ${minStay}n</div>`;
-        priceContent+=`</div>`;
-      }
-    }
-
-    const clickHandler=cur&&!isPast?`onclick="_openRateDay('${ds}','${prop.id}')"`:'' ;
-    cells+=`<td ${clickHandler} style="border:${borderCell};height:72px;vertical-align:top;padding:3px 4px 2px;${cur&&!isPast?'cursor:pointer;':''}background:${bgCell};opacity:${opacity};position:relative;" ${cur&&!isPast?`onmouseover="this.style.background='#F0F4FF'" onmouseout="this.style.background='${bgCell}'"`:''}">
-      <div style="font-size:10px;font-weight:${isToday?700:400};color:${isToday?'#92400E':'#bbb'};display:flex;justify-content:space-between">
-        <span>${day}</span>${isCheckout?'<span title="Ménage" style="font-size:10px">🧹</span>':''}
-      </div>
-      ${priceContent}
-    </td>`;
+    var date=cur?new Date(year,month,day):i<firstDay?new Date(year,month-1,day):new Date(year,month+1,day);
+    var ds=dStr(date);
+    var isToday=ds===today;var isPast=ds<today;var isWE=date.getDay()===0||date.getDay()===6;
+    var isSel=S.ratesSelected[ds]||false;
+    var key=prop.id+'_'+ds;var ap=S.ratesPrices[key+'_air']||null;var bp=S.ratesPrices[key+'_bk']||null;
+    var isBooked=S.reservations.some(function(r){return r.prop_id===prop.id&&r.check_in&&r.check_out&&r.status!=='cancelled'&&r.check_in<=ds&&r.check_out>ds;});
+    var resOnDay=S.reservations.find(function(r){return r.prop_id===prop.id&&r.check_in&&r.check_out&&r.status!=='cancelled'&&r.check_in<=ds&&r.check_out>ds;});
+    var isCheckout=S.reservations.some(function(r){return r.prop_id===prop.id&&r.check_out===ds&&r.status!=='cancelled';});
+    if(!cur){cells+='<td style="height:78px;border:0.5px solid #e5e4e0;opacity:0.15;background:#f5f4f0;"></td>';if((i+1)%7===0&&i<total-1)cells+='</tr><tr>';continue;}
+    var bg=isSel?'#EEF4FF':isBooked?'#FFF5F3':isPast?'#f9f9f9':isWE?'#FAFAFF':'#fff';
+    var bdr=isToday?'1.5px solid #F59E0B':isSel?'1.5px solid #6366F1':'0.5px solid #e5e4e0';
+    var inner='<div style="font-size:10px;display:flex;justify-content:space-between;color:'+(isToday?'#92400E':'#bbb')+';margin-bottom:3px;"><span>'+day+(isCheckout?' \u{1F9F9}':'')+'</span>'+(isSel?'<span style="color:#6366F1;font-size:9px;">\u2713</span>':'')+'</div>';
+    if(isBooked&&resOnDay){var pc=platClass(resOnDay.platform)==='airbnb'?'#B8420A':'#1A4F8A';var pb=platClass(resOnDay.platform)==='airbnb'?'#FFE8EC':'#E6EFF8';inner+='<div style="background:'+pb+';color:'+pc+';font-size:9px;font-weight:600;border-radius:3px;padding:2px 4px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">'+(resOnDay.guest||'').split(' ')[0]+'</div>';}
+    else if(!isPast){inner+='<div style="display:flex;gap:2px;align-items:center;margin-bottom:2px;"><span style="font-size:7px;background:#FFE8EC;color:#B8420A;padding:0 3px;border-radius:2px;font-weight:700;">A</span><span style="font-size:10px;font-weight:600;color:'+(ap?'#1a1a1a':'#ccc')+';">'+(ap?ap+'\u20AC':'\u2014')+'</span></div><div style="display:flex;gap:2px;align-items:center;"><span style="font-size:7px;background:#E6EFF8;color:#1A4F8A;padding:0 3px;border-radius:2px;font-weight:700;">B</span><span style="font-size:10px;font-weight:600;color:'+(bp?'#1a1a1a':'#ccc')+';">'+(bp?bp+'\u20AC':'\u2014')+'</span></div>';}
+    else{inner+='<div style="font-size:9px;color:#ccc;">'+(ap||bp?(ap||'-')+'\u20AC/'+(bp||'-')+'\u20AC':'\u2014')+'</div>';}
+    cells+='<td id="rc-'+ds+'" data-ds="'+ds+'" data-past="'+(isPast?1:0)+'" data-booked="'+(isBooked?1:0)+'" style="height:78px;vertical-align:top;padding:4px 5px;background:'+bg+';border:'+bdr+';cursor:'+(isPast||isBooked?'default':'pointer')+';user-select:none;">'+inner+'</td>';
     if((i+1)%7===0&&i<total-1)cells+='</tr><tr>';
   }
-
-  // Actions groupées
-  const TH='font-size:10px;color:#888;text-align:center;padding:6px 2px;font-weight:600;background:#f5f4f0;border:1px solid #e5e4e0;';
-
+  var TH='font-size:10px;color:#888;text-align:center;padding:6px 2px;font-weight:600;background:#f5f4f0;border:0.5px solid #e5e4e0;';
+  var cleanHtml='<div style="background:#fff;border:0.5px solid #e5e4e0;border-radius:10px;padding:14px;">'
+    +'<div style="font-size:13px;font-weight:600;margin-bottom:10px;">M\xE9nage</div>'
+    +'<div style="font-size:11px;color:#888;margin-bottom:8px;">'+prop.name+'</div>'
+    +'<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:0.5px solid #e5e4e0;margin-bottom:5px;"><span style="font-size:12px;color:#666;">Base</span><span style="font-size:13px;font-weight:600;">'+cleaning.base+' \u20AC</span></div>'
+    +'<div style="display:flex;justify-content:space-between;padding:5px 0;margin-bottom:10px;"><span style="font-size:12px;color:#666;">Nuit supp.</span><span style="font-size:13px;font-weight:600;">+'+cleaning.extra+' \u20AC</span></div>'
+    +'<div style="border-top:0.5px solid #e5e4e0;padding-top:10px;">'
+    +'<div style="display:flex;flex-direction:column;gap:7px;margin-bottom:10px;">'
+    +'<div style="display:flex;align-items:center;justify-content:space-between;"><label style="font-size:11px;color:#666;">Base</label><div style="display:flex;gap:3px;"><input type="number" id="cl-base" value="'+cleaning.base+'" style="width:55px;font-size:13px;text-align:center;border:1px solid #ddd;border-radius:5px;padding:3px;"><span style="font-size:11px;color:#888;">\u20AC</span></div></div>'
+    +'<div style="display:flex;align-items:center;justify-content:space-between;"><label style="font-size:11px;color:#666;">Nuit supp.</label><div style="display:flex;gap:3px;"><input type="number" id="cl-extra" value="'+cleaning.extra+'" style="width:55px;font-size:13px;text-align:center;border:1px solid #ddd;border-radius:5px;padding:3px;"><span style="font-size:11px;color:#888;">\u20AC</span></div></div>'
+    +'</div>'
+    +'<button onclick="_saveClean(\'' + prop.id + '\')" style="width:100%;padding:7px;border-radius:6px;border:none;background:#1D9E75;color:#fff;font-size:12px;cursor:pointer;font-weight:600;">\u2713 Enregistrer</button>'
+    +'</div></div>';
   document.getElementById('main-content').innerHTML=
-    // Sélection bien + nav mois
-    `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
-      <div style="display:flex;gap:6px;flex-wrap:wrap">
-        ${S.props.map(p=>`<button class="btn${S.ratesProp===p.id?' btn-green':''}" style="font-size:11px" onclick="S.ratesProp='${p.id}';renderRates()">${p.name}</button>`).join('')}
-      </div>
-      <div style="display:flex;align-items:center;gap:8px">
-        <button class="btn" onclick="chgRatesMonth(-1)" style="font-size:15px;padding:4px 12px">‹</button>
-        <span style="font-size:14px;font-weight:700;min-width:150px;text-align:center">${MOIS[month]} ${year}</span>
-        <button class="btn" onclick="chgRatesMonth(1)" style="font-size:15px;padding:4px 12px">›</button>
-      </div>
-    </div>`
-
-    // Barre d'actions groupées
-    +`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;padding:10px 14px;background:#f9f9f9;border:1px solid #e5e4e0;border-radius:8px;align-items:center">
-      <span style="font-size:11px;color:#888;font-weight:600">Actions groupées :</span>
-      <button class="btn" style="font-size:11px" onclick="_ratesBulk('month')">Tout le mois</button>
-      <button class="btn" style="font-size:11px" onclick="_ratesBulk('weekends')">Week-ends seuls</button>
-      <button class="btn" style="font-size:11px" onclick="_ratesBulk('weekdays')">Semaine seule</button>
-      <button class="btn" style="font-size:11px" onclick="openMinStay('${prop.id}')">Séjour minimum</button>
-      <button class="btn" style="font-size:11px" onclick="_loadPricesFromAPI('${prop.id}')">↻ Charger tarifs Hostex</button>
-    </div>`
-
-    // Légende
-    +`<div style="display:flex;gap:12px;margin-bottom:8px;font-size:10px;color:#888;flex-wrap:wrap">
-      <span style="display:inline-flex;align-items:center;gap:4px"><span style="background:#FFE8EC;color:#C8523E;padding:0 4px;border-radius:3px;font-weight:700;font-size:9px">A</span>Airbnb</span>
-      <span style="display:inline-flex;align-items:center;gap:4px"><span style="background:#E6EFF8;color:#2E5F9E;padding:0 4px;border-radius:3px;font-weight:700;font-size:9px">B</span>Booking</span>
-      <span style="background:#FFF0ED;padding:0 6px;border-radius:3px">Réservé</span>
-      <span>Cliquer sur un jour pour modifier le tarif</span>
-    </div>`
-
-    // Calendrier
-    +`<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;min-width:580px">
-      <tr>${JOURS.map(d=>`<th style="${TH}">${d}</th>`).join('')}</tr>
-      <tr>${cells}</tr>
-    </table></div>`;
-
-  // Charger les tarifs depuis l'API si pas encore fait pour ce mois
-  const monthKey=year+'-'+String(month+1).padStart(2,'0');
-  if(!S.ratesLoaded) S.ratesLoaded={};
-  if(!S.ratesLoaded[prop.id+'_'+monthKey]){
-    _loadPricesFromAPI(prop.id);
-    S.ratesLoaded[prop.id+'_'+monthKey]=true;
-  }
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;">'
+      +'<div style="display:flex;gap:6px;flex-wrap:wrap;">'+S.props.map(function(p){return'<button class="btn'+(S.ratesProp===p.id?' btn-green':'')+'" style="font-size:11px" onclick="S.ratesProp=\''+p.id+'\';S.ratesSelected={};S.ratesLoaded={};renderRates()">'+p.name+'</button>';}).join('')+'</div>'
+      +'<div style="display:flex;align-items:center;gap:8px;"><button class="btn" onclick="chgRatesMonth(-1)" style="font-size:15px;padding:4px 12px;">\u2039</button><span style="font-size:14px;font-weight:700;min-width:150px;text-align:center;">'+MOIS[month]+' '+year+'</span><button class="btn" onclick="chgRatesMonth(1)" style="font-size:15px;padding:4px 12px;">\u203A</button></div>'
+    +'</div>'
+    +(selCount>0?'<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px;padding:8px 12px;background:#EEF4FF;border:0.5px solid #6366F1;border-radius:8px;"><span style="font-size:12px;color:#4338CA;font-weight:600;">'+selCount+' jour'+(selCount>1?'s':'')+'</span><button class="btn btn-green" style="font-size:11px" onclick="_rateApplySelected()">Appliquer un tarif</button><button class="btn" style="font-size:11px" onclick="S.ratesSelected={};renderRates()">Annuler</button></div>':'')
+    +'<div style="display:flex;gap:10px;margin-bottom:8px;font-size:10px;color:#888;flex-wrap:wrap;align-items:center;"><span><span style="background:#FFE8EC;color:#B8420A;padding:0 4px;border-radius:2px;font-size:9px;font-weight:700;">A</span> Airbnb</span><span><span style="background:#E6EFF8;color:#1A4F8A;padding:0 4px;border-radius:2px;font-size:9px;font-weight:700;">B</span> Booking</span><span style="color:#ccc;">Glisser = s\xE9lectionner \xB7 Clic = \xE9diter</span><button class="btn" style="font-size:10px;margin-left:auto" onclick="_loadPricesFromAPI(\'' + prop.id + '\')">\u21BB Charger Hostex</button></div>'
+    +'<div style="display:grid;grid-template-columns:1fr 190px;gap:14px;align-items:start;">'
+      +'<div style="overflow-x:auto;"><table id="rates-table" style="width:100%;border-collapse:collapse;min-width:500px;"><tr>'+JOURS.map(function(d){return'<th style="'+TH+'">'+d+'</th>';}).join('')+'</tr><tr>'+cells+'</tr></table></div>'
+      +cleanHtml
+    +'</div>';
+  var table=document.getElementById('rates-table');
+  if(!table)return;
+  var dragStart=null,isDragging=false;
+  table.addEventListener('mousedown',function(e){var td=e.target.closest('td[data-ds]');if(!td||td.dataset.past==='1'||td.dataset.booked==='1')return;isDragging=true;dragStart=td.dataset.ds;e.preventDefault();});
+  table.addEventListener('mouseover',function(e){
+    if(!isDragging||!dragStart)return;
+    var td=e.target.closest('td[data-ds]');if(!td||td.dataset.past==='1')return;
+    var s=new Date(Math.min(new Date(dragStart+'T00:00:00'),new Date(td.dataset.ds+'T00:00:00')));
+    var en=new Date(Math.max(new Date(dragStart+'T00:00:00'),new Date(td.dataset.ds+'T00:00:00')));
+    var ns={};for(var d=new Date(s);d<=en;d.setDate(d.getDate()+1)){var ds2=dStr(new Date(d));var c2=document.getElementById('rc-'+ds2);if(c2&&c2.dataset.booked!=='1')ns[ds2]=true;}
+    S.ratesSelected=ns;
+    for(var k2 in ns){var c3=document.getElementById('rc-'+k2);if(c3){c3.style.background='#EEF4FF';c3.style.border='1.5px solid #6366F1';}}
+  });
+  document.addEventListener('mouseup',function(e){
+    if(!isDragging)return;isDragging=false;
+    var n=Object.keys(S.ratesSelected).filter(function(k){return S.ratesSelected[k];}).length;
+    if(n===1&&dragStart){var ds3=dragStart;S.ratesSelected={};dragStart=null;var c4=document.getElementById('rc-'+ds3);if(c4&&c4.dataset.booked!=='1'&&c4.dataset.past!=='1')_openRateDay(ds3,prop.id);else renderRates();}
+    else if(n>1){dragStart=null;renderRates();}
+    else dragStart=null;
+  });
+  if(!S.ratesLoaded)S.ratesLoaded={};
+  var mk=year+'-'+String(month+1).padStart(2,'0');
+  if(!S.ratesLoaded[prop.id+'_'+mk]){_loadPricesFromAPI(prop.id);S.ratesLoaded[prop.id+'_'+mk]=true;}
 }
-
-function chgRatesMonth(d){
-  const m=S.ratesMonth||new Date();
-  S.ratesMonth=new Date(m.getFullYear(),m.getMonth()+d,1);
-  S.ratesLoaded={};
+function chgRatesMonth(d){var m=S.ratesMonth||new Date();S.ratesMonth=new Date(m.getFullYear(),m.getMonth()+d,1);S.ratesLoaded={};S.ratesSelected={};renderRates();}
+function _saveClean(propId){if(!S.cleaning)S.cleaning={};var b=parseInt(document.getElementById('cl-base').value)||0;var e=parseInt(document.getElementById('cl-extra').value)||0;S.cleaning[propId]={base:b,extra:e};showToast('\u2713 Frais m\xE9nage enregistr\xE9s');renderRates();}
+function _openRateDay(ds,propId){
+  var key=propId+'_'+ds;var ap=S.ratesPrices[key+'_air']||'';var bp=S.ratesPrices[key+'_bk']||'';
+  var d=new Date(ds+'T00:00:00');var lbl=d.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});
+  var bkBase=parseInt(bp||ap||80);
+  var BK_OPTIONS=[{id:'standard',label:'Tarif standard',desc:'Annulation gratuite 48h',factor:1},{id:'nonref',label:'Non remboursable',desc:'-15%',factor:0.85},{id:'early',label:'R\xE9servation anticip\xE9e',desc:'-10% si 30j avant',factor:0.90},{id:'lastmin',label:'Derni\xE8re minute',desc:'+5% si -7j',factor:1.05}];
+  showModal('<h3>Tarifs \u2014 '+lbl+'</h3>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">'
+      +'<div style="padding:10px;background:#FFF8F7;border:1px solid #FFE8EC;border-radius:8px;"><div style="margin-bottom:8px;"><span style="background:#FF385C;color:#fff;padding:1px 8px;border-radius:3px;font-size:11px;font-weight:700;">Airbnb</span></div><div style="display:flex;align-items:center;gap:6px;"><input type="number" id="r-air" value="'+ap+'" placeholder="\u20AC" min="0" style="width:75px;font-size:15px;text-align:center;"><span style="font-size:12px;color:#888;">\u20AC/nuit</span></div></div>'
+      +'<div style="padding:10px;background:#F0F6FF;border:1px solid #E6EFF8;border-radius:8px;"><div style="margin-bottom:8px;"><span style="background:#003580;color:#fff;padding:1px 8px;border-radius:3px;font-size:11px;font-weight:700;">Booking</span></div><div style="display:flex;align-items:center;gap:6px;"><input type="number" id="r-bk" value="'+bp+'" placeholder="\u20AC" min="0" style="width:75px;font-size:15px;text-align:center;"><span style="font-size:12px;color:#888;">\u20AC/nuit</span></div></div>'
+    +'</div>'
+    +'<div style="margin-bottom:12px;"><div style="font-size:11px;font-weight:600;color:#666;margin-bottom:6px;">Options Booking</div><div style="display:grid;gap:4px;">'+BK_OPTIONS.map(function(o){var oP=Math.round(bkBase*o.factor);return'<label style="display:flex;align-items:center;gap:8px;padding:7px 10px;border:0.5px solid #e5e4e0;border-radius:6px;cursor:pointer;background:#fff;"><input type="radio" name="bk-opt" value="'+o.id+'" '+(o.id==='standard'?'checked':'')+' style="margin:0;"><div style="flex:1;"><div style="font-size:11px;font-weight:600;">'+o.label+'</div><div style="font-size:10px;color:#888;">'+o.desc+'</div></div><span id="bkp-'+o.id+'" style="font-size:12px;font-weight:600;">'+oP+'\u20AC</span></label>';}).join('')+'</div></div>'
+    +'<div style="padding:8px 10px;background:#f5f4f0;border-radius:6px;font-size:11px;color:#888;margin-bottom:10px;">Aussi sur : <button onclick="_rApplyRange(\'' + ds + '\',\'' + propId + '\',7)" style="font-size:10px;padding:2px 8px;border-radius:4px;border:0.5px solid #ddd;background:#fff;cursor:pointer;margin:0 3px;">7j</button><button onclick="_rApplyRange(\'' + ds + '\',\'' + propId + '\',30)" style="font-size:10px;padding:2px 8px;border-radius:4px;border:0.5px solid #ddd;background:#fff;cursor:pointer;">30j</button></div>'
+    +'<div style="font-size:11px;color:#666;margin-bottom:10px;">S\xE9jour min : <input type="number" id="r-ms" value="'+(S.ratesMinStay[key]||'')+'" placeholder="nuits" min="1" style="width:55px;font-size:12px;text-align:center;margin-left:4px;"> nuits</div>'
+    +'<div class="modal-actions"><button class="btn" onclick="closeModal()">Annuler</button><button class="btn btn-green" onclick="_rSaveDay(\'' + ds + '\',\'' + propId + '\')">\u2713 Appliquer</button></div>');
+  setTimeout(function(){var ri=document.getElementById('r-bk');if(ri)ri.oninput=function(){var bv=parseInt(ri.value)||bkBase;BK_OPTIONS.forEach(function(o){var el=document.getElementById('bkp-'+o.id);if(el)el.textContent=Math.round(bv*o.factor)+'\u20AC';});};},50);
+}
+async function _rSaveDay(ds,propId){
+  var av=parseInt(document.getElementById('r-air').value)||0;var bv=parseInt(document.getElementById('r-bk').value)||0;var msv=parseInt(document.getElementById('r-ms').value)||0;
+  var opt=document.querySelector('input[name="bk-opt"]:checked');var f=opt&&opt.value==='nonref'?0.85:opt&&opt.value==='early'?0.90:opt&&opt.value==='lastmin'?1.05:1;
+  var key=propId+'_'+ds;if(av)S.ratesPrices[key+'_air']=av;if(bv)S.ratesPrices[key+'_bk']=Math.round(bv*f);if(msv)S.ratesMinStay[key]=msv;
+  closeModal();showToast('Envoi\u2026');
+  var prop=S.props.find(function(p){return p.id===propId;});
+  try{for(var i=0;i<(prop?prop.channels.length:0);i++){var ch=prop.channels[i];var price=platClass(ch.channel_type)==='airbnb'?av:Math.round(bv*f);if(price>0)await api('/listings/prices','POST',{listing_id:ch.listing_id,prices:[{date:ds,price:price}]});}if(msv>0)await api('/listings/restrictions','POST',{property_id:propId,min_nights:msv,start_date:ds,end_date:ds});showToast('\u2713 Tarifs mis \xE0 jour');}catch(e){showToast('Local OK');}
   renderRates();
 }
-
+function _rApplyRange(ds,propId,days){
+  var av=parseInt(document.getElementById('r-air').value)||0;var bv=parseInt(document.getElementById('r-bk').value)||0;
+  var opt=document.querySelector('input[name="bk-opt"]:checked');var f=opt&&opt.value==='nonref'?0.85:opt&&opt.value==='early'?0.90:opt&&opt.value==='lastmin'?1.05:1;
+  var start=new Date(ds+'T00:00:00');
+  for(var i=0;i<days;i++){var d=new Date(start.getFullYear(),start.getMonth(),start.getDate()+i);var k=propId+'_'+dStr(d);if(av)S.ratesPrices[k+'_air']=av;if(bv)S.ratesPrices[k+'_bk']=Math.round(bv*f);}
+  _rSaveDay(ds,propId);
+}
+function _rateApplySelected(){
+  var days=Object.keys(S.ratesSelected).filter(function(k){return S.ratesSelected[k];}).sort();if(!days.length)return;
+  var BK_OPTIONS=[{id:'standard',label:'Tarif standard',desc:'Annulation 48h',factor:1},{id:'nonref',label:'Non remboursable',desc:'-15%',factor:0.85},{id:'early',label:'Anticip\xE9e',desc:'-10%',factor:0.90},{id:'lastmin',label:'Derni\xE8re minute',desc:'+5%',factor:1.05}];
+  showModal('<h3>Tarif sur '+days.length+' jour'+(days.length>1?'s':'')+'</h3>'
+    +'<div style="font-size:10px;color:#888;margin-bottom:12px;line-height:1.8;">'+days.join(' \xB7 ')+'</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">'
+      +'<div style="display:flex;gap:6px;align-items:center;padding:10px;border:1px solid #FFE8EC;border-radius:8px;"><span style="background:#FF385C;color:#fff;padding:1px 8px;border-radius:3px;font-size:11px;font-weight:700;flex-shrink:0;">Airbnb</span><input type="number" id="bs-air" placeholder="\u20AC" style="width:65px;font-size:14px;text-align:center;"></div>'
+      +'<div style="display:flex;gap:6px;align-items:center;padding:10px;border:1px solid #E6EFF8;border-radius:8px;"><span style="background:#003580;color:#fff;padding:1px 8px;border-radius:3px;font-size:11px;font-weight:700;flex-shrink:0;">Booking</span><input type="number" id="bs-bk" placeholder="\u20AC" style="width:65px;font-size:14px;text-align:center;"></div>'
+    +'</div>'
+    +'<div style="margin-bottom:12px;"><div style="font-size:11px;font-weight:600;color:#666;margin-bottom:6px;">Option Booking</div><div style="display:grid;gap:4px;">'+BK_OPTIONS.map(function(o){return'<label style="display:flex;align-items:center;gap:8px;padding:6px 10px;border:0.5px solid #e5e4e0;border-radius:6px;cursor:pointer;background:#fff;"><input type="radio" name="bs-opt" value="'+o.id+'" '+(o.id==='standard'?'checked':'')+' style="margin:0;"><div><div style="font-size:11px;font-weight:600;">'+o.label+'</div><div style="font-size:10px;color:#888;">'+o.desc+'</div></div></label>';}).join('')+'</div></div>'
+    +'<div class="modal-actions"><button class="btn" onclick="closeModal()">Annuler</button><button class="btn btn-green" onclick="_rSaveBulk()">\u2713 Appliquer sur '+days.length+' jours</button></div>');
+}
+async function _rSaveBulk(){
+  var av=parseInt(document.getElementById('bs-air').value)||0;var bv=parseInt(document.getElementById('bs-bk').value)||0;if(!av&&!bv){showToast('Entre un prix.');return;}
+  var opt=document.querySelector('input[name="bs-opt"]:checked');var f=opt&&opt.value==='nonref'?0.85:opt&&opt.value==='early'?0.90:opt&&opt.value==='lastmin'?1.05:1;
+  var days=Object.keys(S.ratesSelected).filter(function(k){return S.ratesSelected[k];});closeModal();
+  var prop=S.props.find(function(p){return p.id===S.ratesProp;});var aP=[],bP=[];
+  days.forEach(function(ds){var k=S.ratesProp+'_'+ds;if(av){S.ratesPrices[k+'_air']=av;aP.push({date:ds,price:av});}if(bv){S.ratesPrices[k+'_bk']=Math.round(bv*f);bP.push({date:ds,price:Math.round(bv*f)});}});
+  showToast('Envoi\u2026');
+  try{var aC=prop?prop.channels.filter(function(c){return platClass(c.channel_type)==='airbnb';}):[];var bC=prop?prop.channels.filter(function(c){return platClass(c.channel_type)==='booking';}):[];if(av&&aC.length){for(var i=0;i<aP.length;i+=30)await api('/listings/prices','POST',{listing_id:aC[0].listing_id,prices:aP.slice(i,i+30)});}if(bv&&bC.length){for(var i=0;i<bP.length;i+=30)await api('/listings/prices','POST',{listing_id:bC[0].listing_id,prices:bP.slice(i,i+30)});}showToast('\u2713 '+days.length+' jours mis \xE0 jour');}catch(e){showToast('Local OK');}
+  S.ratesSelected={};renderRates();
+}
 async function _loadPricesFromAPI(propId){
-  const prop=S.props.find(p=>p.id===propId);
-  if(!prop)return;
-  const m=S.ratesMonth||new Date();
-  const from=dStr(new Date(m.getFullYear(),m.getMonth(),1));
-  const to=dStr(new Date(m.getFullYear(),m.getMonth()+1,0));
-  showToast('Chargement tarifs...');
-  try{
-    // Récupérer les tarifs via l'API Hostex
-    const data=await api('/listings/prices?listing_id='+prop.channels[0]?.listing_id+'&start_date='+from+'&end_date='+to);
-    if(!S.ratesPrices) S.ratesPrices={};
-    const prices=data?.data?.prices||data?.data||[];
-    prices.forEach(function(p){
-      const key=propId+'_'+p.date;
-      if(p.price){
-        S.ratesPrices[key+'_air']=p.price;
-        S.ratesPrices[key+'_bk']=p.price;
-      }
-    });
-    showToast('✓ Tarifs chargés');
-    renderRates();
-  }catch(e){
-    showToast('Tarifs non disponibles — saisie manuelle possible');
-  }
+  var prop=S.props.find(function(p){return p.id===propId;});if(!prop||!prop.channels.length)return;
+  var m=S.ratesMonth||new Date();var from=dStr(new Date(m.getFullYear(),m.getMonth(),1));var to=dStr(new Date(m.getFullYear(),m.getMonth()+1,0));
+  showToast('Chargement\u2026');
+  try{var data=await api('/listings/prices?listing_id='+prop.channels[0].listing_id+'&start_date='+from+'&end_date='+to);var prices=(data&&data.data&&data.data.prices)||[];prices.forEach(function(p){if(p.price){S.ratesPrices[propId+'_'+p.date+'_air']=p.price;S.ratesPrices[propId+'_'+p.date+'_bk']=p.price;}});showToast('\u2713 '+prices.length+' tarifs');renderRates();}catch(e){showToast('Tarifs non disponibles');}
 }
-
-function _openRateDay(ds, propId){
-  const date=new Date(ds+'T00:00:00');
-  const key=propId+'_'+ds;
-  const airPrice=S.ratesPrices[key+'_air']||'';
-  const bkPrice=S.ratesPrices[key+'_bk']||'';
-  const minStay=S.ratesMinStay[key]||'';
-  const prop=S.props.find(p=>p.id===propId);
-  const dateStr=date.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});
-
-  showModal(`<h3>Tarifs — ${dateStr}</h3>
-    <div style="font-size:12px;color:#888;margin-bottom:14px">${prop?prop.name:''}</div>
-
-    <div style="display:grid;gap:12px">
-      <div style="padding:12px;background:#FFF8F7;border:1px solid #FFE8EC;border-radius:8px">
-        <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
-          <span style="background:#FF385C;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700">Airbnb</span>
-          <span style="font-size:11px;color:#888">tarif nuit</span>
-        </div>
-        <div style="display:flex;gap:8px;align-items:center">
-          <input type="number" id="rate-air-${ds}" value="${airPrice}" placeholder="€/nuit" min="0" style="width:100px;font-size:14px;font-weight:600;text-align:center">
-          <span style="font-size:12px;color:#888">€ / nuit</span>
-        </div>
-      </div>
-
-      <div style="padding:12px;background:#F0F6FF;border:1px solid #E6EFF8;border-radius:8px">
-        <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
-          <span style="background:#003580;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700">Booking</span>
-          <span style="font-size:11px;color:#888">tarif nuit</span>
-        </div>
-        <div style="display:flex;gap:8px;align-items:center">
-          <input type="number" id="rate-bk-${ds}" value="${bkPrice}" placeholder="€/nuit" min="0" style="width:100px;font-size:14px;font-weight:600;text-align:center">
-          <span style="font-size:12px;color:#888">€ / nuit</span>
-        </div>
-        <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
-          <div style="display:flex;align-items:center;gap:4px">
-            <span style="font-size:11px;color:#666">Séjour min :</span>
-            <input type="number" id="rate-ms-${ds}" value="${minStay}" placeholder="nuits" min="1" max="30" style="width:60px;font-size:12px;text-align:center">
-            <span style="font-size:11px;color:#888">nuits</span>
-          </div>
-        </div>
-      </div>
-
-      <div style="padding:10px;background:#f9f9f9;border-radius:8px">
-        <div style="font-size:11px;color:#888;margin-bottom:6px">Appliquer le même tarif sur :</div>
-        <div style="display:flex;gap:6px;flex-wrap:wrap">
-          <button class="btn" style="font-size:10px" onclick="_fillSamePrice('${ds}','${propId}',1)">Ce jour</button>
-          <button class="btn" style="font-size:10px" onclick="_fillSamePrice('${ds}','${propId}',7)">7 jours</button>
-          <button class="btn" style="font-size:10px" onclick="_fillSamePrice('${ds}','${propId}',30)">30 jours</button>
-        </div>
-      </div>
-    </div>
-
-    <div class="modal-actions">
-      <button class="btn" onclick="closeModal()">Annuler</button>
-      <button class="btn btn-green" onclick="_saveRateDay('${ds}','${propId}')">✓ Appliquer sur Airbnb + Booking</button>
-    </div>`);
-}
-
-async function _saveRateDay(ds, propId){
-  const airVal=parseInt(document.getElementById('rate-air-'+ds)?.value||0);
-  const bkVal=parseInt(document.getElementById('rate-bk-'+ds)?.value||0);
-  const msVal=parseInt(document.getElementById('rate-ms-'+ds)?.value||0);
-  if(!S.ratesPrices) S.ratesPrices={};
-  if(!S.ratesMinStay) S.ratesMinStay={};
-  const key=propId+'_'+ds;
-  const prop=S.props.find(p=>p.id===propId);
-  closeModal();
-  showToast('Envoi à Hostex...');
-  let ok=0, errors=0;
-
-  // Envoyer pour chaque listing du bien
-  for(const ch of (prop?.channels||[])){
-    const price=(ch.channel_type==='airbnb'?airVal:bkVal)||airVal||bkVal;
-    if(price>0){
-      try{
-        await api('/listings/prices','POST',{listing_id:ch.listing_id,prices:[{date:ds,price:price}]});
-        ok++;
-      }catch(e){errors++;}
-    }
-  }
-
-  // Si pas de channels connus, envoyer quand même avec listing_id du bien
-  if(!prop?.channels?.length && (airVal||bkVal)){
-    try{
-      await api('/listings/prices','POST',{property_id:propId,prices:[{date:ds,price:airVal||bkVal}]});
-      ok++;
-    }catch(e){errors++;}
-  }
-
-  // Séjour minimum
-  if(msVal>0){
-    try{await api('/listings/restrictions','POST',{property_id:propId,min_nights:msVal,start_date:ds,end_date:ds});}catch(e){}
-    S.ratesMinStay[key]=msVal;
-  }
-
-  // Mettre à jour localement
-  if(airVal>0) S.ratesPrices[key+'_air']=airVal;
-  if(bkVal>0) S.ratesPrices[key+'_bk']=bkVal;
-
-  showToast(errors===0?`✓ Tarif appliqué : ${airVal||bkVal}€`:`✓ Partiellement appliqué (${errors} erreur(s))`);
-  renderRates();
-}
-
-function _fillSamePrice(ds, propId, days){
-  const airVal=document.getElementById('rate-air-'+ds)?.value||'';
-  const bkVal=document.getElementById('rate-bk-'+ds)?.value||'';
-  const msVal=document.getElementById('rate-ms-'+ds)?.value||'';
-  if(!airVal&&!bkVal){showToast('Entre un prix d\'abord.');return;}
-  if(!S.ratesPrices) S.ratesPrices={};
-  const start=new Date(ds+'T00:00:00');
-  for(let d=0;d<days;d++){
-    const dd=new Date(start.getFullYear(),start.getMonth(),start.getDate()+d);
-    const k=propId+'_'+dStr(dd);
-    if(airVal) S.ratesPrices[k+'_air']=parseInt(airVal);
-    if(bkVal) S.ratesPrices[k+'_bk']=parseInt(bkVal);
-    if(msVal) S.ratesMinStay[k]=parseInt(msVal);
-  }
-  closeModal();
-  // Envoyer tout en une fois à l'API
-  _sendBulkPrices(propId, ds, days, parseInt(airVal||bkVal));
-}
-
-async function _sendBulkPrices(propId, fromDs, days, price){
-  if(!price||price<=0)return;
-  const prop=S.props.find(p=>p.id===propId);
-  const start=new Date(fromDs+'T00:00:00');
-  const prices=[];
-  for(let d=0;d<days;d++){
-    const dd=new Date(start.getFullYear(),start.getMonth(),start.getDate()+d);
-    prices.push({date:dStr(dd),price:price});
-  }
-  showToast('Envoi de '+days+' tarifs...');
-  try{
-    for(const ch of (prop?.channels||[])){
-      await api('/listings/prices','POST',{listing_id:ch.listing_id,prices:prices});
-    }
-    showToast('✓ '+days+' jours mis à jour');
-  }catch(e){showToast('Erreur : '+e.message);}
-  renderRates();
-}
-
-function _ratesBulk(mode){
-  const prop=S.props.find(p=>p.id===S.ratesProp)||S.props[0];
-  if(!prop)return;
-  const m=S.ratesMonth||new Date();
-  const year=m.getFullYear(),month=m.getMonth();
-  const dim=new Date(year,month+1,0).getDate();
-  const label={'month':'tout le mois','weekends':'week-ends','weekdays':'jours de semaine'}[mode]||mode;
-  showModal(`<h3>Tarif groupé — ${label}</h3>
-    <div style="font-size:12px;color:#888;margin-bottom:14px">${prop.name}</div>
-    <div style="display:grid;gap:10px">
-      <div style="display:flex;gap:8px;align-items:center">
-        <span style="background:#FF385C;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700">Airbnb</span>
-        <input type="number" id="bulk-air" placeholder="€/nuit" min="0" style="width:90px;font-size:14px;text-align:center">€/nuit
-      </div>
-      <div style="display:flex;gap:8px;align-items:center">
-        <span style="background:#003580;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700">Booking</span>
-        <input type="number" id="bulk-bk" placeholder="€/nuit" min="0" style="width:90px;font-size:14px;text-align:center">€/nuit
-      </div>
-      <div style="font-size:11px;color:#888">⚠ Sera appliqué sur tous les jours disponibles (non réservés)</div>
-    </div>
-    <div class="modal-actions">
-      <button class="btn" onclick="closeModal()">Annuler</button>
-      <button class="btn btn-green" onclick="_applyBulk('${mode}','${prop.id}',${year},${month},${dim})">Appliquer</button>
-    </div>`);
-}
-
-async function _applyBulk(mode, propId, year, month, dim){
-  const airVal=parseInt(document.getElementById('bulk-air')?.value||0);
-  const bkVal=parseInt(document.getElementById('bulk-bk')?.value||0);
-  if(!airVal&&!bkVal){showToast('Entre un prix.');return;}
-  closeModal();
-  if(!S.ratesPrices) S.ratesPrices={};
-  const prop=S.props.find(p=>p.id===propId);
-  const prices=[];
-  for(let d=1;d<=dim;d++){
-    const date=new Date(year,month,d);
-    if(date<new Date(new Date().toDateString()))continue;
-    const isBooked=S.reservations.some(r=>r.prop_id===propId&&r.check_in&&r.check_out&&r.status!=='cancelled'&&parseD(r.check_in)<=date&&parseD(r.check_out)>date);
-    if(isBooked)continue;
-    const dow=date.getDay();
-    const isWE=dow===0||dow===5||dow===6;
-    if(mode==='weekends'&&!isWE)continue;
-    if(mode==='weekdays'&&isWE)continue;
-    const ds=dStr(date);
-    const key=propId+'_'+ds;
-    const price=airVal||bkVal;
-    S.ratesPrices[key+'_air']=airVal||price;
-    S.ratesPrices[key+'_bk']=bkVal||price;
-    prices.push({date:ds,price:price});
-  }
-  showToast('Envoi de '+prices.length+' tarifs à Hostex...');
-  try{
-    for(const ch of (prop?.channels||[])){
-      // Envoyer par lot de 30
-      for(let i=0;i<prices.length;i+=30){
-        await api('/listings/prices','POST',{listing_id:ch.listing_id,prices:prices.slice(i,i+30)});
-      }
-    }
-    showToast('✓ '+prices.length+' tarifs mis à jour sur Airbnb + Booking');
-  }catch(e){showToast('✓ Tarifs locaux mis à jour (API: '+e.message+')');}
-  renderRates();
-}
-
-async function applyRate(propId,listingId,channel){
-  const val=parseInt(document.getElementById('rate-'+propId+'-'+listingId)?.value);
-  if(isNaN(val)||val<=0){showToast('Entre un prix valide.');return;}
-  showToast('Envoi à Hostex...');
-  try{await api('/listings/prices','POST',{listing_id:listingId,prices:[{date:dStr(new Date()),price:val}]});showToast('✓ Tarif '+platLabel(channel)+' mis à jour : '+val+' €/nuit');}
-  catch(e){showToast('Erreur API : '+e.message);}
-}
-
 
 function openMinStay(propId){showModal(`<h3>Séjour minimum</h3><div class="form-row"><label class="form-label">Nuits minimum</label><input class="form-input" type="number" id="ms-val" value="2" min="1"></div><div class="modal-actions"><button class="btn" onclick="closeModal()">Annuler</button><button class="btn btn-green" onclick="saveMinStay('${propId}')">Appliquer</button></div>`);}
 async function saveMinStay(propId){const v=parseInt(document.getElementById('ms-val').value)||1;try{await api('/listings/restrictions','POST',{property_id:propId,min_nights:v});showToast(`✓ Séjour min ${v} nuits appliqué`);}catch(e){showToast('Erreur : '+e.message);}closeModal();}
