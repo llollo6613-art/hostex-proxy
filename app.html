@@ -296,7 +296,7 @@ function renderDash(){
   document.getElementById('main-content').innerHTML=
     (conflicts.length?'<div class="conflict-banner"><span style="font-size:13px;font-weight:500;color:#854F0B">&#9888; '+conflicts.length+' conflit(s)</span><button class="btn btn-red" style="font-size:11px" onclick="navigate(\'reservations\')">Voir</button></div>':'')
     +'<div class="grid4">'
-    +'<div class="stat"><div class="stat-l">Revenus ce mois</div><div class="stat-v">'+Math.round(rev).toLocaleString('fr-FR')+' \u20ac</div><div class="stat-s">'+MONTHS[now.getMonth()]+'</div></div>'
+    +'<div class="stat"><div class="stat-l">Revenus ce mois</div><div class="stat-v">'+Math.round(rev).toLocaleString('fr-FR')+' \u20ac</div><div class="stat-s">'+MONTHS[now.getMonth()]+'</div>'+(function(){var cl=0;monthRes.forEach(function(r){var c=S.cleaning&&S.cleaning[r.prop_id]?S.cleaning[r.prop_id]:{base:35,extra:10};cl+=c.base;});return cl>0?'<div style="font-size:10px;color:#888;margin-top:2px;">Net: <b style="color:#1D9E75;">'+Math.round(rev-cl).toLocaleString('fr-FR')+'\u20ac</b> <span style="color:#bbb;">(\u2212'+Math.round(cl)+'\u20ac)</span></div>':'';})()+' </div>'
     +'<div class="stat" onclick="_showYearDetail()" style="cursor:pointer;border:1px solid #e5e4e0;transition:border-color .15s" onmouseover="this.style.borderColor=\'#1D9E75\'" onmouseout="this.style.borderColor=\'#e5e4e0\'">'
       +'<div class="stat-l">Revenus '+curYear+' <span style="font-size:10px;color:#1D9E75">\u25bc d\u00e9tails</span></div>'
       +'<div class="stat-v">'+Math.round(yearRev).toLocaleString('fr-FR')+' \u20ac</div>'
@@ -1072,18 +1072,8 @@ function _toggleSelMode(){
 }
 
 function chgRatesMonth(d){var m=S.ratesMonth||new Date();S.ratesMonth=new Date(m.getFullYear(),m.getMonth()+d,1);S.ratesLoaded={};S.ratesSelected={};renderRates();}
-function _saveClean(propId){if(!S.cleaning)S.cleaning={};var b=parseInt(document.getElementById("cl-base").value)||0;var e=parseInt(document.getElementById("cl-extra").value)||0;S.cleaning[propId]={base:b,extra:e};try{localStorage.setItem("cleaning_"+propId,JSON.stringify({base:b,extra:e}));}catch(ex){}showToast("\u26a0 Memo local - modifier sur Airbnb/Booking");renderRates();}
+function _saveClean(propId){if(!S.cleaning)S.cleaning={};var b=parseInt(document.getElementById("cl-base").value)||0;var e=parseInt(document.getElementById("cl-extra").value)||0;S.cleaning[propId]={base:b,extra:e};try{localStorage.setItem("cleaning_"+propId,JSON.stringify({base:b,extra:e}));}catch(ex){}showToast("Memo local - modifier sur Airbnb/Booking directement");renderRates();}
 function _loadCleaningFromStorage(){if(!S.cleaning)S.cleaning={};if(!S.props)return;S.props.forEach(function(p){try{var v=localStorage.getItem("cleaning_"+p.id);if(v)S.cleaning[p.id]=JSON.parse(v);}catch(ex){}});}
-
-async function _rSaveDay(ds,propId){
-  var av=parseInt(document.getElementById('r-air').value)||0;var bv=parseInt(document.getElementById('r-bk').value)||0;var msv=parseInt(document.getElementById('r-ms').value)||0;
-  var opt=document.querySelector('input[name="bk-opt"]:checked');var f=opt&&opt.value==='nonref'?0.85:opt&&opt.value==='early'?0.90:opt&&opt.value==='lastmin'?1.05:1;
-  var key=propId+'_'+ds;if(av)S.ratesPrices[key+'_air']=av;if(bv)S.ratesPrices[key+'_bk']=Math.round(bv*f);if(msv)S.ratesMinStay[key]=msv;
-  closeModal();showToast('Envoi…');
-  var prop=S.props.find(function(p){return p.id===propId;});
-  try{for(var i=0;i<(prop?prop.channels.length:0);i++){var ch=prop.channels[i];var price=platClass(ch.channel_type)==='airbnb'?av:Math.round(bv*f);if(price>0)await api('/listings/prices','POST',{listing_id:ch.listing_id,prices:[{date:ds,price:price}]});}if(msv>0)await api('/listings/restrictions','POST',{property_id:propId,min_nights:msv,start_date:ds,end_date:ds});showToast('✓ Tarifs mis à jour');}catch(e){showToast('Local OK');}
-  renderRates();
-}
 
 function _rApplyRange(ds,propId,days){
   var av=parseInt(document.getElementById('r-air').value)||0;var bv=parseInt(document.getElementById('r-bk').value)||0;
