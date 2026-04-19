@@ -863,7 +863,7 @@ async function _loadPricesFromAPI(propId){
     var ch=prop.channels[ci];
     var type=platClass(ch.channel_type);
     try{
-      var data=await api('/listings/prices','POST',{listing_id:ch.listing_id,start_date:from,end_date:to,offset:0,limit:90});
+      var data=await api('/listings/prices','POST',{listing_id:ch.listing_id,channel_type:ch.channel_type,start_date:from,end_date:to,offset:0,limit:90});
       console.log('Prices API response:', JSON.stringify(data).slice(0,200));
       var prices=[];
       if(data&&data.data&&Array.isArray(data.data.prices))prices=data.data.prices;
