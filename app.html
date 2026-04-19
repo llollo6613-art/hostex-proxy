@@ -750,11 +750,11 @@ function renderRates(){
     } else if(!isPast){
       inner+='<div style="display:flex;gap:2px;align-items:center;margin-bottom:2px;">'
         +'<span style="font-size:7px;background:#FFE8EC;color:#B8420A;padding:0 3px;border-radius:2px;font-weight:700;flex-shrink:0;">A</span>'
-        +'<span style="font-size:10px;font-weight:600;color:'+(ap?'#1a1a1a':'#ccc')+';">'+(ap?ap+'€':'—')+'</span>'
+        +'<span style="font-size:15px;font-weight:700;color:'+(ap?'#1a1a1a':'#ccc')+';">'+(ap?ap+'€':'—')+'</span>'
         +'</div>'
         +'<div style="display:flex;gap:2px;align-items:center;">'
         +'<span style="font-size:7px;background:#E6EFF8;color:#1A4F8A;padding:0 3px;border-radius:2px;font-weight:700;flex-shrink:0;">B</span>'
-        +'<span style="font-size:10px;font-weight:600;color:'+(bp?'#1a1a1a':'#ccc')+';">'+(bp?bp+'€':'—')+'</span>'
+        +'<span style="font-size:15px;font-weight:700;color:'+(bp?'#1a1a1a':'#ccc')+';">'+(bp?bp+'€':'—')+'</span>'
         +'</div>';
     } else {
       inner+='<div style="font-size:9px;color:#ccc;">'+(ap||bp?(ap||'—')+'€/'+(bp||'—')+'€':'—')+'</div>';
