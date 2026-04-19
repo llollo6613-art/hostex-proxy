@@ -760,14 +760,15 @@ function renderRates(){
     +'</div></div>';
 
   // Onglets
+  var isCal=(!S.ratesTab||S.ratesTab==='cal');
+  var isRules=S.ratesTab==='rules';
   var tabHtml='<div style="display:flex;gap:0;margin-bottom:16px;border-bottom:1px solid #e5e4e0;">'
-    +'<div onclick="S.ratesTab=\'cal\';renderRates()" style="padding:8px 16px;font-size:13px;font-weight:500;cursor:pointer;'+((!S.ratesTab||S.ratesTab===\'cal\')?'color:#1D9E75;border-bottom:2px solid #1D9E75;':'color:#888;')+'">Calendrier</div>'
-    +'<div onclick="S.ratesTab=\'rules\';renderRates()" style="padding:8px 16px;font-size:13px;font-weight:500;cursor:pointer;'+(S.ratesTab===\'rules\'?'color:#1D9E75;border-bottom:2px solid #1D9E75;':'color:#888;')+'">R\u00e8gles tarifaires</div>'
+    +'<div onclick="S.ratesTab=\'cal\';renderRates()" style="padding:8px 16px;font-size:13px;font-weight:500;cursor:pointer;'+(isCal?'color:#1D9E75;border-bottom:2px solid #1D9E75;':'color:#888;')+'">Calendrier</div>'
+    +'<div onclick="S.ratesTab=\'rules\';renderRates()" style="padding:8px 16px;font-size:13px;font-weight:500;cursor:pointer;'+(isRules?'color:#1D9E75;border-bottom:2px solid #1D9E75;':'color:#888;')+'">R\u00e8gles tarifaires</div>'
     +'</div>';
 
-  if(S.ratesTab===\'rules\'){
-    document.getElementById(\'main-content\').innerHTML=tabHtml+_renderRules(prop);
-    _initRulesEvents(prop);
+  if(isRules){
+    document.getElementById('main-content').innerHTML=tabHtml+_renderRules(prop);
     return;
   }
 
