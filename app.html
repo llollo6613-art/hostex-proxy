@@ -905,7 +905,7 @@ function renderRes(){
     var prop=S.props.find(function(p){return p.id===r.prop_id;});
     var isB=platClass(r.platform)==='booking';
     var net=isB?r.amount-r.commission:r.amount;
-    h+='<div class="res-row" onclick="openResDetail(''+r.id+'')" style="cursor:pointer;">'
+    h+='<div class="res-row" onclick="openResDetail(this.dataset.rid)\" data-rid=\"\'+r.id+\'" style="cursor:pointer;">'
       +'<div><div class="res-guest">'+r.guest+'</div>'
       +'<div class="res-meta">'+(prop?prop.name:'\u2014')+' \u2022 '+fmt(r.check_in)+' \u2192 '+fmt(r.check_out)+' \u2022 '+nights(r.check_in,r.check_out)+' nuit(s)</div>'
       +'</div>'
