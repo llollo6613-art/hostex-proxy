@@ -182,7 +182,7 @@ async function loadAll(){
 
   // 3. Tout en arrière-plan, rien ne bloque
   setTimeout(()=>{
-    syncLive();
+    // syncLive();
     api('/conversations?page_size=50').then(cd=>{
       S.conversations=(cd.data?.conversations||cd.data||[]).map(c=>({id:String(c.id),guest:c.guest_name||'Voyageur',platform:c.channel_type||c.channel||'direct',preview:c.last_message||'',unread:!!(c.unread||c.has_unread),prop_id:String(c.property_id||'')}));
       if(S.page==='messages'||S.page==='dashboard')render();
@@ -611,7 +611,7 @@ function renderRates(){
     if(isBooked&&resOnDay){var pc=platClass(resOnDay.platform)==='airbnb'?'#B8420A':'#1A4F8A';var pb=platClass(resOnDay.platform)==='airbnb'?'#FFE8EC':'#E6EFF8';inner+='<div style="background:'+pb+';color:'+pc+';font-size:9px;font-weight:600;border-radius:3px;padding:2px 4px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">'+(resOnDay.guest||'').split(' ')[0]+'</div>';}
     else if(!isPast){inner+='<div style="display:flex;gap:2px;align-items:center;margin-bottom:2px;"><span style="font-size:7px;background:#FFE8EC;color:#B8420A;padding:0 3px;border-radius:2px;font-weight:700;">A</span><span style="font-size:10px;font-weight:600;color:'+(ap?'#1a1a1a':'#ccc')+';">'+(ap?ap+'\u20AC':'\u2014')+'</span></div><div style="display:flex;gap:2px;align-items:center;"><span style="font-size:7px;background:#E6EFF8;color:#1A4F8A;padding:0 3px;border-radius:2px;font-weight:700;">B</span><span style="font-size:10px;font-weight:600;color:'+(bp?'#1a1a1a':'#ccc')+';">'+(bp?bp+'\u20AC':'\u2014')+'</span></div>';}
     else{inner+='<div style="font-size:9px;color:#ccc;">'+(ap||bp?(ap||'-')+'\u20AC/'+(bp||'-')+'\u20AC':'\u2014')+'</div>';}
-    cells+='<td id="rc-'+ds+'" data-ds="'+ds+'" data-past="'+(isPast?1:0)+'" data-booked="'+(isBooked?1:0)+'" style="height:78px;vertical-align:top;padding:4px 5px;background:'+bg+';border:'+bdr+';cursor:'+(isPast||isBooked?'default':'pointer')+';user-select:none;">'+inner+'</td>';
+    cells+='<td id="rc-'+ds+'" data-ds="'+ds+'" data-past="'+(isPast?1:0)+'" data-booked="'+(isBooked?1:0)+'" style="height:90px;vertical-align:top;padding:5px 6px;background:'+bg+';border:'+bdr+';cursor:'+(isPast||isBooked?'default':'pointer')+';user-select:none;">'+inner+'</td>';
     if((i+1)%7===0&&i<total-1)cells+='</tr><tr>';
   }
   var TH='font-size:10px;color:#888;text-align:center;padding:6px 2px;font-weight:600;background:#f5f4f0;border:0.5px solid #e5e4e0;';
