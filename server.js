@@ -17,7 +17,9 @@ app.get('/', function(req, res) {
   const htmlPath = path.join(__dirname, 'app.html');
   if (fs.existsSync(htmlPath)) {
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
-    res.sendFile(htmlPath);
+    res.set('Cache-Control','no-store, no-cache, must-revalidate');
+  res.set('Pragma','no-cache');
+  res.sendFile(htmlPath);
   } else {
     res.send('<h2>app.html manquant</h2>');
   }
