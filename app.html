@@ -882,6 +882,53 @@ async function _syncNewReservations(){
   }catch(e){console.log('Sync failed:',e.message);}
 }
 
+
+function renderRes(){
+  var res=S.reservations;
+  if(S.resFilter&&S.resFilter!=='Toutes')res=res.filter(function(r){return platLabel(r.platform)===S.resFilter;});
+  if(S.resProp&&S.resProp!=='Tous')res=res.filter(function(r){return r.prop_id===S.resProp;});
+  res=res.filter(function(r){return r.status!=='cancelled';}).sort(function(a,b){return(b.check_in||'').localeCompare(a.check_in||'');});
+  var h='<div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center;">'
+    +'<select onchange="S.resFilter=this.value;renderRes()" style="font-size:12px;padding:5px 8px;border-radius:6px;border:1px solid #e5e4e0;">'
+    +'<option value="Toutes"'+((!S.resFilter||S.resFilter==='Toutes')?' selected':'')+'">Toutes plateformes</option>'
+    +['Airbnb','Booking','Direct'].map(function(p){return'<option value="'+p+'"'+(S.resFilter===p?' selected':'')+'>'+p+'</option>';}).join('')
+    +'</select>'
+    +'<select onchange="S.resProp=this.value;renderRes()" style="font-size:12px;padding:5px 8px;border-radius:6px;border:1px solid #e5e4e0;">'
+    +'<option value="Tous">Tous les biens</option>'
+    +S.props.map(function(p){return'<option value="'+p.id+'"'+(S.resProp===p.id?' selected':'')+'>'+p.name+'</option>';}).join('')
+    +'</select>'
+    +'<span style="font-size:11px;color:#aaa;margin-left:auto;">'+res.length+' r\u00e9servation(s)</span>'
+    +'</div>';
+  if(!res.length){document.getElementById('main-content').innerHTML=h+'<div class="card" style="color:#888;padding:20px;text-align:center;">Aucune r\u00e9servation.</div>';return;}
+  h+='<div class="card">';
+  res.forEach(function(r){
+    var prop=S.props.find(function(p){return p.id===r.prop_id;});
+    var isB=platClass(r.platform)==='booking';
+    var net=isB?r.amount-r.commission:r.amount;
+    h+='<div class="res-row" onclick="openResDetail(''+r.id+'')" style="cursor:pointer;">'
+      +'<div><div class="res-guest">'+r.guest+'</div>'
+      +'<div class="res-meta">'+(prop?prop.name:'\u2014')+' \u2022 '+fmt(r.check_in)+' \u2192 '+fmt(r.check_out)+' \u2022 '+nights(r.check_in,r.check_out)+' nuit(s)</div>'
+      +'</div>'
+      +'<div class="res-right">'
+      +'<span class="badge b-'+platClass(r.platform)+'">'+platLabel(r.platform)+'</span>'
+      +'<span style="font-size:13px;font-weight:600;">'+Math.round(net).toLocaleString('fr-FR')+'\u00a0\u20ac</span>'
+      +'</div></div>';
+  });
+  h+='</div>';
+  document.getElementById('main-content').innerHTML=h;
+}
+
+function renderProps(){
+  var h='<div style="display:grid;gap:14px">';
+  S.props.forEach(function(p){
+    h+='<div class="card" style="padding:16px"><div style="font-size:14px;font-weight:600">'+p.name+'</div>'
+      +'<div style="font-size:11px;color:#888;margin-top:4px">Check-in '+p.checkin+' \u2022 Check-out '+p.checkout+'</div>'
+      +'<div style="margin-top:8px;display:flex;gap:6px">'+p.channels.map(function(ch){return'<span class="badge b-'+platClass(ch.channel_type)+'">'+platLabel(ch.channel_type)+'</span>';}).join('')+'</div>'
+      +'</div>';
+  });
+  document.getElementById('main-content').innerHTML=h+'</div>';
+}
+
 function showModal(html){document.getElementById('modal-body').innerHTML=html;document.getElementById('modal').style.display='flex';}
 function closeModal(){document.getElementById('modal').style.display='none';}
 document.getElementById('modal').addEventListener('click',function(e){if(e.target===this)closeModal();});
