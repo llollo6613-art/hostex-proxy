@@ -1109,19 +1109,26 @@ async function _loadPricesFromAPI(propId){
   var m=S.ratesMonth||new Date();
   var from=dStr(new Date(m.getFullYear(),m.getMonth(),1));
   var to=dStr(new Date(m.getFullYear(),m.getMonth()+1,0));
-  showToast('Chargement tarifs Hostex...');
+  showToast('Chargement tarifs...');
+  var loaded=0;
   try{
-    var data=await api('/listings/prices?listing_id='+prop.channels[0].listing_id+'&start_date='+from+'&end_date='+to);
-    var prices=(data&&data.data&&data.data.prices)||[];
-    prices.forEach(function(p){
-      if(p.price){
-        S.ratesPrices[propId+'_'+p.date+'_air']=p.price;
-        S.ratesPrices[propId+'_'+p.date+'_bk']=p.price;
+    for(var ci=0;ci<prop.channels.length;ci++){
+      var ch=prop.channels[ci];
+      var type=platClass(ch.channel_type);
+      var data=await api('/listings/prices?listing_id='+ch.listing_id+'&start_date='+from+'&end_date='+to);
+      var prices=(data&&data.data&&data.data.prices)||data&&data.data||[];
+      if(Array.isArray(prices)){
+        prices.forEach(function(p){
+          if(p.price&&p.date){
+            S.ratesPrices[propId+'_'+p.date+'_'+(type==='airbnb'?'air':'bk')]=p.price;
+            loaded++;
+          }
+        });
       }
-    });
-    showToast('✓ '+prices.length+' tarifs chargés');
+    }
+    showToast('\u2713 '+loaded+' tarifs charg\u00e9s');
     renderRates();
-  }catch(e){showToast('Tarifs non disponibles');}
+  }catch(e){showToast('Tarifs non disponibles ('+e.message+')');}
 }
 
 
