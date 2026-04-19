@@ -826,7 +826,7 @@ function _renderRules(prop){window._rpropId=prop.id;
           +'<div style="display:flex;align-items:center;gap:8px;"><input id="rr-minStay" type="number" value="'+r.minStay+'" min="1" style="width:60px;font-size:16px;text-align:center;"><span style="font-size:12px;color:#888;">nuits</span></div>'
         +'</div>'
 
-        +'<button onclick="_applyBaseRules(''+prop.id+'')" style="width:100%;padding:9px;border-radius:8px;border:none;background:#1D9E75;color:#fff;font-size:13px;cursor:pointer;font-weight:600;">↻ Appliquer sur tout le mois — Airbnb + Booking</button>'
+        +'<button onclick="_applyBaseRules(window._rpropId)" style="width:100%;padding:9px;border-radius:8px;border:none;background:#1D9E75;color:#fff;font-size:13px;cursor:pointer;font-weight:600;">↻ Appliquer sur tout le mois — Airbnb + Booking</button>'
       +'</div>'
     +'</div>'
 
@@ -838,7 +838,7 @@ function _renderRules(prop){window._rpropId=prop.id;
         +optCard('early','Réservation anticipée','<span style="color:'+(r.early&&r.early.on?'#1D9E75':'#888')+';">-<input id="pct-early" type="number" value="'+(r.early?r.early.pct:10)+'" min="0" max="50" onclick="event.stopPropagation()" style="width:35px;font-size:11px;text-align:center;border:none;border-bottom:1px solid #ddd;background:transparent;padding:0;">%</span> si réservé <input id="days-early" type="number" value="'+(r.early?r.early.days:30)+'" min="1" onclick="event.stopPropagation()" style="width:35px;font-size:11px;text-align:center;border:none;border-bottom:1px solid #ddd;background:transparent;padding:0;">j à l'avance')
         +optCard('lastmin','Dernière minute','<span style="color:'+(r.lastmin&&r.lastmin.on?'#1D9E75':'#888')+';">+<input id="pct-lastmin" type="number" value="'+(r.lastmin?r.lastmin.pct:5)+'" min="0" max="50" onclick="event.stopPropagation()" style="width:35px;font-size:11px;text-align:center;border:none;border-bottom:1px solid #ddd;background:transparent;padding:0;">%</span> si réservé dans les <input id="days-lastmin" type="number" value="'+(r.lastmin?r.lastmin.days:7)+'" min="1" onclick="event.stopPropagation()" style="width:35px;font-size:11px;text-align:center;border:none;border-bottom:1px solid #ddd;background:transparent;padding:0;">j')
         +optCard('weekly','Séjour hebdomadaire','<span style="color:'+(r.weekly&&r.weekly.on?'#1D9E75':'#888')+';">-<input id="pct-weekly" type="number" value="'+(r.weekly?r.weekly.pct:10)+'" min="0" max="50" onclick="event.stopPropagation()" style="width:35px;font-size:11px;text-align:center;border:none;border-bottom:1px solid #ddd;background:transparent;padding:0;">%</span> pour 7 nuits ou plus')
-        +'<button onclick="_saveBookingOptions(''+prop.id+'')" style="width:100%;padding:9px;border-radius:8px;border:none;background:#003580;color:#fff;font-size:13px;cursor:pointer;font-weight:600;">✓ Enregistrer et sync Booking</button>'
+        +'<button onclick="_saveBookingOptions(window._rpropId)" style="width:100%;padding:9px;border-radius:8px;border:none;background:#003580;color:#fff;font-size:13px;cursor:pointer;font-weight:600;">✓ Enregistrer et sync Booking</button>'
       +'</div>'
     +'</div>'
   +'</div>';
