@@ -129,8 +129,17 @@ function nights(a,b){return Math.round((parseD(b)-parseD(a))/86400000);}
 function platClass(p){if(!p)return 'direct';const l=p.toLowerCase();if(l.includes('airbnb'))return 'airbnb';if(l.includes('booking'))return 'booking';return 'direct';}
 function platLabel(p){if(!p)return 'Direct';const l=p.toLowerCase();if(l.includes('airbnb'))return 'Airbnb';if(l.includes('booking'))return 'Booking.com';return p;}
 
-function mapRes(r){return{id:String(r.reservation_code||r.id||r.code),guest:r.guest_name||r.g||'Voyageur',platform:r.channel_type||r.pl||r.channel||'direct',check_in:r.check_in_date||r.ci||r.check_in||'',check_out:r.check_out_date||r.co||r.check_out||'',amount:parseFloat(r.a||0),currency:'EUR',commission:parseFloat(r.c||0),status:r.status||r.st||'confirmed',stay_status:r.stay_status||r.ss||'',guests:r.number_of_guests||r.n||1,phone:r.guest_phone||r.ph||'',email:r.guest_email||r.em||'',prop_id:String(r.property_id||r.pi||''),booked_at:r.booked_at||''};}
-
+function mapRes(r){
+  var amt=0;
+  if(r.rates&&r.rates.total_rate&&r.rates.total_rate.amount)amt=parseFloat(r.rates.total_rate.amount);
+  else if(r.rates&&r.rates.rate&&r.rates.rate.amount)amt=parseFloat(r.rates.rate.amount);
+  else if(r.a)amt=parseFloat(r.a);
+  var com=0;
+  if(r.rates&&r.rates.total_commission&&r.rates.total_commission.amount)com=parseFloat(r.rates.total_commission.amount);
+  else if(r.rates&&r.rates.commission&&r.rates.commission.amount)com=parseFloat(r.rates.commission.amount);
+  else if(r.c)com=parseFloat(r.c);
+  return{id:String(r.reservation_code||r.id||r.code||''),guest:r.guest_name||r.g||'Voyageur',platform:r.channel_type||r.pl||r.channel||'direct',check_in:r.check_in_date||r.ci||r.check_in||'',check_out:r.check_out_date||r.co||r.check_out||'',amount:amt,currency:'EUR',commission:com,status:r.status||r.st||'confirmed',stay_status:r.stay_status||r.ss||'',guests:r.number_of_guests||r.n||1,phone:r.guest_phone||r.ph||'',email:r.guest_email||r.em||'',prop_id:String(r.property_id||r.pi||''),booked_at:r.booked_at||r.b||''};
+}
 function loadFromCSV(){
   const map={};
   for(const r of CSV_DATA){
