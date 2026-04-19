@@ -182,7 +182,8 @@ async function loadAll(){
 
   // 3. Tout en arrière-plan, rien ne bloque
   setTimeout(()=>{
-    // syncLive();
+    // Charger les nouvelles réservations depuis Hostex en arrière-plan
+    _syncNewReservations();
     api('/conversations?page_size=50').then(cd=>{
       S.conversations=(cd.data?.conversations||cd.data||[]).map(c=>({id:String(c.id),guest:c.guest_name||'Voyageur',platform:c.channel_type||c.channel||'direct',preview:c.last_message||'',unread:!!(c.unread||c.has_unread),prop_id:String(c.property_id||'')}));
       if(S.page==='messages'||S.page==='dashboard')render();
@@ -489,7 +490,7 @@ function renderRes(){
 function renderCal(){
   const year=S.currentMonth.getFullYear(), month=S.currentMonth.getMonth();
   const dim=new Date(year,month+1,0).getDate();
-  const firstDay=new Date(year,month,1).getDay();
+  const firstDay=(new Date(year,month,1).getDay()+6)%7;
   const dPrev=new Date(year,month,0).getDate();
   const total=Math.ceil((firstDay+dim)/7)*7;
   const JOURS=["Dim","Lun","Mar","Mer","Jeu","Ven","Sam"];
