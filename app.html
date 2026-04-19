@@ -863,20 +863,22 @@ async function _loadPricesFromAPI(propId){
     var ch=prop.channels[ci];
     var type=platClass(ch.channel_type);
     try{
-      var data=await api('/listings/prices','POST',{listing_id:ch.listing_id,channel_type:ch.channel_type,start_date:from,end_date:to,offset:0,limit:90});
+      var data=await api('/listings/calendar','POST',{listing_ids:[ch.listing_id],start_date:from,end_date:to});
       console.log('Prices API response:', JSON.stringify(data).slice(0,200));
-      var prices=[];
-      if(data&&data.data&&Array.isArray(data.data.prices))prices=data.data.prices;
-      else if(data&&data.data&&Array.isArray(data.data))prices=data.data;
-      else if(Array.isArray(data))prices=data;
-      console.log('Prices found:', prices.length, 'for', ch.listing_id);
-      prices.forEach(function(p){
-        var date=p.date||p.day||p.start_date;
-        var price=p.price||p.rate||p.nightly_price;
-        if(price&&date){
-          S.ratesPrices[propId+'_'+date+'_'+(type==='airbnb'?'air':'bk')]=parseInt(price);
-          total++;
-        }
+      var calendars=[];
+      if(data&&data.data&&Array.isArray(data.data.listing_calendars))calendars=data.data.listing_calendars;
+      else if(data&&data.data&&Array.isArray(data.data))calendars=data.data;
+      console.log('Calendar found:', calendars.length, 'for', ch.listing_id);
+      calendars.forEach(function(cal){
+        var days=cal.days||cal.dates||[];
+        days.forEach(function(p){
+          var date=p.date||p.day;
+          var price=p.price||p.nightly_price||p.rate;
+          if(price&&date){
+            S.ratesPrices[propId+'_'+date+'_'+(type==='airbnb'?'air':'bk')]=parseInt(price);
+            total++;
+          }
+        });
       });
     }catch(e){
       console.error('Error loading prices for',ch.listing_id,e.message);
