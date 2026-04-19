@@ -171,7 +171,7 @@ async function loadAll(){
   if(!S.props||!S.props.length){
     S.props=[
       {id:'12619011',name:'Suite Illiberis',checkin:'15:00',checkout:'12:00',channels:[{channel_type:'airbnb',listing_id:'1444758558715417027',currency:'EUR'},{channel_type:'booking.com',listing_id:'1481914101',currency:'EUR'}]},
-      {id:'12619012',name:'Loft Cinema Illiberis',checkin:'15:00',checkout:'12:00',channels:[{channel_type:'airbnb',listing_id:'1499112879728152781',currency:'EUR'}]}
+      {id:'12619012',name:'Loft Cinema Illiberis',checkin:'15:00',checkout:'12:00',channels:[{channel_type:'airbnb',listing_id:'1499112879728152781',currency:'EUR'},{channel_type:'booking.com',listing_id:'1500939401',currency:'EUR'}]}
     ];
     S.selectedProp=S.props[0].id;if(!S.ratesProp)S.ratesProp=S.props[0].id;
   }
@@ -1057,7 +1057,7 @@ function openResDetail(id){var r=S.reservations.find(function(x){return x.id===i
 
 async function _syncNewReservations(){
   try{
-    var data=await api('/reservations?page_size=50&sort=check_in_date&sort_order=desc');
+    var data=await api('/reservations?page_size=200&sort=check_in_date&sort_order=desc');
     var liveRes=(data&&data.data&&data.data.reservations)||[];
     if(!liveRes.length)return;
     var map={};
