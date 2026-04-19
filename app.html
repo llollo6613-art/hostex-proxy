@@ -302,7 +302,7 @@ function renderDash(){
       +'<div class="stat-v">'+Math.round(yearRev).toLocaleString('fr-FR')+' \u20ac</div>'
       +'<div class="stat-s">'+yearRes.length+' r\u00e9s.</div>'
     +'</div>'
-      +(function(){var cl=0;monthRes.forEach(function(r){var c=S.cleaning&&S.cleaning[r.prop_id]?S.cleaning[r.prop_id]:{base:35,extra:10};cl+=c.base;});return cl>0?'<div style="font-size:10px;color:#888;margin-top:3px;">Net menage : <b style="color:#1D9E75;">'+Math.round(rev-cl).toLocaleString('fr-FR')+'\u20ac</b> <span style="color:#ccc;">(\u2212'+Math.round(cl)+'\u20ac)</span></div>':'';})()
+      
     +'<div class="stat"><div class="stat-l">Messages non lus</div><div class="stat-v" style="color:'+(unread?'#E24B4A':'#1D9E75')+'">'+unread+'</div><div class="stat-s">'+(unread?'A r\u00e9pondre':'Tout lu')+'</div></div>'
     +'<div class="stat"><div class="stat-l">Arriv\u00e9es \u00e0 venir</div><div class="stat-v">'+upcoming.length+'</div><div class="stat-s">Prochaines</div></div>'
     +'</div>'
