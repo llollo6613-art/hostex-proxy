@@ -740,10 +740,7 @@ function renderRates(){
     }
     cells+='<td id="rc-'+ds+'" data-ds="'+ds+'" data-past="'+(isPast?1:0)+'" data-booked="'+(isBooked?1:0)+'" style="height:88px;vertical-align:top;padding:6px 8px;background:'+bg+';border:'+bdr+';border-radius:8px;cursor:'+(isBooked?'default':'pointer')+';transition:border .1s,background .1s;" '
       +(isBooked?'':
-        'onclick="_rcClick(this.dataset.ds)" '
-        +'onmouseover="if(!this.classList.contains('sel'))this.style.borderColor='#6366F1'" '
-        +'onmouseout="this.style.borderColor=''+(isToday?'#F59E0B':isSel?'#6366F1':isBooked?'#FECACA':'#e5e4e0')+'';"'
-      )+'>'+content+'</td>';
+        'onclick="_rcClick(this.dataset.ds)"')+'>'+content+'</td>';
     if((i+1)%7===0&&i<total-1)cells+='</tr><tr>';
   }
   var TH='font-size:11px;color:#aaa;text-align:center;padding:6px 2px;font-weight:400;';
