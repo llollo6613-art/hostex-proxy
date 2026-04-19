@@ -108,7 +108,7 @@ const CSV_DATA=[{"id":"HM38S3ZYCF","g":"Alexandre Bariller","ph":"","pl":"airbnb
 const MONTHS=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
 const DAYS=['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
 
-const S={page:'dashboard',props:[],reservations:[],conversations:[],selectedProp:null,currentMonth:new Date(),resFilter:'Toutes',isLive:false,ratesProp:null,ratesMonth:null,ratesPrices:{},ratesMinStay:{},ratesLoaded:{},calView:'single',ratesSelected:{},cleaning:{},ratesTab:'cal',ratesRules:{},basePrices:{'12619011':{airWeek:80,bkWeek:70,airWE:95,bkWE:88},'12619012':{airWeek:90,bkWeek:80,airWE:110,bkWE:100}}};
+const S={page:'dashboard',props:[],reservations:[],conversations:[],selectedProp:null,currentMonth:new Date(),resFilter:'Toutes',isLive:false,ratesProp:null,ratesMonth:null,ratesPrices:{},ratesMinStay:{},ratesLoaded:{},calView:'single',ratesSelected:{},cleaning:{},ratesSelMode:false,ratesTab:'cal',ratesRules:{},basePrices:{'12619011':{airWeek:80,bkWeek:70,airWE:95,bkWE:88},'12619012':{airWeek:90,bkWeek:80,airWE:110,bkWE:100}}};
 
 async function api(path,method='GET',body=null,timeoutMs=6000){
   const ctrl=new AbortController();
@@ -984,13 +984,30 @@ function _aiSuggestPrice(date, propId){
 }
 
 function _rcClick(ds){
+  var n=Object.keys(S.ratesSelected).filter(function(k){return S.ratesSelected[k];}).length;
+  if(S.ratesSelMode){
+    // Mode selection : clic simple = toggle case
+    if(S.ratesSelected[ds]){delete S.ratesSelected[ds];}
+    else{S.ratesSelected[ds]=true;}
+    renderRates();
+    return;
+  }
   if(S.ratesSelected[ds]){
     delete S.ratesSelected[ds];
-    var n=Object.keys(S.ratesSelected).filter(function(k){return S.ratesSelected[k];}).length;
-    if(n===0){renderRates();_openRateDay(ds,S.ratesProp);return;}
-  } else {
+    var n2=Object.keys(S.ratesSelected).filter(function(k){return S.ratesSelected[k];}).length;
+    if(n2===0){renderRates();_openRateDay(ds,S.ratesProp);return;}
+  } else if(n>0){
+    // Des cases deja selectionnees : ajouter celle-ci
     S.ratesSelected[ds]=true;
+  } else {
+    // Aucune selection : ouvrir directement
+    _openRateDay(ds,S.ratesProp);return;
   }
+  renderRates();
+}
+function _toggleSelMode(){
+  S.ratesSelMode=!S.ratesSelMode;
+  S.ratesSelected={};
   renderRates();
 }
 
