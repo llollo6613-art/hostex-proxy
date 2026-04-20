@@ -714,7 +714,7 @@ async function _loadPricesFromAPI(propId){
         var days=lst.calendar||[];
         days.forEach(function(p){
           if(p.price&&p.date){
-            S.ratesPrices[propId+'_'+p.date+'_'+(type==='airbnb'?'air':'bk')]=parseInt(p.price);
+            var k=propId+'_'+p.date+'_'+(type==='airbnb'?'air':'bk');if(!S.ratesModified||!S.ratesModified[k])S.ratesPrices[k]=parseInt(p.price);
             total++;
           }
         });
