@@ -261,7 +261,7 @@ function renderDash(){
     return{name:p.name,pct:Math.round(occ/dim*100),days:occ,total:dim};
   });
   document.getElementById('main-content').innerHTML=
-    (conflicts.length?'<div class="conflict-banner"><span style="font-size:13px;font-weight:500;color:#854F0B">&#9888; '+conflicts.length+' conflit(s)</span><button class="btn btn-red" style="font-size:11px" onclick="navigate('reservations')">Voir</button></div>':'')
+    (conflicts.length?'<div class="conflict-banner"><span style="font-size:13px;font-weight:500;color:#854F0B">&#9888; '+conflicts.length+' conflit(s)</span><button class="btn btn-red" style="font-size:11px" onclick="navigate(this.dataset.page)" data-page="reservations">Voir</button></div>':'')
     +'<div class="grid4">'
     +'<div class="stat"><div class="stat-l">Revenus ce mois</div><div class="stat-v">'+Math.round(rev).toLocaleString('fr-FR')+' €</div><div class="stat-s">'+MONTHS[now.getMonth()]+'</div>'+(cl>0?'<div style="font-size:10px;color:#888;margin-top:2px;">Net: <b style="color:#1D9E75;">'+Math.round(rev-cl).toLocaleString('fr-FR')+'€</b> <span style="color:#bbb;">(−'+Math.round(cl)+'€)</span></div>':'')+' </div>'
     +'<div class="stat" onclick="_showYearDetail()" style="cursor:pointer" onmouseover="this.style.background='#f0fdf8'" onmouseout="this.style.background='#fff'">'
