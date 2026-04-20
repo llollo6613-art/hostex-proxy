@@ -291,11 +291,15 @@ function renderDash(){
     +'</div>'
     +'<div class="section-h">Prochaines arrivées</div>'
     +'<div class="card">'+(upcoming.length?upcoming.map(function(r){var prop=S.props.find(function(p){return p.id===r.prop_id;});return'<div class="res-row"><div><div class="res-guest">'+r.guest+'</div><div class="res-meta">'+(prop?prop.name:'—')+' • '+fmt(r.check_in)+' → '+fmt(r.check_out)+'</div></div><div class="res-right"><span class="badge b-'+platClass(r.platform)+'">'+platLabel(r.platform)+'</span><span style="font-size:13px;font-weight:600">'+Math.round(r.amount).toLocaleString('fr-FR')+' €</span></div></div>';}).join(''):'<div style="color:#888;font-size:13px;padding:14px">Aucune réservation à venir.</div>')+'</div>';
-  setTimeout(function(){
+  var _m12=months12,_pd=platData,_tc=totalCount;
+  function _tryDraw(){
     var c=document.getElementById('chart-rev');
-    if(c&&c.offsetWidth===0){c.style.width='100%';c.style.minHeight='180px';}
-    _drawDash(months12,platData,totalCount);
-  },100);
+    if(!c)return;
+    var w=c.getBoundingClientRect().width;
+    if(w>10){_drawDash(_m12,_pd,_tc);}
+    else{setTimeout(_tryDraw,100);}
+  }
+  setTimeout(_tryDraw,100);
 }
 function renderRates(){
   if(!S.props||!S.props.length){document.getElementById('main-content').innerHTML='<div style="padding:30px;text-align:center"><div class="spinner"></div></div>';setTimeout(renderRates,300);return;}
