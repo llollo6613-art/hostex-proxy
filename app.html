@@ -742,15 +742,20 @@ async function _syncNewReservations(){
     if(!liveRes.length)return;
     var map={};
     for(var i=0;i<S.reservations.length;i++)map[S.reservations[i].id]=S.reservations[i];
+    var dedupKey={};
+    S.reservations.forEach(function(r){var k=(r.guest||'')+'_'+(r.check_in||'')+'_'+(r.prop_id||'');if(!dedupKey[k])dedupKey[k]=r.id;});
     var added=0;
     for(var i=0;i<liveRes.length;i++){
-      var r=liveRes[i];
-      var key=r.reservation_code||r.id;
-      if(!map[key]){map[key]=mapRes(r);added++;}
-      else{map[key]=mapRes(r);}
+      var r=liveRes[i];var mapped=mapRes(r);
+      var dk=(mapped.guest||'')+'_'+(mapped.check_in||'')+'_'+(mapped.prop_id||'');
+      var existId=dedupKey[dk];
+      if(existId&&existId!==mapped.id){delete map[existId];}
+      if(!map[mapped.id]){added++;}
+      map[mapped.id]=mapped;
     }
     S.reservations=Object.values(map).sort(function(a,b){return(b.check_in||'').localeCompare(a.check_in||'');});
-    if(added>0){showToast('✓ '+added+' nouvelle(s) réservation(s)');render();}
+    if(added>0)showToast('\u2713 '+added+' nouvelle(s) r\u00e9servation(s)');
+    render();
   }catch(e){console.log('Sync failed:',e.message);}
 }
 
