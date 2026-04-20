@@ -125,7 +125,7 @@ async function api(path,method='GET',body=null,timeoutMs=6000){
 }
 
 function fmt(s){if(!s)return '';const d=new Date(s+'T00:00:00');return d.toLocaleDateString('fr-FR',{day:'numeric',month:'short'});}
-function dStr(d){return d.toISOString().slice(0,10);}
+function dStr(d){var y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),dd=String(d.getDate()).padStart(2,'0');return y+'-'+m+'-'+dd;}
 function parseD(s){const[y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d);}
 function nights(a,b){return Math.round((parseD(b)-parseD(a))/86400000);}
 function platClass(p){if(!p)return 'direct';const l=p.toLowerCase();if(l.includes('airbnb'))return 'airbnb';if(l.includes('booking'))return 'booking';return 'direct';}
