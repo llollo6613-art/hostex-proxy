@@ -549,8 +549,8 @@ async function _applyBaseRules(propId){
     var bp=isWE?r.bkWE:r.bkWeek;
     S.ratesPrices[propId+'_'+ds+'_air']=ap;
     S.ratesPrices[propId+'_'+ds+'_bk']=bp;
-    airPrices.push({date:ds,price:ap});
-    bkPrices.push({date:ds,price:bp});
+    airPrices.push({date:ds,price:ap,start_date:ds,end_date:ds});
+    bkPrices.push({date:ds,price:bp,start_date:ds,end_date:ds});
   }
 
   showToast('Envoi de '+airPrices.length+' tarifs…');
@@ -688,7 +688,7 @@ async function _rSaveBulk(){
   var opt=document.querySelector('input[name="bs-opt"]:checked');var f=opt&&opt.value==='nonref'?0.85:opt&&opt.value==='early'?0.90:opt&&opt.value==='lastmin'?1.05:1;
   var days=Object.keys(S.ratesSelected).filter(function(k){return S.ratesSelected[k];});closeModal();
   var prop=S.props.find(function(p){return p.id===S.ratesProp;});var aP=[],bP=[];
-  days.forEach(function(ds){var k=S.ratesProp+'_'+ds;if(av){S.ratesPrices[k+'_air']=av;aP.push({date:ds,price:av});}if(bv){S.ratesPrices[k+'_bk']=Math.round(bv*f);bP.push({date:ds,price:Math.round(bv*f)});}});
+  days.forEach(function(ds){var k=S.ratesProp+'_'+ds;if(av){S.ratesPrices[k+'_air']=av;aP.push({date:ds,price:av,start_date:ds,end_date:ds});}if(bv){S.ratesPrices[k+'_bk']=Math.round(bv*f);bP.push({date:ds,price:Math.round(bv*f)});}});
   showToast('Envoi…');
   try{var aC=prop?prop.channels.filter(function(c){return platClass(c.channel_type)==='airbnb';}):[];var bC=prop?prop.channels.filter(function(c){return platClass(c.channel_type)==='booking';}):[];if(av&&aC.length){for(var i=0;i<aP.length;i+=30)await api('/listings/prices','POST',{listing_id:aC[0].listing_id,channel_type:aC[0].channel_type,prices:aP.slice(i,i+30)});}if(bv&&bC.length){for(var i=0;i<bP.length;i+=30)await api('/listings/prices','POST',{listing_id:bC[0].listing_id,channel_type:bC[0].channel_type,prices:bP.slice(i,i+30)});}showToast('✓ '+days.length+' jours mis à jour');}catch(e){showToast('Local OK');}
   S.ratesSelected={};renderRates();
@@ -1042,7 +1042,7 @@ async function _rSaveDay(ds,propId){
   var key=propId+'_'+ds;if(!S.ratesModified)S.ratesModified={};if(av){S.ratesPrices[key+'_air']=av;S.ratesModified[key+'_air']=true;}if(bv){S.ratesPrices[key+'_bk']=Math.round(bv*f);S.ratesModified[key+'_bk']=true;}if(msv)S.ratesMinStay[key]=msv;
   closeModal();showToast('Envoi…');
   var prop=S.props.find(function(p){return p.id===propId;});
-  try{for(var i=0;i<(prop?prop.channels.length:0);i++){var ch=prop.channels[i];var price=platClass(ch.channel_type)==='airbnb'?av:Math.round(bv*f);if(price>0)await api('/listings/prices','POST',{listing_id:ch.listing_id,channel_type:ch.channel_type,prices:[{date:ds,price:price}]});}if(msv>0)await api('/listings/restrictions','POST',{property_id:propId,min_nights:msv,start_date:ds,end_date:ds});showToast('✓ Tarifs mis à jour');}catch(e){showToast('Local OK');}
+  try{for(var i=0;i<(prop?prop.channels.length:0);i++){var ch=prop.channels[i];var price=platClass(ch.channel_type)==='airbnb'?av:Math.round(bv*f);if(price>0)await api('/listings/prices','POST',{listing_id:ch.listing_id,channel_type:ch.channel_type,prices:[{date:ds,price:price,start_date:ds,end_date:ds}]});}if(msv>0)await api('/listings/restrictions','POST',{property_id:propId,min_nights:msv,start_date:ds,end_date:ds});showToast('✓ Tarifs mis à jour');}catch(e){showToast('Local OK');}
   renderRates();
 }
 
@@ -1071,7 +1071,7 @@ async function _rSaveBulk(){
   var opt=document.querySelector('input[name="bs-opt"]:checked');var f=opt&&opt.value==='nonref'?0.85:opt&&opt.value==='early'?0.90:opt&&opt.value==='lastmin'?1.05:1;
   var days=Object.keys(S.ratesSelected).filter(function(k){return S.ratesSelected[k];});closeModal();
   var prop=S.props.find(function(p){return p.id===S.ratesProp;});var aP=[],bP=[];
-  days.forEach(function(ds){var k=S.ratesProp+'_'+ds;if(av){S.ratesPrices[k+'_air']=av;aP.push({date:ds,price:av});}if(bv){S.ratesPrices[k+'_bk']=Math.round(bv*f);bP.push({date:ds,price:Math.round(bv*f)});}});
+  days.forEach(function(ds){var k=S.ratesProp+'_'+ds;if(av){S.ratesPrices[k+'_air']=av;aP.push({date:ds,price:av,start_date:ds,end_date:ds});}if(bv){S.ratesPrices[k+'_bk']=Math.round(bv*f);bP.push({date:ds,price:Math.round(bv*f)});}});
   showToast('Envoi…');
   try{var aC=prop?prop.channels.filter(function(c){return platClass(c.channel_type)==='airbnb';}):[];var bC=prop?prop.channels.filter(function(c){return platClass(c.channel_type)==='booking';}):[];if(av&&aC.length){for(var i=0;i<aP.length;i+=30)await api('/listings/prices','POST',{listing_id:aC[0].listing_id,channel_type:aC[0].channel_type,prices:aP.slice(i,i+30)});}if(bv&&bC.length){for(var i=0;i<bP.length;i+=30)await api('/listings/prices','POST',{listing_id:bC[0].listing_id,channel_type:bC[0].channel_type,prices:bP.slice(i,i+30)});}showToast('✓ '+days.length+' jours mis à jour');}catch(e){showToast('Local OK');}
   S.ratesSelected={};renderRates();
