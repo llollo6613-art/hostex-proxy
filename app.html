@@ -110,7 +110,7 @@ const DAYS=['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
 
 const CP={"airbnb":"#C8523E","booking.com":"#2E5F9E","booking":"#2E5F9E","direct":"#3D8B78"};
 const CPN={"airbnb":"Airbnb","booking.com":"Booking","booking":"Booking","direct":"Direct"};
-const S={page:'dashboard',props:[],reservations:[],conversations:[],selectedProp:null,currentMonth:new Date(),resFilter:'Toutes',isLive:false,ratesProp:null,ratesMonth:null,ratesPrices:{},ratesMinStay:{},ratesLoaded:{},calView:'single',ratesSelected:{},cleaning:{'12619011':{base:20,extra:5},'12619012':{base:40,extra:8}},ratesSelMode:false,ratesTab:'cal',ratesRules:{},basePrices:{'12619011':{airWeek:80,bkWeek:70,airWE:95,bkWE:88},'12619012':{airWeek:90,bkWeek:80,airWE:110,bkWE:100}}};
+const S={page:'dashboard',props:[],reservations:[],conversations:[],selectedProp:null,currentMonth:new Date(),resFilter:'Toutes',isLive:false,ratesProp:null,ratesMonth:null,ratesPrices:{},ratesMinStay:{},ratesLoaded:{},calView:'single',ratesSelected:{},ratesModified:{},cleaning:{'12619011':{base:20,extra:5},'12619012':{base:40,extra:8}},ratesSelMode:false,ratesTab:'cal',ratesRules:{},basePrices:{'12619011':{airWeek:80,bkWeek:70,airWE:95,bkWE:88},'12619012':{airWeek:90,bkWeek:80,airWE:110,bkWE:100}}};
 
 async function api(path,method='GET',body=null,timeoutMs=6000){
   const ctrl=new AbortController();
@@ -1039,7 +1039,7 @@ function _openRateDay(ds,propId){window._rds=ds;window._rpid=propId;
 async function _rSaveDay(ds,propId){
   var av=parseInt(document.getElementById('r-air').value)||0;var bv=parseInt(document.getElementById('r-bk').value)||0;var msv=parseInt(document.getElementById('r-ms').value)||0;
   var opt=document.querySelector('input[name="bk-opt"]:checked');var f=opt&&opt.value==='nonref'?0.85:opt&&opt.value==='early'?0.90:opt&&opt.value==='lastmin'?1.05:1;
-  var key=propId+'_'+ds;if(av)S.ratesPrices[key+'_air']=av;if(bv)S.ratesPrices[key+'_bk']=Math.round(bv*f);if(msv)S.ratesMinStay[key]=msv;
+  var key=propId+'_'+ds;if(!S.ratesModified)S.ratesModified={};if(av){S.ratesPrices[key+'_air']=av;S.ratesModified[key+'_air']=true;}if(bv){S.ratesPrices[key+'_bk']=Math.round(bv*f);S.ratesModified[key+'_bk']=true;}if(msv)S.ratesMinStay[key]=msv;
   closeModal();showToast('Envoi…');
   var prop=S.props.find(function(p){return p.id===propId;});
   try{for(var i=0;i<(prop?prop.channels.length:0);i++){var ch=prop.channels[i];var price=platClass(ch.channel_type)==='airbnb'?av:Math.round(bv*f);if(price>0)await api('/listings/prices','POST',{listing_id:ch.listing_id,channel_type:ch.channel_type,prices:[{date:ds,price:price}]});}if(msv>0)await api('/listings/restrictions','POST',{property_id:propId,min_nights:msv,start_date:ds,end_date:ds});showToast('✓ Tarifs mis à jour');}catch(e){showToast('Local OK');}
