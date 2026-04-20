@@ -238,10 +238,10 @@ function renderDash(){
   var MONTHS=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
   var past=S.reservations.filter(function(r){return r.check_in&&r.status!=='cancelled';});
   var monthRes=past.filter(function(r){var d=new Date(r.check_in+'T00:00:00');return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();});
-  var rev=monthRes.reduce(function(s,r){return s+r.amount;},0);
+  var rev=monthRes.reduce(function(s,r){var isB=r.platform==='booking.com'||r.platform==='booking';return s+(isB?r.amount-r.commission:r.amount);},0);
   var cl=0;monthRes.forEach(function(r){var c=S.cleaning&&S.cleaning[r.prop_id]?S.cleaning[r.prop_id]:{base:20,extra:5};cl+=c.base;});
   var yearRes=past.filter(function(r){return new Date(r.check_in+'T00:00:00').getFullYear()===now.getFullYear();});
-  var yearRev=yearRes.reduce(function(s,r){return s+r.amount;},0);
+  var yearRev=yearRes.reduce(function(s,r){var isB=r.platform==='booking.com'||r.platform==='booking';return s+(isB?r.amount-r.commission:r.amount);},0);
   var upcoming=S.reservations.filter(function(r){return r.check_in&&new Date(r.check_in+'T00:00:00')>=now&&r.status!=='cancelled';}).sort(function(a,b){return a.check_in.localeCompare(b.check_in);}).slice(0,5);
   var conflicts=checkConflicts?checkConflicts():[];
   var unread=S.conversations.filter(function(c){return c.unread;}).length;
@@ -250,7 +250,7 @@ function renderDash(){
     var d=new Date(now.getFullYear(),now.getMonth()-i,1);
     var lbl=MONTHS[d.getMonth()].slice(0,3)+' '+String(d.getFullYear()).slice(2);
     var res=past.filter(function(r){if(!r.check_in)return false;var rd=new Date(r.check_in+'T00:00:00');return rd.getMonth()===d.getMonth()&&rd.getFullYear()===d.getFullYear();});
-    var rv=res.reduce(function(s,r){return s+r.amount;},0);
+    var rv=res.reduce(function(s,r){var isB=r.platform==='booking.com'||r.platform==='booking';return s+(isB?r.amount-r.commission:r.amount);},0);
     months12.push({lbl:lbl,rv:rv,count:res.length,month:d.getMonth(),year:d.getFullYear()});
   }
   var platData=['airbnb','booking','direct'].map(function(pl){
