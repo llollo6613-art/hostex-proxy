@@ -238,10 +238,10 @@ function renderDash(){
   var MONTHS=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
   var past=S.reservations.filter(function(r){return r.check_in&&r.status!=='cancelled';});
   var monthRes=past.filter(function(r){var d=new Date(r.check_in+'T00:00:00');return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();});
-  var rev=monthRes.reduce(function(s,r){var isB=r.platform==='booking.com'||r.platform==='booking';return s+(isB?r.amount-r.commission:r.amount);},0);
+  var rev=monthRes.reduce(function(s,r){return s+r.amount;},0);
   var cl=0;monthRes.forEach(function(r){var c=S.cleaning&&S.cleaning[r.prop_id]?S.cleaning[r.prop_id]:{base:20,extra:5};cl+=c.base;});
   var yearRes=past.filter(function(r){return new Date(r.check_in+'T00:00:00').getFullYear()===now.getFullYear();});
-  var yearRev=yearRes.reduce(function(s,r){var isB=r.platform==='booking.com'||r.platform==='booking';return s+(isB?r.amount-r.commission:r.amount);},0);
+  var yearRev=yearRes.reduce(function(s,r){return s+r.amount;},0);
   var upcoming=S.reservations.filter(function(r){return r.check_in&&new Date(r.check_in+'T00:00:00')>=now&&r.status!=='cancelled';}).sort(function(a,b){return a.check_in.localeCompare(b.check_in);}).slice(0,5);
   var conflicts=checkConflicts?checkConflicts():[];
   var unread=S.conversations.filter(function(c){return c.unread;}).length;
@@ -250,7 +250,7 @@ function renderDash(){
     var d=new Date(now.getFullYear(),now.getMonth()-i,1);
     var lbl=MONTHS[d.getMonth()].slice(0,3)+' '+String(d.getFullYear()).slice(2);
     var res=past.filter(function(r){if(!r.check_in)return false;var rd=new Date(r.check_in+'T00:00:00');return rd.getMonth()===d.getMonth()&&rd.getFullYear()===d.getFullYear();});
-    var rv=res.reduce(function(s,r){var isB=r.platform==='booking.com'||r.platform==='booking';return s+(isB?r.amount-r.commission:r.amount);},0);
+    var rv=res.reduce(function(s,r){return s+r.amount;},0);
     months12.push({lbl:lbl,rv:rv,count:res.length,month:d.getMonth(),year:d.getFullYear()});
   }
   var platData=['airbnb','booking','direct'].map(function(pl){
@@ -291,7 +291,11 @@ function renderDash(){
     +'</div>'
     +'<div class="section-h">Prochaines arrivées</div>'
     +'<div class="card">'+(upcoming.length?upcoming.map(function(r){var prop=S.props.find(function(p){return p.id===r.prop_id;});return'<div class="res-row"><div><div class="res-guest">'+r.guest+'</div><div class="res-meta">'+(prop?prop.name:'—')+' • '+fmt(r.check_in)+' → '+fmt(r.check_out)+'</div></div><div class="res-right"><span class="badge b-'+platClass(r.platform)+'">'+platLabel(r.platform)+'</span><span style="font-size:13px;font-weight:600">'+Math.round(r.amount).toLocaleString('fr-FR')+' €</span></div></div>';}).join(''):'<div style="color:#888;font-size:13px;padding:14px">Aucune réservation à venir.</div>')+'</div>';
-  setTimeout(function(){_drawDash(months12,platData,totalCount);},50);
+  setTimeout(function(){
+    var c=document.getElementById('chart-rev');
+    if(c&&c.offsetWidth===0){c.style.width='100%';c.style.minHeight='180px';}
+    _drawDash(months12,platData,totalCount);
+  },100);
 }
 function renderRates(){
   if(!S.props||!S.props.length){document.getElementById('main-content').innerHTML='<div style="padding:30px;text-align:center"><div class="spinner"></div></div>';setTimeout(renderRates,300);return;}
