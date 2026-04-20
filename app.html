@@ -1083,100 +1083,42 @@ function _showOccDetail(){var e=document.getElementById('od');if(e)e.style.displ
 function _gm(m,y){S.currentMonth=new Date(y,m,1);S.page='calendar';render();}
 
 function _drawDash(m12,pData,tot){
-  // ── HISTOGRAMME ─────────────────────────────────────────────────────
-  var c1=document.getElementById('chart-rev');if(!c1)return;
-  var ctx=c1.getContext('2d');var W=c1.offsetWidth||500;var H=220;
-  c1.width=W;c1.height=H;
-  var pad={l:46,r:8,t:18,b:34};var cW=W-pad.l-pad.r;var cH=H-pad.t-pad.b;
-  var step=Math.floor(cW/m12.length);
-  var bw=Math.max(8,Math.floor(step*0.7));
-  var maxRv=Math.max.apply(null,m12.map(function(m){return m.rv;}));maxRv=maxRv||1;
-  var C={a:'#E8604C',b:'#3A5A8C',d:'#4A8C7A'};
-  // Grille
-  for(var g=0;g<=4;g++){
-    var gy=pad.t+cH-g/4*cH;
-    ctx.strokeStyle='#f0efe9';ctx.lineWidth=1;
-    ctx.beginPath();ctx.moveTo(pad.l,gy);ctx.lineTo(W-pad.r,gy);ctx.stroke();
-    var gv=Math.round(g/4*maxRv);
-    ctx.fillStyle='#ccc';ctx.font='9px sans-serif';ctx.textAlign='right';
-    ctx.fillText(gv>=1000?(Math.round(gv/100)/10)+'k':gv,pad.l-4,gy+3);
-  }
-  var rects=[];
-  m12.forEach(function(m,i){
-    var cx2=pad.l+i*step+step/2;var x=cx2-bw/2;var y=pad.t+cH;
-    [[m.airRv,C.a],[m.bkRv,C.b],[m.dirRv,C.d]].forEach(function(p){
-      if(p[0]<=0)return;
-      var h=Math.max(2,Math.round(p[0]/maxRv*cH));
-      ctx.fillStyle=p[1];
-      ctx.beginPath();
-      if(ctx.roundRect)ctx.roundRect(x,y-h,bw,h,[2,2,0,0]);else ctx.rect(x,y-h,bw,h);
-      ctx.fill();y-=h;
-    });
-    rects.push({x:x,bw:bw,cx:cx2,top:y,m:m});
-    ctx.fillStyle='#bbb';ctx.font='8px sans-serif';ctx.textAlign='center';
-    ctx.fillText(m.lbl.split(' ')[0],cx2,H-pad.b+10);
-    if(m.rv>0){ctx.fillStyle='#555';ctx.font='bold 8px sans-serif';ctx.fillText(Math.round(m.rv/1000*10)/10+'k',cx2,y-3);}
-  });
-  // Légende
-  [[C.a,'Airbnb'],[C.b,'Booking'],[C.d,'Direct']].forEach(function(l,i){
-    ctx.fillStyle=l[0];ctx.fillRect(pad.l+i*72,4,10,8);
-    ctx.fillStyle='#666';ctx.font='9px sans-serif';ctx.textAlign='left';ctx.fillText(l[1],pad.l+i*72+13,11);
-  });
-  var tip=document.getElementById('btip');
-  c1.onmousemove=function(e){
-    var r=c1.getBoundingClientRect();
-    var mx=(e.clientX-r.left)*(W/r.width);var my=(e.clientY-r.top)*(H/r.height);
-    var f=null;rects.forEach(function(b){if(mx>=b.x&&mx<=b.x+bw&&my>=pad.t&&my<=pad.t+cH)f=b;});
-    if(f&&tip){tip.style.display='block';tip.style.left=f.cx+'px';tip.style.top=(f.top-42)+'px';
-      tip.innerHTML=f.m.lbl+'<br><b>'+Math.round(f.m.rv).toLocaleString('fr-FR')+' \u20ac</b> \u00b7 '+f.m.count+' r\u00e9s.';}
-    else if(tip)tip.style.display='none';
-  };
-  c1.onmouseleave=function(){if(tip)tip.style.display='none';};
-  c1.onclick=function(e){
-    var r=c1.getBoundingClientRect();
-    var mx=(e.clientX-r.left)*(W/r.width);var my=(e.clientY-r.top)*(H/r.height);
-    var f=null;rects.forEach(function(b){if(mx>=b.x&&mx<=b.x+bw&&my>=pad.t&&my<=pad.t+cH)f=b;});
-    if(f)_gm(f.m.month,f.m.year);
-  };
-
-  // ── DONUT ────────────────────────────────────────────────────────────
-  var c2=document.getElementById('chart-plat');if(!c2)return;
-  var ctx2=c2.getContext('2d');var W2=c2.offsetWidth||300;c2.width=W2;c2.height=160;
-  var cx3=W2*0.4,cy3=75,R=62,Ri=38;
-  var PC={airbnb:'#E8604C','booking.com':'#3A5A8C',booking:'#3A5A8C',direct:'#4A8C7A'};
-  var slices=[];var ang=-Math.PI/2;
-  pData.forEach(function(d){
-    var sl=d.count/tot*2*Math.PI;
-    ctx2.beginPath();ctx2.moveTo(cx3,cy3);ctx2.arc(cx3,cy3,R,ang,ang+sl);ctx2.closePath();
-    ctx2.fillStyle=PC[d.pl]||'#ccc';ctx2.fill();
-    ctx2.strokeStyle='#fff';ctx2.lineWidth=2;ctx2.stroke();
-    slices.push({pl:d.pl,rev:d.rev,count:d.count,s:ang,e:ang+sl});ang+=sl;
-  });
-  ctx2.beginPath();ctx2.arc(cx3,cy3,Ri,0,Math.PI*2);ctx2.fillStyle='#fff';ctx2.fill();
-  ctx2.fillStyle='#1a1a1a';ctx2.font='bold 11px sans-serif';ctx2.textAlign='center';
-  ctx2.fillText(tot+' r\u00e9s.',cx3,cy3+4);
-  var leg2=document.getElementById('pleg');
-  if(leg2)leg2.innerHTML=pData.map(function(d){
-    return '<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;padding:2px 5px;border-radius:5px;cursor:pointer" onmouseover="this.style.background=\'#f5f4f0\'" onmouseout="this.style.background=\'\'" onclick="_fp(\''+d.pl+'\')">'
-      +'<span style="width:10px;height:10px;border-radius:3px;background:'+(PC[d.pl]||'#ccc')+';display:inline-block;flex-shrink:0"></span>'
-      +'<span style="font-size:11px;font-weight:600;color:#333">'+platLabel(d.pl)+'</span>'
-      +'<span style="font-size:10px;color:#888;margin-left:auto">'+d.count+' \u00b7 '+Math.round(d.rev).toLocaleString('fr-FR')+' \u20ac</span>'
+  var c=document.getElementById('chart-rev');
+  if(!c)return;
+  var maxRv=Math.max.apply(null,m12.map(function(m){return m.rv||0;}));if(!maxRv)maxRv=1;
+  var now=new Date();
+  var bars=m12.map(function(m){
+    var pct=Math.round(m.rv/maxRv*100);
+    var isCur=(m.month===now.getMonth()&&m.year===now.getFullYear());
+    return '<div style="display:flex;flex-direction:column;align-items:center;flex:1;gap:2px;">'
+      +'<div style="font-size:8px;color:#888;text-align:center;">'+(m.rv>0?Math.round(m.rv/1000*10)/10+'k':'')+'</div>'
+      +'<div style="flex:1;width:80%;display:flex;align-items:flex-end;cursor:pointer;" onclick="_gm('+m.month+','+m.year+')" title="'+m.lbl+'">'
+        +'<div style="width:100%;background:'+(isCur?'#1D9E75':'#A8D5C2')+';border-radius:2px 2px 0 0;height:'+Math.max(pct,2)+'%;min-height:3px;"></div>'
+      +'</div>'
+      +'<div style="font-size:8px;color:'+(isCur?'#1D9E75':'#aaa')+';font-weight:'+(isCur?700:400)+';">'+m.lbl.split(' ')[0]+'</div>'
     +'</div>';
   }).join('');
-  var tip2=document.getElementById('ptip');
-  c2.onmousemove=function(e){
-    var r=c2.getBoundingClientRect();
-    var mx=(e.clientX-r.left)*(W2/r.width)-cx3;var my=(e.clientY-r.top)*(c2.height/r.height)-cy3;
-    var dist=Math.sqrt(mx*mx+my*my);
-    if(dist>Ri&&dist<R+8){
-      var a=Math.atan2(my,mx);if(a<-Math.PI/2)a+=Math.PI*2;
-      var f=null;slices.forEach(function(s){if(a>=s.s&&a<s.e)f=s;});
-      if(f&&tip2){tip2.style.display='block';tip2.style.left=(e.clientX-c2.getBoundingClientRect().left+12)+'px';tip2.style.top=(e.clientY-c2.getBoundingClientRect().top-20)+'px';
-        tip2.innerHTML='<b>'+platLabel(f.pl)+'</b><br>'+f.count+' r\u00e9s. \u00b7 '+Math.round(f.rev).toLocaleString('fr-FR')+' \u20ac<br>'+Math.round(f.count/tot*100)+'%';}
-    }else if(tip2)tip2.style.display='none';
-  };
-  c2.onmouseleave=function(){if(tip2)tip2.style.display='none';};
+  var div=document.createElement('div');div.id='chart-rev';
+  div.style.cssText='display:flex;gap:2px;height:180px;align-items:stretch;padding:4px 0;width:100%;';
+  div.innerHTML=bars;c.parentNode.replaceChild(div,c);
+  var c2=document.getElementById('chart-plat');if(!c2)return;
+  var PC={'airbnb':'#E8604C','booking':'#3A5A8C','booking.com':'#3A5A8C','direct':'#4A8C7A'};
+  var r=55,ri=32,cx=70,cy=70,ang=-Math.PI/2;
+  var slices=pData.map(function(d){
+    var sl=d.count/tot*2*Math.PI;
+    var x1=cx+r*Math.cos(ang),y1=cy+r*Math.sin(ang),x2=cx+r*Math.cos(ang+sl),y2=cy+r*Math.sin(ang+sl);
+    var xi1=cx+ri*Math.cos(ang),yi1=cy+ri*Math.sin(ang),xi2=cx+ri*Math.cos(ang+sl),yi2=cy+ri*Math.sin(ang+sl);
+    var lg=sl>Math.PI?1:0;
+    var path='M'+x1+','+y1+' A'+r+','+r+' 0 '+lg+',1 '+x2+','+y2+' L'+xi2+','+yi2+' A'+ri+','+ri+' 0 '+lg+',0 '+xi1+','+yi1+' Z';
+    ang+=sl;return '<path d="'+path+'" fill="'+(PC[d.pl]||'#ccc')+'" stroke="#fff" stroke-width="2"/>';
+  }).join('');
+  var svg=document.createElement('div');svg.id='chart-plat';
+  svg.innerHTML='<svg viewBox="0 0 140 140" width="120" height="120" style="display:block;margin:0 auto;">'+slices+'<circle cx="'+cx+'" cy="'+cy+'" r="'+ri+'" fill="#fff"/><text x="'+cx+'" y="'+(cy+4)+'" text-anchor="middle" style="font-size:10px;font-weight:700;fill:#1a1a1a;">'+tot+'</text><text x="'+cx+'" y="'+(cy+16)+'" text-anchor="middle" style="font-size:8px;fill:#888;">res.</text></svg>';
+  c2.parentNode.replaceChild(svg,c2);
+  var leg=document.getElementById('pleg');
+  if(leg)leg.innerHTML=pData.map(function(d){return'<div style="display:flex;align-items:center;gap:5px;margin-bottom:3px;"><span style="width:10px;height:10px;border-radius:2px;background:'+(PC[d.pl]||'#ccc')+';display:inline-block;"></span><span style="font-size:11px;font-weight:500;">'+platLabel(d.pl)+'</span><span style="font-size:10px;color:#888;margin-left:auto;">'+d.count+' - '+Math.round(d.rev)+'€</span></div>';}).join('');
 }
+
 function _fp(pl){S.resFilter=pl==='airbnb'?'Airbnb':pl==='booking'||pl==='booking.com'?'Booking':'Direct';S.page='reservations';render();}
 
 
