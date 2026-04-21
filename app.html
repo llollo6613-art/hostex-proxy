@@ -818,58 +818,96 @@ function renderCal(){
   var now=new Date();
   var prop=S.props.find(function(p){return p.id===S.selectedProp;})||S.props[0];
   if(!prop){document.getElementById('main-content').innerHTML='<div style="color:#888;padding:20px">Aucun bien.</div>';return;}
-  var MONTHS=['Janvier','Fevrier','Mars','Avril','Mai','Juin','Juillet','Aout','Septembre','Octobre','Novembre','Decembre'];
+  var MONTHS=['Janvier','F\u00e9vrier','Mars','Avril','Mai','Juin','Juillet','Ao\u00fbt','Septembre','Octobre','Novembre','D\u00e9cembre'];
   var DAYS=['L','M','M','J','V','S','D'];
+  var CELL=72,GAP=5;
   function pad(n){return String(n).padStart(2,'0');}
-  function dStr2(y,m,d){return y+'-'+pad(m+1)+'-'+pad(d);}
-  function getRes(ds){return S.reservations.filter(function(r){return r.prop_id===prop.id&&r.check_in<=ds&&r.check_out>ds&&r.status!=='cancelled';});}
+  function ds2(y,m,d){return y+'-'+pad(m+1)+'-'+pad(d);}
+  function bookedOn(date){return S.reservations.find(function(r){return r.prop_id===prop.id&&r.check_in<=date&&r.check_out>date&&r.status!=='cancelled';});}
+  function getNights(r){return Math.round((new Date(r.check_out)-new Date(r.check_in))/86400000);}
 
   var propTabs=S.props.map(function(p){
-    return '<div onclick="S.selectedProp=\''+p.id+'\';renderCal()" style="font-size:12px;padding:6px 14px;border-radius:20px;border:0.5px solid '+(p.id===prop.id?'#1D9E75':'var(--color-border-secondary)')+';background:'+(p.id===prop.id?'#1D9E75':'var(--color-background-secondary)')+';color:'+(p.id===prop.id?'#fff':'var(--color-text-secondary)')+';cursor:pointer;white-space:nowrap;">'+p.name+'</div>';
+    return '<div onclick="S.selectedProp=\''+p.id+'\';renderCal()" style="font-size:12px;padding:6px 16px;border-radius:20px;border:1px solid '+(p.id===prop.id?'#1D9E75':'var(--color-border-secondary)')+';background:'+(p.id===prop.id?'#0F6E56':'var(--color-background-secondary)')+';color:'+(p.id===prop.id?'#fff':'var(--color-text-secondary)')+';cursor:pointer;white-space:nowrap;">'+p.name+'</div>';
   }).join('');
 
-  var legend='<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">'
-    +'<div style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--color-text-secondary);"><div style="width:10px;height:10px;border-radius:3px;background:#FEF2F2;border:1px solid #FECACA;"></div>Airbnb</div>'
-    +'<div style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--color-text-secondary);"><div style="width:10px;height:10px;border-radius:3px;background:#EFF6FF;border:1px solid #BFDBFE;"></div>Booking</div>'
-    +'<div style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--color-text-secondary);"><div style="width:10px;height:10px;border-radius:3px;background:#E1F5EE;border:1px solid #1D9E75;"></div>Aujourd\u2019hui</div>'
+  var legend='<div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:16px;">'
+    +'<div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--color-text-secondary);"><div style="width:28px;height:8px;border-radius:4px;background:linear-gradient(90deg,#ef4444,#f87171);"></div>Airbnb</div>'
+    +'<div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--color-text-secondary);"><div style="width:28px;height:8px;border-radius:4px;background:linear-gradient(90deg,#3b82f6,#60a5fa);"></div>Booking</div>'
+    +'<div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--color-text-secondary);"><div style="width:10px;height:10px;border-radius:50%;background:#1D9E75;"></div>Aujourd\u2019hui</div>'
     +'</div>';
 
-  var months='';
-  for(var mo=0;mo<6;mo++){
-    var mDate=new Date(now.getFullYear(),now.getMonth()+mo,1);
-    var yr=mDate.getFullYear(),mn=mDate.getMonth();
+  function renderMonth(yr,mn){
     var firstDow=(new Date(yr,mn,1).getDay()+6)%7;
     var lastD=new Date(yr,mn+1,0).getDate();
-    var dowRow=DAYS.map(function(d){return'<div style="font-size:11px;color:var(--color-text-tertiary);text-align:center;padding:4px 0;">'+d+'</div>';}).join('');
-    var days='';
-    for(var i=0;i<firstDow;i++)days+='<div></div>';
+    var rows=Math.ceil((firstDow+lastD)/7);
+    var dowRow=DAYS.map(function(d){return'<div style="font-size:10px;color:var(--color-text-tertiary);text-align:center;padding:2px 0;">'+d+'</div>';}).join('');
+    var dayCells='';
+    for(var i=0;i<firstDow;i++) dayCells+='<div></div>';
     for(var d=1;d<=lastD;d++){
-      var ds=dStr2(yr,mn,d);
-      var date=new Date(yr,mn,d);
-      var isToday=date.toDateString()===now.toDateString();
-      var isPast=date<new Date(now.getFullYear(),now.getMonth(),now.getDate());
-      var res=getRes(ds);
-      var isBooked=res.length>0;
-      var platCl=isBooked?platClass(res[0].platform):'';
-      var bg=isToday?'#E1F5EE':isBooked?(platCl==='airbnb'?'#FEF2F2':'#EFF6FF'):'var(--color-background-secondary)';
-      var border=isToday?'#1D9E75':isBooked?(platCl==='airbnb'?'#FECACA':'#BFDBFE'):'var(--color-border-tertiary)';
-      days+='<div onclick="openResDetail(\''+ds+'\')" style="border-radius:10px;padding:8px 6px;min-height:70px;background:'+bg+';border:0.5px solid '+border+';cursor:pointer;opacity:'+(isPast?0.45:1)+';position:relative;transition:border-color .15s;">'
-        +'<div style="font-size:12px;font-weight:500;color:'+(isToday?'#0F6E56':'var(--color-text-secondary)')+';margin-bottom:4px;">'+d+'</div>'
-        +(isBooked?'<div style="font-size:10px;font-weight:500;color:'+(platCl==='airbnb'?'#DC2626':'#1D4ED8')+';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+res[0].guest.split(' ')[0]+'</div>':'')
-        +(isBooked?'<div style="position:absolute;bottom:4px;left:4px;right:4px;height:3px;border-radius:2px;background:'+(platCl==='airbnb'?'#EF4444':'#3B82F6')+';"></div>':'')
+      var date=ds2(yr,mn,d);
+      var dateObj=new Date(yr,mn,d);
+      var isToday=dateObj.toDateString()===now.toDateString();
+      var isPast=dateObj<new Date(now.getFullYear(),now.getMonth(),now.getDate());
+      var res=bookedOn(date);
+      var isAir=res&&platClass(res.platform)==='airbnb';
+      var bg=isToday?'#f0fdf8':res&&!isPast?(isAir?'#fff1f1':'#eff6ff'):'var(--color-background-primary)';
+      var border=isToday?'#1D9E75':res&&!isPast?(isAir?'#fecaca':'#bfdbfe'):'var(--color-border-tertiary)';
+      var numColor=isToday?'#0F6E56':isPast?'var(--color-text-tertiary)':res?(isAir?'#dc2626':'#1d4ed8'):'var(--color-text-primary)';
+      var opacity=isPast&&!isToday?'0.55':'1';
+      dayCells+='<div style="border-radius:10px;height:'+CELL+'px;padding:7px 6px;border:1.5px solid '+border+';background:'+bg+';position:relative;z-index:1;opacity:'+opacity+';cursor:pointer;" onclick="openResDetail(\''+date+'\')">'
+        +'<div style="font-size:12px;font-weight:500;color:'+numColor+';line-height:1;">'+d+'</div>'
         +'</div>';
     }
-    months+='<div style="margin-bottom:28px;">'
-      +'<div style="font-size:13px;font-weight:500;color:var(--color-text-secondary);letter-spacing:.04em;text-transform:uppercase;margin-bottom:10px;">'+MONTHS[mn]+' '+yr+'</div>'
-      +'<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:4px;">'+dowRow+'</div>'
-      +'<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;">'+days+'</div>'
+    var gridW=390;
+    var cellW=(gridW-(GAP*6))/7;
+    var bars='';
+    S.reservations.filter(function(r){return r.prop_id===prop.id&&r.status!=='cancelled';}).forEach(function(res){
+      var platCls=platClass(res.platform)==='airbnb'?'air':'bk';
+      var barColor=platCls==='air'?'linear-gradient(90deg,#ef4444,#f87171)':'linear-gradient(90deg,#3b82f6,#60a5fa)';
+      var startD=new Date(res.check_in+'T00:00:00');
+      var endD=new Date(res.check_out+'T00:00:00');
+      var monthStart=new Date(yr,mn,1);
+      var monthEndD=new Date(yr,mn+1,0);
+      if(endD<=monthStart||startD>monthEndD) return;
+      var clampStart=startD<monthStart?monthStart:startD;
+      var clampEnd=endD>new Date(yr,mn+1,0)?new Date(yr,mn+1,1):endD;
+      var cur=new Date(clampStart);
+      while(cur<clampEnd){
+        var idx=firstDow+cur.getDate()-1;
+        var rowEndIdx=Math.floor(idx/7)*7+7;
+        var rowEndDate=new Date(yr,mn,cur.getDate()+(rowEndIdx-idx));
+        if(rowEndDate>clampEnd) rowEndDate=new Date(clampEnd);
+        var cellCount=Math.round((rowEndDate-cur)/86400000);
+        var col=idx%7;
+        var row=Math.floor(idx/7);
+        var left=col*(cellW+GAP);
+        var width=cellCount*(cellW+GAP)-GAP;
+        var top=row*(CELL+GAP)+CELL-20;
+        var isResStart=cur.toDateString()===startD.toDateString();
+        var nights=Math.round((endD-startD)/86400000);
+        var label=isResStart?(res.guest.split(' ')[0]+' \u00b7 '+nights+'n'):'';
+        bars+='<div style="position:absolute;height:12px;border-radius:6px;z-index:2;display:flex;align-items:center;padding:0 8px;font-size:9px;font-weight:500;color:#fff;white-space:nowrap;overflow:hidden;pointer-events:none;box-shadow:0 2px 6px rgba(0,0,0,.15);background:'+barColor+';left:'+left+'px;top:'+top+'px;width:'+width+'px;">'+label+'</div>';
+        cur=rowEndDate;
+      }
+    });
+    var gridH=rows*(CELL+GAP)-GAP;
+    return '<div style="margin-bottom:28px;">'
+      +'<div style="font-size:11px;font-weight:500;color:var(--color-text-tertiary);letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px;">'+MONTHS[mn]+' '+yr+'</div>'
+      +'<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-bottom:5px;">'+dowRow+'</div>'
+      +'<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:5px;position:relative;height:'+gridH+'px;">'+dayCells+bars+'</div>'
       +'</div>';
   }
 
+  var months='';
+  for(var mo=0;mo<7;mo++){
+    var mDate=new Date(now.getFullYear(),now.getMonth()+mo,1);
+    months+=renderMonth(mDate.getFullYear(),mDate.getMonth());
+  }
+
   document.getElementById('main-content').innerHTML=
-    '<div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">'+propTabs+'</div>'
+    '<div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">'+propTabs+'</div>'
     +legend
-    +'<div style="margin-top:16px;">'+months+'</div>';
+    +months;
 }
 function chgMonth(d){S.currentMonth=new Date(S.currentMonth.getFullYear(),S.currentMonth.getMonth()+d,1);render();}
 
