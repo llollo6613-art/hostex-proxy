@@ -815,177 +815,61 @@ function renderProps(){
 }
 
 function renderCal(){
-  const year=S.currentMonth.getFullYear(), month=S.currentMonth.getMonth();
-  const dim=new Date(year,month+1,0).getDate();
-  const firstDay=(new Date(year,month,1).getDay()+6)%7;
-  const dPrev=new Date(year,month,0).getDate();
-  const total=Math.ceil((firstDay+dim)/7)*7;
-  const JOURS=["Dim","Lun","Mar","Mer","Jeu","Ven","Sam"];
-  const MOIS=["Janvier","F\u00e9vrier","Mars","Avril","Mai","Juin","Juillet","Ao\u00fbt","Septembre","Octobre","Novembre","D\u00e9cembre"];
-  const view=S.calView||"single";
+  var now=new Date();
+  var prop=S.props.find(function(p){return p.id===S.selectedProp;})||S.props[0];
+  if(!prop){document.getElementById('main-content').innerHTML='<div style="color:#888;padding:20px">Aucun bien.</div>';return;}
+  var MONTHS=['Janvier','Fevrier','Mars','Avril','Mai','Juin','Juillet','Aout','Septembre','Octobre','Novembre','Decembre'];
+  var DAYS=['L','M','M','J','V','S','D'];
+  function pad(n){return String(n).padStart(2,'0');}
+  function dStr2(y,m,d){return y+'-'+pad(m+1)+'-'+pad(d);}
+  function getRes(ds){return S.reservations.filter(function(r){return r.prop_id===prop.id&&r.check_in<=ds&&r.check_out>ds&&r.status!=='cancelled';});}
 
-  const CP={"airbnb":"#C8523E","booking.com":"#2E5F9E","booking":"#2E5F9E","direct":"#3D8B78"};
-  const CPN={"airbnb":"Airbnb","booking.com":"Booking","booking":"Booking","direct":"Direct"};
-  const CBG=["#6B5B9E","#3D8B6A"];
-  const RAD="7px";
+  var propTabs=S.props.map(function(p){
+    return '<div onclick="S.selectedProp=\''+p.id+'\';renderCal()" style="font-size:12px;padding:6px 14px;border-radius:20px;border:0.5px solid '+(p.id===prop.id?'#1D9E75':'var(--color-border-secondary)')+';background:'+(p.id===prop.id?'#1D9E75':'var(--color-background-secondary)')+';color:'+(p.id===prop.id?'#fff':'var(--color-text-secondary)')+';cursor:pointer;white-space:nowrap;">'+p.name+'</div>';
+  }).join('');
 
-  // Comparaison de dates UNIQUEMENT sur la string YYYY-MM-DD (pas d'objet Date)
-  // Evite tous les bugs de comparaison d'objets Date en JS
-  function ds2n(s){return parseInt(s.replace(/-/g,""),10);}  // "2026-04-17" -> 20260417
+  var legend='<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">'
+    +'<div style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--color-text-secondary);"><div style="width:10px;height:10px;border-radius:3px;background:#FEF2F2;border:1px solid #FECACA;"></div>Airbnb</div>'
+    +'<div style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--color-text-secondary);"><div style="width:10px;height:10px;border-radius:3px;background:#EFF6FF;border:1px solid #BFDBFE;"></div>Booking</div>'
+    +'<div style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--color-text-secondary);"><div style="width:10px;height:10px;border-radius:3px;background:#E1F5EE;border:1px solid #1D9E75;"></div>Aujourd\u2019hui</div>'
+    +'</div>';
 
-  // Attribue un index de ligne FIXE a chaque reservation pour tout l'historique
-  // Toutes les resa du bien, triees par check_in
-  // rowEnd[i] = numero de date de fin de la ligne i (string YYYY-MM-DD)
-  function computeRows(propId){
-    const res=S.reservations
-      .filter(function(r){return r.prop_id===propId&&r.check_in&&r.check_out&&r.status!=="cancelled";})
-      .slice()
-      .sort(function(a,b){return a.check_in<b.check_in?-1:a.check_in>b.check_in?1:0;});
-    const rowEnd=[]; // stocke la date check_out (string) de chaque ligne
-    const rowOf={};
-    res.forEach(function(r){
-      const ciN=ds2n(r.check_in);
-      var row=-1;
-      for(var i=0;i<rowEnd.length;i++){
-        // La ligne est libre si le check_in de r est >= check_out de ce qui occupe la ligne
-        if(ciN>=ds2n(rowEnd[i])){row=i;break;}
-      }
-      if(row===-1){row=rowEnd.length;rowEnd.push("");}
-      rowEnd[row]=r.check_out;
-      rowOf[r.id]=row;
-    });
-    return {rowOf:rowOf, nRows:Math.max(1,rowEnd.length)};
-  }
-
-  // Genere les divs de barres pour une cellule (ds=date string)
-  function cellBars(ds, propRes, rowOf, topOff, barH, colorFn){
-    const dsN=ds2n(ds);
-    var out="";
-    propRes.forEach(function(r){
-      const ciN=ds2n(r.check_in), coN=ds2n(r.check_out);
-      // Actif si check_in<=date ET check_out>=date (check_out inclus = jour depart)
-      if(ciN>dsN||coN<dsN)return;
-      const row=rowOf[r.id]||0;
-      const col=colorFn(r);
-      const arr=r.check_in===ds, dep=r.check_out===ds;
-      const top=topOff+row*(barH+2);
-      const name=(r.guest||"").split(" ")[0];
-
-      // ARRONDI : arrivee=gauche arrondi+droite carree, depart=gauche carre+droite arrondie
-      var L,R,TL,BL,TR,BR;
-      if(arr&&dep){L="3px";R="3px";TL=RAD;BL=RAD;TR=RAD;BR=RAD;}
-      else if(arr){L="50%";R="0";  TL=RAD;BL=RAD;TR="0"; BR="0"; }
-      else if(dep){L="0";  R="50%";TL="0"; BL="0"; TR=RAD;BR=RAD;}
-      else        {L="0";  R="0";  TL="0"; BL="0"; TR="0"; BR="0";}
-
-      // Nom affiché UNE SEULE FOIS : case arrivée ou 1er jour visible du mois
-      const isFirstVisible=(!arr&&ds===dStr(new Date(year,month,1)));
-      const label=(arr||isFirstVisible)&&name?('<span style="position:absolute;left:8px;top:50%;transform:translateY(-50%);font-size:8px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;pointer-events:none;max-width:90%">'+name+'</span>'):"";
-
-      out+="<div onclick=\"event.stopPropagation();openResDetail('"+r.id+"')\" title=\""+(r.guest||"")+" - "+platLabel(r.platform)+" - "+fmt(r.check_in)+" -> "+fmt(r.check_out)+"\" style=\"position:absolute;left:"+L+";right:"+R+";top:"+top+"px;height:"+barH+"px;background:"+col+";border-top-left-radius:"+TL+";border-bottom-left-radius:"+BL+";border-top-right-radius:"+TR+";border-bottom-right-radius:"+BR+";cursor:pointer;overflow:hidden;box-shadow:0 1px 2px rgba(0,0,0,0.18);\" onmouseover=\"this.style.opacity=.75\" onmouseout=\"this.style.opacity=1\">"+label+"</div>";
-    });
-    return out;
-  }
-
-  const TH="font-size:10px;color:#888;text-align:center;padding:6px 2px;font-weight:600;background:#f5f4f0;border:1px solid #e5e4e0;";
-  const thead="<tr>"+JOURS.map(function(d){return"<th style=\""+TH+"\">"+d+"</th>";}).join("")+"</tr>";
-
-  function mStats(propId){
-    var r=S.reservations.filter(function(r){return r.prop_id===propId&&r.check_in&&r.status!=="cancelled"&&(function(){var d=parseD(r.check_in);return d.getMonth()===month&&d.getFullYear()===year;})();});
-    return {n:r.length,rev:r.reduce(function(s,x){return s+x.amount;},0)};
-  }
-
-  const legItems=["airbnb","booking.com","direct"].map(function(k){
-    return "<span style=\"display:inline-flex;align-items:center;gap:4px;font-size:10px\"><span style=\"width:18px;height:10px;border-radius:5px;background:"+CP[k]+";display:inline-block\"></span><b style=\"color:#555\">"+CPN[k]+"</b></span>";
-  }).join("");
-
-  const nav="<div style=\"display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px\">"
-    +"<div style=\"display:flex;align-items:center;gap:8px\">"
-    +"<button class=\"btn\" onclick=\"chgMonth(-1)\" style=\"font-size:16px;padding:4px 14px\">\u2039</button>"
-    +"<span style=\"font-size:15px;font-weight:700;min-width:160px;text-align:center\">"+MOIS[month]+" "+year+"</span>"
-    +"<button class=\"btn\" onclick=\"chgMonth(1)\" style=\"font-size:16px;padding:4px 14px\">\u203a</button>"
-    +"<button class=\"btn\" style=\"font-size:11px\" onclick=\"S.currentMonth=new Date();render()\">Auj.</button>"
-    +"</div>"
-    +"<div style=\"display:flex;align-items:center;gap:10px;flex-wrap:wrap\">"
-    +(view==="single"?legItems:"")
-    +"<div style=\"display:flex;gap:4px\">"
-    +"<button class=\"btn"+(view==="single"?" btn-green":"")+"\" style=\"font-size:11px\" onclick=\"S.calView='single';render()\">Par bien</button>"
-    +"<button class=\"btn"+(view==="global"?" btn-green":"")+"\" style=\"font-size:11px\" onclick=\"S.calView='global';render()\">Vue globale</button>"
-    +"</div></div></div>";
-
-  // ── VUE PAR BIEN ─────────────────────────────────────────────────────
-  if(view==="single"){
-    const BAR=18, LABEL=20;
-    const propRes=S.reservations.filter(function(r){return r.prop_id===S.selectedProp&&r.check_in&&r.check_out&&r.status!=="cancelled";});
-    const info=computeRows(S.selectedProp);
-    const cellH=Math.max(62, LABEL+info.nRows*(BAR+2)+6);
-    var tds="";
-    for(var i=0;i<total;i++){
-      var day,cur=true;
-      if(i<firstDay){day=dPrev-firstDay+i+1;cur=false;}
-      else if(i>=firstDay+dim){day=i-firstDay-dim+1;cur=false;}
-      else day=i-firstDay+1;
-      const date=cur?new Date(year,month,day):i<firstDay?new Date(year,month-1,day):new Date(year,month+1,day);
-      const ds=dStr(date);
-      const isToday=ds===dStr(new Date());
-      const isWE=date.getDay()===0||date.getDay()===6;
-      const bg=isToday?"#FFFBF0":isWE&&cur?"#FAFAFA":"#fff";
-      const bd=isToday?"2px solid #F59E0B":"1px solid #e5e4e0";
-      const bars=cellBars(ds,propRes,info.rowOf,LABEL,BAR,function(r){return CP[r.platform]||CP["direct"];});
-      tds+="<td onclick=\"_dc('"+ds+"','"+S.selectedProp+"')\" style=\"border:"+bd+";height:"+cellH+"px;vertical-align:top;padding:4px 2px 2px;cursor:pointer;background:"+bg+";opacity:"+(cur?1:0.3)+";position:relative;\" onmouseover=\"if("+(cur?1:0)+")this.style.background='"+(isToday?"#FFF3D0":"#F5F4F0")+"'\" onmouseout=\"this.style.background='"+bg+"'\">"
-        +"<div style=\"font-size:10px;font-weight:"+(isToday?700:400)+";color:"+(isToday?"#92400E":"#ccc")+"\">"+day+(propRes.some(r=>r.check_out===ds)?" 🧹":"")+"</div>"
-        +bars+"</td>";
-      if((i+1)%7===0&&i<total-1)tds+="</tr><tr>";
+  var months='';
+  for(var mo=0;mo<6;mo++){
+    var mDate=new Date(now.getFullYear(),now.getMonth()+mo,1);
+    var yr=mDate.getFullYear(),mn=mDate.getMonth();
+    var firstDow=(new Date(yr,mn,1).getDay()+6)%7;
+    var lastD=new Date(yr,mn+1,0).getDate();
+    var dowRow=DAYS.map(function(d){return'<div style="font-size:11px;color:var(--color-text-tertiary);text-align:center;padding:4px 0;">'+d+'</div>';}).join('');
+    var days='';
+    for(var i=0;i<firstDow;i++)days+='<div></div>';
+    for(var d=1;d<=lastD;d++){
+      var ds=dStr2(yr,mn,d);
+      var date=new Date(yr,mn,d);
+      var isToday=date.toDateString()===now.toDateString();
+      var isPast=date<new Date(now.getFullYear(),now.getMonth(),now.getDate());
+      var res=getRes(ds);
+      var isBooked=res.length>0;
+      var platCl=isBooked?platClass(res[0].platform):'';
+      var bg=isToday?'#E1F5EE':isBooked?(platCl==='airbnb'?'#FEF2F2':'#EFF6FF'):'var(--color-background-secondary)';
+      var border=isToday?'#1D9E75':isBooked?(platCl==='airbnb'?'#FECACA':'#BFDBFE'):'var(--color-border-tertiary)';
+      days+='<div onclick="openResDetail(\''+ds+'\')" style="border-radius:10px;padding:8px 6px;min-height:70px;background:'+bg+';border:0.5px solid '+border+';cursor:pointer;opacity:'+(isPast?0.45:1)+';position:relative;transition:border-color .15s;">'
+        +'<div style="font-size:12px;font-weight:500;color:'+(isToday?'#0F6E56':'var(--color-text-secondary)')+';margin-bottom:4px;">'+d+'</div>'
+        +(isBooked?'<div style="font-size:10px;font-weight:500;color:'+(platCl==='airbnb'?'#DC2626':'#1D4ED8')+';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+res[0].guest.split(' ')[0]+'</div>':'')
+        +(isBooked?'<div style="position:absolute;bottom:4px;left:4px;right:4px;height:3px;border-radius:2px;background:'+(platCl==='airbnb'?'#EF4444':'#3B82F6')+';"></div>':'')
+        +'</div>';
     }
-    const st=mStats(S.selectedProp);
-    const prop=S.props.find(function(p){return p.id===S.selectedProp;})||{name:""};
-    document.getElementById("main-content").innerHTML=nav
-      +"<div style=\"display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap\">"
-      +S.props.map(function(p){return"<button class=\"btn"+(S.selectedProp===p.id?" btn-green":"")+"\" style=\"font-size:11px\" onclick=\"S.selectedProp='"+p.id+"';render()\">"+p.name+"</button>";}).join("")
-      +"</div>"
-      +"<div style=\"font-size:11px;color:#888;margin-bottom:10px\">"+prop.name+" \u2014 "+st.n+"\u00a0r\u00e9s. \u00b7 "+Math.round(st.rev).toLocaleString("fr-FR")+"\u00a0\u20ac</div>"
-      +"<div style=\"overflow-x:auto\"><table style=\"width:100%;border-collapse:collapse;min-width:560px\">"+thead+"<tr>"+tds+"</tr></table></div>";
-
-  // ── VUE GLOBALE ──────────────────────────────────────────────────────
-  } else {
-    const BAR=17, LABEL=18, SEP=10;
-    const info0=S.props[0]?computeRows(S.props[0].id):{rowOf:{},nRows:1};
-    const info1=S.props[1]?computeRows(S.props[1].id):{rowOf:{},nRows:1};
-    const res0=S.props[0]?S.reservations.filter(function(r){return r.prop_id===S.props[0].id&&r.check_in&&r.check_out&&r.status!=="cancelled";}):[];
-    const res1=S.props[1]?S.reservations.filter(function(r){return r.prop_id===S.props[1].id&&r.check_in&&r.check_out&&r.status!=="cancelled";}):[];
-    const OFF0=LABEL;
-    const OFF1=OFF0+info0.nRows*(BAR+2)+SEP;
-    const CELL_H=OFF1+info1.nRows*(BAR+2)+8;
-
-    var tds="";
-    for(var i=0;i<total;i++){
-      var day,cur=true;
-      if(i<firstDay){day=dPrev-firstDay+i+1;cur=false;}
-      else if(i>=firstDay+dim){day=i-firstDay-dim+1;cur=false;}
-      else day=i-firstDay+1;
-      const date=cur?new Date(year,month,day):i<firstDay?new Date(year,month-1,day):new Date(year,month+1,day);
-      const ds=dStr(date);
-      const isToday=ds===dStr(new Date());
-      const isWE=date.getDay()===0||date.getDay()===6;
-      const bg=isToday?"#FFFBF0":isWE&&cur?"#FAFAFA":"#fff";
-      const bd=isToday?"2px solid #F59E0B":"1px solid #e5e4e0";
-      const sep="<div style=\"position:absolute;left:4px;right:4px;top:"+(OFF1-SEP/2)+"px;height:1px;background:#e0ddd8;pointer-events:none\"></div>";
-      const b0=cellBars(ds,res0,info0.rowOf,OFF0,BAR,function(){return CBG[0];});
-      const b1=cellBars(ds,res1,info1.rowOf,OFF1,BAR,function(){return CBG[1];});
-      tds+="<td onclick=\"_dg('"+ds+"')\" style=\"border:"+bd+";height:"+CELL_H+"px;vertical-align:top;padding:4px 2px 2px;cursor:pointer;background:"+bg+";opacity:"+(cur?1:0.3)+";position:relative;\" onmouseover=\"if("+(cur?1:0)+")this.style.background='"+(isToday?"#FFF3D0":"#F5F4F0")+"'\" onmouseout=\"this.style.background='"+bg+"'\">"
-        +"<div style=\"font-size:10px;font-weight:"+(isToday?700:400)+";color:"+(isToday?"#92400E":"#ccc")+"\">"+day+"</div>"
-        +sep+b0+b1+"</td>";
-      if((i+1)%7===0&&i<total-1)tds+="</tr><tr>";
-    }
-    const propLeg=S.props.map(function(p,i){
-      const st=mStats(p.id);
-      return"<span style=\"display:inline-flex;align-items:center;gap:5px;font-size:11px\"><span style=\"width:14px;height:14px;border-radius:4px;background:"+CBG[i]+";display:inline-block;flex-shrink:0\"></span><b>"+p.name+"</b> \u2014 "+st.n+"\u00a0r\u00e9s. \u00b7 "+Math.round(st.rev).toLocaleString("fr-FR")+"\u00a0\u20ac</span>";
-    }).join("<span style=\"color:#ddd;margin:0 8px\">|</span>");
-
-    document.getElementById("main-content").innerHTML=nav
-      +"<div style=\"padding:10px 14px;background:#f9f9f9;border:1px solid #e5e4e0;border-radius:8px;margin-bottom:12px;display:flex;gap:12px;flex-wrap:wrap;align-items:center\">"+propLeg+"</div>"
-      +"<div style=\"overflow-x:auto\"><table style=\"width:100%;border-collapse:collapse;min-width:600px\">"+thead+"<tr>"+tds+"</tr></table></div>";
+    months+='<div style="margin-bottom:28px;">'
+      +'<div style="font-size:13px;font-weight:500;color:var(--color-text-secondary);letter-spacing:.04em;text-transform:uppercase;margin-bottom:10px;">'+MONTHS[mn]+' '+yr+'</div>'
+      +'<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:4px;">'+dowRow+'</div>'
+      +'<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;">'+days+'</div>'
+      +'</div>';
   }
+
+  document.getElementById('main-content').innerHTML=
+    '<div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">'+propTabs+'</div>'
+    +legend
+    +'<div style="margin-top:16px;">'+months+'</div>';
 }
 function chgMonth(d){S.currentMonth=new Date(S.currentMonth.getFullYear(),S.currentMonth.getMonth()+d,1);render();}
 
