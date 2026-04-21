@@ -851,14 +851,14 @@ function renderCal(){
       var res=bookedOn(date);
       var isAir=res&&platClass(res.platform)==='airbnb';
       var bg=isToday?'#f0fdf8':res&&!isPast?(isAir?'#fff1f1':'#eff6ff'):'var(--color-background-primary)';
-      var border=isToday?'#1D9E75':res&&!isPast?(isAir?'#fecaca':'#bfdbfe'):'var(--color-border-tertiary)';
+      var border=isToday?'#1D9E75':res&&!isPast?(isAir?'#fecaca':'#bfdbfe'):'var(--color-border-secondary)';
       var numColor=isToday?'#0F6E56':isPast?'var(--color-text-tertiary)':res?(isAir?'#dc2626':'#1d4ed8'):'var(--color-text-primary)';
       var opacity=isPast&&!isToday?'0.55':'1';
       dayCells+='<div style="border-radius:10px;height:'+CELL+'px;padding:7px 6px;border:1.5px solid '+border+';background:'+bg+';position:relative;z-index:1;opacity:'+opacity+';cursor:pointer;" onclick="openResDetail(\''+date+'\')">'
         +'<div style="font-size:12px;font-weight:500;color:'+numColor+';line-height:1;">'+d+'</div>'
         +'</div>';
     }
-    var gridW=390;
+    var gridW=(document.getElementById('main-content').getBoundingClientRect().width||390)-2;
     var cellW=(gridW-(GAP*6))/7;
     var bars='';
     S.reservations.filter(function(r){return r.prop_id===prop.id&&r.status!=='cancelled';}).forEach(function(res){
