@@ -220,22 +220,28 @@ function render(){
 }
 
 async function _openBlockDates(propId){
-  var prop=S.props.find(function(p){return p.id===propId;});
-  if(!prop)return;
-  showModal('<h3>⛔ Bloquer des dates</h3>'
-    +'<div class="form-row"><div class="form-label">Du (inclus)</div><input type="date" id="bl-from" class="form-input"></div>'
-    +'<div class="form-row"><div class="form-label">Au (inclus)</div><input type="date" id="bl-to" class="form-input"></div>'
-    +'<div class="form-row"><div class="form-label">Raison (optionnel)</div><input type="text" id="bl-reason" class="form-input" placeholder="Ex: travaux, usage personnel..."></div>'
+  var sel=Object.keys(S.ratesSelected||{});
+  if(!sel.length){showToast('⚠ Sélectionnez d’abord des dates sur le calendrier');return;}
+  sel.sort();
+  var from=sel[0],to=sel[sel.length-1];
+  var n=sel.length;
+  window._blockPropId=propId;
+  showModal('<h3>⛔ Bloquer '+n+' jour'+(n>1?'s':'')+'</h3>'
+    +'<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:12px;margin-bottom:12px;font-size:13px;color:#dc2626;">'
+    +'Du <b>'+from+'</b> au <b>'+to+'</b><br><span style="font-size:11px;color:#888;">Fermé sur Airbnb et Booking</span>'
+    +'</div>'
     +'<div class="modal-actions">'
     +'<button class="btn" onclick="closeModal()">Annuler</button>'
-    +'<button class="btn btn-red" onclick="_saveBlock(this.dataset.pid)" data-pid="'+propId+'">Bloquer</button>'
+    +'<button class="btn btn-red" onclick="_saveBlock()">Bloquer ces dates</button>'
     +'</div>');
 }
 
-async function _saveBlock(propId){
-  var from=document.getElementById('bl-from').value;
-  var to=document.getElementById('bl-to').value;
-  if(!from||!to){showToast('Dates manquantes');return;}
+async function _saveBlock(){
+  var propId=window._blockPropId;
+  var sel=Object.keys(S.ratesSelected||{});
+  if(!sel.length){showToast('Aucune date');return;}
+  sel.sort();
+  var from=sel[0],to=sel[sel.length-1];
   var prop=S.props.find(function(p){return p.id===propId;});
   if(!prop)return;
   try{
@@ -246,14 +252,19 @@ async function _saveBlock(propId){
         channel_type:ch.channel_type,
         start_date:from,
         end_date:to,
-        inventories:[{date:from,inventory:0}]
+        inventories:[{start_date:from,end_date:to,inventory:0}]
       });
     }
     if(!S.blockedDates)S.blockedDates=[];
     var cur=new Date(from+'T00:00:00');
     var endD=new Date(to+'T00:00:00');
-    while(cur<=endD){var d=cur.getFullYear()+'-'+String(cur.getMonth()+1).padStart(2,'0')+'-'+String(cur.getDate()).padStart(2,'0');if(S.blockedDates.indexOf(d)<0)S.blockedDates.push(d);cur=new Date(cur.getFullYear(),cur.getMonth(),cur.getDate()+1);}
-    showToast('✓ Dates bloquées du '+from+' au '+to);
+    while(cur<=endD){
+      var dd=cur.getFullYear()+'-'+String(cur.getMonth()+1).padStart(2,'0')+'-'+String(cur.getDate()).padStart(2,'0');
+      if(S.blockedDates.indexOf(dd)<0)S.blockedDates.push(dd);
+      cur=new Date(cur.getFullYear(),cur.getMonth(),cur.getDate()+1);
+    }
+    showToast('✓ '+sel.length+' jour(s) bloqués');
+    S.ratesSelected={};
     closeModal();
     S.ratesLoaded={};
     renderRates();
