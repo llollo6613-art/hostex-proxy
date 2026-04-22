@@ -219,6 +219,63 @@ function render(){
   (pages[S.page]||renderDash)();
 }
 
+async function _openBlockDates(propId){
+  var prop=S.props.find(function(p){return p.id===propId;});
+  if(!prop)return;
+  showModal('<h3>⛔ Bloquer des dates</h3>'
+    +'<div class="form-row"><div class="form-label">Du (inclus)</div><input type="date" id="bl-from" class="form-input"></div>'
+    +'<div class="form-row"><div class="form-label">Au (inclus)</div><input type="date" id="bl-to" class="form-input"></div>'
+    +'<div class="form-row"><div class="form-label">Raison (optionnel)</div><input type="text" id="bl-reason" class="form-input" placeholder="Ex: travaux, usage personnel..."></div>'
+    +'<div class="modal-actions">'
+    +'<button class="btn" onclick="closeModal()">Annuler</button>'
+    +'<button class="btn btn-red" onclick="_saveBlock(''+propId+'')">Bloquer</button>'
+    +'</div>');
+}
+
+async function _saveBlock(propId){
+  var from=document.getElementById('bl-from').value;
+  var to=document.getElementById('bl-to').value;
+  if(!from||!to){showToast('Dates manquantes');return;}
+  var prop=S.props.find(function(p){return p.id===propId;});
+  if(!prop)return;
+  try{
+    for(var i=0;i<prop.channels.length;i++){
+      var ch=prop.channels[i];
+      await api('/listings/inventories','POST',{
+        listing_id:ch.listing_id,
+        channel_type:ch.channel_type,
+        start_date:from,
+        end_date:to,
+        inventory:0
+      });
+    }
+    showToast('✓ Dates bloquées du '+from+' au '+to);
+    closeModal();
+    S.ratesLoaded={};
+    renderRates();
+  }catch(e){showToast('Erreur: '+e.message);}
+}
+
+async function _unblockDates(propId,from,to){
+  var prop=S.props.find(function(p){return p.id===propId;});
+  if(!prop)return;
+  try{
+    for(var i=0;i<prop.channels.length;i++){
+      var ch=prop.channels[i];
+      await api('/listings/inventories','POST',{
+        listing_id:ch.listing_id,
+        channel_type:ch.channel_type,
+        start_date:from,
+        end_date:to,
+        inventory:1
+      });
+    }
+    showToast('✓ Dates débloquées');
+    S.ratesLoaded={};
+    renderRates();
+  }catch(e){showToast('Erreur: '+e.message);}
+}
+
 function showToast(msg,dur){var t=document.getElementById('toast');if(!t){t=document.createElement('div');t.id='toast';t.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;padding:10px 20px;border-radius:8px;font-size:13px;z-index:9999;transition:opacity .3s;pointer-events:none;';document.body.appendChild(t);}t.textContent=msg;t.style.opacity='1';clearTimeout(t._t);t._t=setTimeout(function(){t.style.opacity='0';},dur||2500);}
 function showModal(h){var m=document.getElementById('modal');var mb=document.getElementById('modal-body');if(!m){m=document.createElement('div');m.id='modal';m.style.cssText='display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.4);z-index:1000;align-items:center;justify-content:center;';var inner=document.createElement('div');inner.style.cssText='background:#fff;border-radius:12px;padding:20px;max-width:500px;width:90%;max-height:85vh;overflow-y:auto;position:relative;';mb=document.createElement('div');mb.id='modal-body';inner.appendChild(mb);var cl=document.createElement('button');cl.textContent='×';cl.style.cssText='position:absolute;top:10px;right:14px;background:none;border:none;font-size:20px;cursor:pointer;color:#888;';cl.onclick=closeModal;inner.appendChild(cl);m.appendChild(inner);m.onclick=function(e){if(e.target===m)closeModal();};document.body.appendChild(m);}mb.innerHTML=h;m.style.display='flex';}
 function closeModal(){var m=document.getElementById('modal');if(m)m.style.display='none';}
@@ -406,6 +463,7 @@ function renderRates(){
     +'<span><span style="background:#F3E8FF;color:#7C3AED;padding:0 4px;border-radius:2px;font-size:9px;font-weight:700;">AI</span> Suggestion</span>'
     +'<button onclick="_toggleSelMode()" style="font-size:10px;padding:3px 10px;border-radius:6px;border:1px solid '+(S.ratesSelMode?'#6366F1':'#e5e4e0')+';background:'+(S.ratesSelMode?'#EEF4FF':'transparent')+';color:'+(S.ratesSelMode?'#4338CA':'#888')+';cursor:pointer;font-weight:'+(S.ratesSelMode?600:400)+';">☑ Multi-select '+(S.ratesSelMode?'ON':'OFF')+'</button>'
     +'<button class="btn" style="font-size:10px;margin-left:auto;" onclick="S.ratesLoaded={};_loadPricesFromAPI(S.ratesProp)">↻ Charger Hostex</button>'
+    +'<button class="btn btn-red" style="font-size:10px;" onclick="_openBlockDates(S.ratesProp)">⛔ Bloquer dates</button>'
     +'</div>'
     +(selCount>0?'<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;padding:8px 14px;background:#EEF4FF;border-radius:8px;"><span style="font-size:12px;color:#4338CA;font-weight:600;">'+selCount+' jour'+(selCount>1?'s':'')+' sélectionné'+(selCount>1?'s':'')+'</span><button class="btn btn-green" style="font-size:11px" onclick="_rateApplySelected()">Appliquer un tarif</button><button class="btn" style="font-size:11px" onclick="S.ratesSelected={};renderRates()">Effacer</button></div>':'')
     +'<div style="display:grid;grid-template-columns:1fr 190px;gap:14px;align-items:start;">'
