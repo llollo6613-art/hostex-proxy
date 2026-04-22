@@ -881,7 +881,7 @@ function renderCal(){
         var col=idx%7;
         var row=Math.floor(idx/7);
         var isResStart=cur.toDateString()===startD.toDateString();
-        var isResEnd=rowEndDate.toDateString()===clampEnd.toDateString()&&clampEnd.toDateString()===endD.toDateString();
+        var isResEnd=rowEndDate.toDateString()===clampEnd.toDateString()&&clampEnd.toDateString()===endD.toDateString()&&!isResStart;
         var leftBase=col*(cellW+GAP);
         var left=isResStart?leftBase+cellW/2:leftBase;
         var rawW=cellCount*(cellW+GAP)-GAP;
