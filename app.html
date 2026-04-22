@@ -110,7 +110,7 @@ const DAYS=['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
 
 const CP={"airbnb":"#C8523E","booking.com":"#2E5F9E","booking":"#2E5F9E","direct":"#3D8B78"};
 const CPN={"airbnb":"Airbnb","booking.com":"Booking","booking":"Booking","direct":"Direct"};
-const S={page:'dashboard',props:[],reservations:[],conversations:[],selectedProp:null,currentMonth:new Date(),resFilter:'Toutes',isLive:false,ratesProp:null,ratesMonth:null,ratesPrices:{},ratesMinStay:{},ratesLoaded:{},calView:'single',ratesSelected:{},ratesModified:{},cleaning:{'12619011':{base:20,extra:5},'12619012':{base:40,extra:8}},ratesSelMode:false,ratesTab:'cal',ratesRules:{},basePrices:{'12619011':{airWeek:80,bkWeek:70,airWE:95,bkWE:88},'12619012':{airWeek:90,bkWeek:80,airWE:110,bkWE:100}}};
+const S={page:'dashboard',props:[],reservations:[],conversations:[],selectedProp:null,currentMonth:new Date(),resFilter:'Toutes',isLive:false,ratesProp:null,ratesMonth:null,ratesPrices:{},ratesMinStay:{},ratesLoaded:{},calView:'single',ratesSelected:{},ratesModified:{},blockedDates:[],cleaning:{'12619011':{base:20,extra:5},'12619012':{base:40,extra:8}},ratesSelMode:false,ratesTab:'cal',ratesRules:{},basePrices:{'12619011':{airWeek:80,bkWeek:70,airWE:95,bkWE:88},'12619012':{airWeek:90,bkWeek:80,airWE:110,bkWE:100}}};
 
 async function api(path,method='GET',body=null,timeoutMs=6000){
   const ctrl=new AbortController();
@@ -246,9 +246,13 @@ async function _saveBlock(propId){
         channel_type:ch.channel_type,
         start_date:from,
         end_date:to,
-        inventory:0
+        inventories:[{date:from,inventory:0}]
       });
     }
+    if(!S.blockedDates)S.blockedDates=[];
+    var cur=new Date(from+'T00:00:00');
+    var endD=new Date(to+'T00:00:00');
+    while(cur<=endD){var d=cur.getFullYear()+'-'+String(cur.getMonth()+1).padStart(2,'0')+'-'+String(cur.getDate()).padStart(2,'0');if(S.blockedDates.indexOf(d)<0)S.blockedDates.push(d);cur=new Date(cur.getFullYear(),cur.getMonth(),cur.getDate()+1);}
     showToast('✓ Dates bloquées du '+from+' au '+to);
     closeModal();
     S.ratesLoaded={};
@@ -267,7 +271,7 @@ async function _unblockDates(propId,from,to){
         channel_type:ch.channel_type,
         start_date:from,
         end_date:to,
-        inventory:1
+        inventories:[{start_date:from,end_date:to,inventory:1}]
       });
     }
     showToast('✓ Dates débloquées');
@@ -908,12 +912,13 @@ function renderCal(){
       var isPast=dateObj<new Date(now.getFullYear(),now.getMonth(),now.getDate());
       var res=bookedOn(date);
       var isAir=res&&platClass(res.platform)==='airbnb';
-      var bg=isToday?'#f0fdf8':res&&!isPast?(isAir?'#fff1f1':'#eff6ff'):'var(--color-background-primary)';
-      var border=isToday?'#1D9E75':res&&!isPast?(isAir?'#fecaca':'#bfdbfe'):'#d1d0c8';
+      var isBlocked=S.blockedDates&&S.blockedDates.indexOf(date)>=0;var bg=isToday?'#f0fdf8':isBlocked?'#fef2f2':res&&!isPast?(isAir?'#fff1f1':'#eff6ff'):'var(--color-background-primary)';
+      var border=isToday?'#1D9E75':isBlocked?'#f87171':res&&!isPast?(isAir?'#fecaca':'#bfdbfe'):'#d1d0c8';
       var numColor=isToday?'#0F6E56':isPast?'var(--color-text-tertiary)':res?(isAir?'#dc2626':'#1d4ed8'):'var(--color-text-primary)';
       var opacity=isPast&&!isToday?'0.55':'1';
       dayCells+='<div style="border-radius:10px;height:'+CELL+'px;padding:7px 6px;border:1.5px solid '+border+';background:'+bg+';position:relative;z-index:1;opacity:'+opacity+';cursor:pointer;" onclick="openResDetail(\''+date+'\')">'
         +'<div style="font-size:12px;font-weight:500;color:'+numColor+';line-height:1;">'+d+'</div>'
+        +(isBlocked?'<div style="font-size:14px;text-align:center;margin-top:6px;">⛔</div>':'')
         +'</div>';
     }
     var gridW=(document.getElementById('main-content').getBoundingClientRect().width||390)-2;
@@ -928,7 +933,7 @@ function renderCal(){
       var monthEndD=new Date(yr,mn+1,0);
       if(endD<=monthStart||startD>monthEndD) return;
       var clampStart=startD<monthStart?monthStart:startD;
-      var clampEnd=endD>new Date(yr,mn+1,0)?new Date(yr,mn+1,1):endD;
+      var endDplus1=new Date(endD.getFullYear(),endD.getMonth(),endD.getDate()+1);var clampEnd=endDplus1>new Date(yr,mn+1,0)?new Date(yr,mn+1,1):endDplus1;
       var cur=new Date(clampStart);
       while(cur<clampEnd){
         var idx=firstDow+cur.getDate()-1;
@@ -939,7 +944,7 @@ function renderCal(){
         var col=idx%7;
         var row=Math.floor(idx/7);
         var isResStart=cur.toDateString()===startD.toDateString();
-        var isResEnd=rowEndDate.toDateString()===clampEnd.toDateString()&&clampEnd.toDateString()===endD.toDateString()&&!isResStart;
+        var isResEnd=rowEndDate>=endDplus1&&!isResStart||rowEndDate>=endDplus1&&isResStart&&cellCount>1;
         var leftBase=col*(cellW+GAP);
         var left=isResStart?leftBase+cellW/2:leftBase;
         var rawW=cellCount*(cellW+GAP)-GAP;
