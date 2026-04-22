@@ -228,7 +228,7 @@ async function _openBlockDates(propId){
     +'<div class="form-row"><div class="form-label">Raison (optionnel)</div><input type="text" id="bl-reason" class="form-input" placeholder="Ex: travaux, usage personnel..."></div>'
     +'<div class="modal-actions">'
     +'<button class="btn" onclick="closeModal()">Annuler</button>'
-    +'<button class="btn btn-red" onclick="_saveBlock(''+propId+'')">Bloquer</button>'
+    +'<button class="btn btn-red" onclick="_saveBlock(this.dataset.pid)" data-pid="'+propId+'">Bloquer</button>'
     +'</div>');
 }
 
