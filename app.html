@@ -464,28 +464,54 @@ function renderRates(){
     return;
   }
 
-  document.getElementById('main-content').innerHTML=
-    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">'
-      +'<div style="display:flex;gap:6px;flex-wrap:wrap;">'+S.props.map(function(p){return'<button class="btn'+(S.ratesProp===p.id?' btn-green':'')+'" style="font-size:11px;border-radius:20px;" onclick="S.ratesProp=this.dataset.pid;S.ratesSelected={};S.ratesLoaded={};renderRates()" data-pid="'+p.id+'">'+p.name+'</button>';}).join('')+'</div>'
-      +'<div style="display:flex;align-items:center;gap:10px;">'
-        +'<button class="btn" onclick="chgRatesMonth(-1)" style="width:28px;height:28px;border-radius:50%;padding:0;font-size:14px;">‹</button>'
-        +'<span style="font-size:15px;font-weight:600;min-width:150px;text-align:center;">'+MOIS[month]+' '+year+'</span>'
-        +'<button class="btn" onclick="chgRatesMonth(1)" style="width:28px;height:28px;border-radius:50%;padding:0;font-size:14px;">›</button>'
-      +'</div>'
-    +'</div>'
-    +'<div style="display:flex;gap:8px;margin-bottom:8px;font-size:10px;color:#888;flex-wrap:wrap;align-items:center;">'
-    +'<span><span style="background:#FFE8EC;color:#B8420A;padding:0 4px;border-radius:2px;font-size:9px;font-weight:700;">A</span> Airbnb</span>'
-    +'<span><span style="background:#E6EFF8;color:#1A4F8A;padding:0 4px;border-radius:2px;font-size:9px;font-weight:700;">B</span> Booking</span>'
-    +'<span><span style="background:#F3E8FF;color:#7C3AED;padding:0 4px;border-radius:2px;font-size:9px;font-weight:700;">AI</span> Suggestion</span>'
-    +'<button onclick="_toggleSelMode()" style="font-size:10px;padding:3px 10px;border-radius:6px;border:1px solid '+(S.ratesSelMode?'#6366F1':'#e5e4e0')+';background:'+(S.ratesSelMode?'#EEF4FF':'transparent')+';color:'+(S.ratesSelMode?'#4338CA':'#888')+';cursor:pointer;font-weight:'+(S.ratesSelMode?600:400)+';">☑ Multi-select '+(S.ratesSelMode?'ON':'OFF')+'</button>'
-    +'<button class="btn" style="font-size:10px;margin-left:auto;" onclick="S.ratesLoaded={};_loadPricesFromAPI(S.ratesProp)">↻ Charger Hostex</button>'
-    +'<button class="btn btn-red" style="font-size:10px;" onclick="_openBlockDates(S.ratesProp)">⛔ Bloquer dates</button>'
-    +'</div>'
-    +(selCount>0?'<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;padding:8px 14px;background:#EEF4FF;border-radius:8px;"><span style="font-size:12px;color:#4338CA;font-weight:600;">'+selCount+' jour'+(selCount>1?'s':'')+' sélectionné'+(selCount>1?'s':'')+'</span><button class="btn btn-green" style="font-size:11px" onclick="_rateApplySelected()">Appliquer un tarif</button><button class="btn" style="font-size:11px" onclick="S.ratesSelected={};renderRates()">Effacer</button></div>':'')
-    +'<div style="display:grid;grid-template-columns:1fr 190px;gap:14px;align-items:start;">'
-      +'<div style="overflow-x:auto;"><table id="rates-table" style="width:100%;border-collapse:separate;border-spacing:3px;min-width:480px;"><tr>'+JOURS.map(function(d,idx){return'<th style="'+TH+(idx>=5?'color:#9999FF;':'')+'">'+d+'</th>';}).join('')+'</tr><tr>'+cells+'</tr></table></div>'
-      +cleanHtml
-    +'</div>';
+  document.getElementById('main-content').innerHTML=tabHtml+headerHtml+(function(){
+  var MONTHS=['Janvier','F\u00e9vrier','Mars','Avril','Mai','Juin','Juillet','Ao\u00fbt','Septembre','Octobre','Novembre','D\u00e9cembre'];
+  var DAYS=['L','M','M','J','V','S','D'];
+  var CELL=80,GAP=4;
+  var now2=new Date();
+  var out='';
+  for(var mo=0;mo<12;mo++){
+    var mDate=new Date(now2.getFullYear(),now2.getMonth()+mo,1);
+    var yr=mDate.getFullYear(),mn=mDate.getMonth();
+    var firstDow=(new Date(yr,mn,1).getDay()+6)%7;
+    var dim=new Date(yr,mn+1,0).getDate();
+    var rows=Math.ceil((firstDow+dim)/7);
+    var dowRow=DAYS.map(function(d){return'<div style="font-size:10px;color:#aaa;text-align:center;padding:2px 0;">'+d+'</div>';}).join('');
+    var cells='';
+    for(var i=0;i<firstDow;i++) cells+='<div></div>';
+    for(var d=1;d<=dim;d++){
+      var ds3=yr+'-'+(mn+1<10?'0':'')+(mn+1)+'-'+(d<10?'0':'')+d;
+      var dateObj=new Date(yr,mn,d);
+      var isToday3=dateObj.toDateString()===now2.toDateString();
+      var isPast3=dateObj<new Date(now2.getFullYear(),now2.getMonth(),now2.getDate());
+      var isSel3=S.ratesSelected&&S.ratesSelected[ds3];
+      var isBlk3=S.blockedDates&&S.blockedDates.indexOf(ds3)>=0;
+      var key3=prop.id+'_'+ds3;
+      var ap3=S.ratesPrices[key3+'_air']||null;
+      var bp3=S.ratesPrices[key3+'_bk']||null;
+      var isBooked3=S.reservations.some(function(r){return r.prop_id===prop.id&&r.check_in&&r.check_out&&r.status!=='cancelled'&&r.check_in<=ds3&&r.check_out>ds3;});
+      var isWE3=dateObj.getDay()===0||dateObj.getDay()===6;
+      var bg3=isBlk3?'#fef2f2':isSel3?'#EEF4FF':isBooked3?'#FFF5F3':isPast3?'#f5f5f3':isToday3?'#FFFBEB':isWE3?'#F8F8FF':'#fff';
+      var bdr3=isToday3?'2px solid #F59E0B':isBlk3?'2px solid #f87171':isSel3?'2px solid #6366F1':isBooked3?'1px solid #FECACA':'1px solid #d1d0c8';
+      var numCol=isToday3?'#D97706':isPast3?'#bbb':isBlk3?'#ef4444':isBooked3?'#dc2626':'#1a1a1a';
+      cells+='<div data-ds="'+ds3+'" data-past="'+(isPast3?1:0)+'" data-booked="'+(isBooked3?1:0)+'" onclick="_rcClick(this.dataset.ds)" style="border-radius:8px;height:'+CELL+'px;padding:5px 4px;border:'+bdr3+';background:'+bg3+';cursor:pointer;position:relative;overflow:hidden;">'
+        +'<div style="font-size:11px;font-weight:500;color:'+numCol+';line-height:1;margin-bottom:3px;">'+d+'</div>'
+        +(isBlk3?'<div style="font-size:9px;color:#ef4444;font-weight:500;">⛔</div>'
+          :isBooked3?'<div style="font-size:9px;color:#888;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">'+(function(){var r2=S.reservations.find(function(r){return r.prop_id===prop.id&&r.check_in<=ds3&&r.check_out>ds3&&r.status!=='cancelled';});return r2?r2.guest.split(' ')[0]:'';})()+'</div>'
+          :(ap3||bp3)?'<div style="font-size:9px;line-height:1.4;">'
+            +(ap3?'<div style="color:#E53E3E;font-weight:500;">A '+ap3+'€</div>':'')
+            +(bp3?'<div style="color:#003580;font-weight:500;">B '+bp3+'€</div>':'')
+            +'</div>':'')
+        +'</div>';
+    }
+    out+='<div style="margin-bottom:24px;">'
+      +'<div style="font-size:11px;font-weight:500;color:#888;letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px;">'+MONTHS[mn]+' '+yr+'</div>'
+      +'<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:'+GAP+'px;margin-bottom:'+GAP+'px;">'+dowRow+'</div>'
+      +'<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:'+GAP+'px;">'+cells+'</div>'
+      +'</div>';
+  }
+  return out;
+})()+cleanHtml
 
   // Drag-select sur le tableau
   var tbl=document.getElementById('rates-table');
