@@ -977,7 +977,7 @@ function renderCal(){
         var nights=Math.round((endD-startD)/86400000);
         var platLbl=platClass(res.platform)==='airbnb'?'AIR':'BK';var label=isResStart?(res.guest.split(' ')[0]+' \u00b7 '+nights+'n \u00b7 '+platLbl):'';
         var br=isResStart&&isResEnd?'6px':isResStart?'6px 0 0 6px':isResEnd?'0 6px 6px 0':'0';
-        bars+='<div style="position:absolute;height:12px;border-radius:'+br+';z-index:2;display:flex;align-items:center;padding:0 8px;font-size:9px;font-weight:500;color:#fff;white-space:nowrap;overflow:hidden;pointer-events:none;box-shadow:0 2px 6px rgba(0,0,0,.15);background:'+barColor+';left:'+left+'px;top:'+top+'px;width:'+width+'px;">'+label+'</div>';
+        bars+='<div style="position:absolute;height:18px;border-radius:'+br+';z-index:2;display:flex;align-items:center;padding:0 6px;font-size:11px;font-weight:500;color:#fff;white-space:nowrap;overflow:hidden;pointer-events:none;box-shadow:0 2px 6px rgba(0,0,0,.15);background:'+barColor+';left:'+left+'px;top:'+top+'px;width:'+width+'px;">'+label+'</div>';
         cur=rowEndDate;
       }
     });
