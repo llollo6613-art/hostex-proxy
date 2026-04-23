@@ -534,27 +534,28 @@ function renderRates(){
     +'</div>';
 
   // Drag select
-  var isDragging=false,dragStart=null;
+  var isDragging=false,hasDragged=false,dragStart=null;
   var rc=document.getElementById('main-content');
   rc.addEventListener('mousedown',function(e){
     var el=e.target.closest('[data-ds]');
     if(!el||el.dataset.past==='1'||el.dataset.booked==='1')return;
-    isDragging=true;dragStart=el.dataset.ds;
-    S.ratesSelected={};S.ratesSelected[dragStart]=true;
-    renderRates();
+    isDragging=true;hasDragged=false;dragStart=el.dataset.ds;
   });
   rc.addEventListener('mouseover',function(e){
     if(!isDragging)return;
     var el=e.target.closest('[data-ds]');
     if(!el||el.dataset.past==='1'||el.dataset.booked==='1')return;
-    if(dragStart&&dragStart<=el.dataset.ds){
-      var all=rc.querySelectorAll('[data-ds]');
-      S.ratesSelected={};
-      all.forEach(function(c){if(c.dataset.ds>=dragStart&&c.dataset.ds<=el.dataset.ds&&c.dataset.past!=='1'&&c.dataset.booked!=='1')S.ratesSelected[c.dataset.ds]=true;});
-      renderRates();
+    if(el.dataset.ds!==dragStart){
+      hasDragged=true;
+      if(dragStart<=el.dataset.ds){
+        var all=rc.querySelectorAll('[data-ds]');
+        S.ratesSelected={};
+        all.forEach(function(c){if(c.dataset.ds>=dragStart&&c.dataset.ds<=el.dataset.ds&&c.dataset.past!=='1'&&c.dataset.booked!=='1')S.ratesSelected[c.dataset.ds]=true;});
+        renderRates();
+      }
     }
   });
-  document.addEventListener('mouseup',function(){isDragging=false;});
+  document.addEventListener('mouseup',function(){isDragging=false;hasDragged=false;});
 }
 function _renderRules(prop){window._rpropId=prop.id;
   if(!S.ratesRules)S.ratesRules={};
