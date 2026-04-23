@@ -443,7 +443,7 @@ function renderRates(){
         +'<span style="font-size:10px;color:#888;">€</span>'
       +'</div>'
     +'</div>'
-    +'<button onclick="_initRulesEvents(''+prop.id+'')" style="width:100%;padding:7px;border-radius:8px;border:none;background:#1D9E75;color:#fff;font-size:12px;font-weight:500;cursor:pointer;">↻ Appliquer sur 12 mois</button>';
+    +'<button onclick="_initRulesEvents(this.dataset.pid)" data-pid="'+prop.id+'" style="width:100%;padding:7px;border-radius:8px;border:none;background:#1D9E75;color:#fff;font-size:12px;font-weight:500;cursor:pointer;">↻ Appliquer sur 12 mois</button>';
 
   var sidebar='<div style="background:#f9f9f7;border-radius:12px;border:1px solid #e5e4e0;padding:14px;">'
     +'<div style="display:flex;gap:6px;margin-bottom:14px;">'+propTabs+'</div>'
