@@ -498,7 +498,18 @@ function renderRates(){
       cells+='<div data-ds="'+ds+'" data-past="'+(isPast?1:0)+'" data-booked="'+(isBooked?1:0)+'" onclick="_rcClick(this.dataset.ds)" style="border-radius:8px;height:78px;padding:6px 5px;border:'+bdr+';background:'+bg+';cursor:pointer;position:relative;">'
         +'<div style="font-size:11px;font-weight:500;color:'+numCol+';line-height:1;margin-bottom:4px;">'+d+'</div>'
         +(isBlk?'<div style="font-size:9px;color:#ef4444;font-weight:500;">\u26d4 bloqu\u00e9</div>'
-          :isBooked?'<div style="font-size:9px;color:#dc2626;">r\u00e9serv\u00e9</div>'
+          :isBooked?(function(){
+          var r2=S.reservations.find(function(r){return r.prop_id===prop.id&&r.check_in<=ds&&r.check_out>ds&&r.status!=='cancelled';});
+          if(!r2)return '<div style="font-size:9px;color:#dc2626;">r\u00e9serv\u00e9</div>';
+          var pl=platClass(r2.platform);
+          var plColor=pl==='airbnb'?'#FF385C':'#003580';
+          var n2=Math.round((new Date(r2.check_out)-new Date(r2.check_in))/86400000);
+          return '<div style="font-size:9px;font-weight:500;color:'+plColor+';overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">'+r2.guest.split(' ')[0]+'</div>'
+            +'<div style="display:flex;align-items:center;gap:3px;margin-top:1px;">'
+              +'<span style="font-size:8px;font-weight:500;background:'+plColor+';color:#fff;border-radius:2px;padding:0 3px;">'+(pl==='airbnb'?'AIR':'BK')+'</span>'
+              +'<span style="font-size:8px;color:#888;">'+n2+'n</span>'
+            +'</div>';
+        })()
           :(ap||bp)?'<div style="display:flex;flex-direction:column;gap:2px;">'
             +(ap?'<div style="display:flex;align-items:center;gap:3px;"><div style="width:6px;height:6px;border-radius:50%;background:#FF385C;flex-shrink:0;"></div><span style="font-size:11px;font-weight:500;color:#E53E3E;">'+ap+'\u20ac</span></div>':'')
             +(bp?'<div style="display:flex;align-items:center;gap:3px;"><div style="width:6px;height:6px;border-radius:50%;background:#003580;flex-shrink:0;"></div><span style="font-size:11px;font-weight:500;color:#003580;">'+bp+'\u20ac</span></div>':'')
