@@ -783,9 +783,9 @@ async function _rSaveBulk(){
 async function _loadPricesFromAPI(propId){
   var prop=S.props.find(function(p){return p.id===propId;});
   if(!prop||!prop.channels.length){showToast('Aucun channel');return;}
-  var m=S.ratesMonth||new Date();
+  var m=new Date();
   var from=dStr(new Date(m.getFullYear(),m.getMonth(),1));
-  var to=dStr(new Date(m.getFullYear(),m.getMonth()+1,0));
+  var to=dStr(new Date(m.getFullYear(),m.getMonth()+12,0));
   showToast('Chargement '+prop.channels.length+' canaux...');
   var total=0;
   for(var ci=0;ci<prop.channels.length;ci++){
