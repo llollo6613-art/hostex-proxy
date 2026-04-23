@@ -374,191 +374,143 @@ function renderDash(){
   setTimeout(_tryDraw,100);
 }
 function renderRates(){
-  if(!S.props||!S.props.length){document.getElementById('main-content').innerHTML='<div style="padding:30px;text-align:center"><div class="spinner"></div></div>';setTimeout(renderRates,300);return;}
-  if(!S.ratesProp)S.ratesProp=S.props[0].id;
   if(!S.ratesPrices)S.ratesPrices={};if(!S.ratesMinStay)S.ratesMinStay={};if(!S.ratesSelected)S.ratesSelected={};if(!S.ratesMonth)S.ratesMonth=new Date();if(!S.cleaning)S.cleaning={};
   var prop=S.props.find(function(p){return p.id===S.ratesProp;})||S.props[0];
-  var m=S.ratesMonth;var year=m.getFullYear(),month=m.getMonth();
-  var dim=new Date(year,month+1,0).getDate();var firstDay=(new Date(year,month,1).getDay()+6)%7;var total=Math.ceil((firstDay+dim)/7)*7;
-  var MOIS=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
-  var JOURS=['L','M','M','J','V','S','D'];
-  var today=dStr(new Date());var selCount=Object.keys(S.ratesSelected).filter(function(k){return S.ratesSelected[k];}).length;
-  var cleaning=S.cleaning[prop.id]||{base:35,extra:10};
-  var cells='';
-  for(var i=0;i<total;i++){
-    var day,cur=true;
-    if(i<firstDay){day=new Date(year,month,0).getDate()-firstDay+i+1;cur=false;}
-    else if(i>=firstDay+dim){day=i-firstDay-dim+1;cur=false;}
-    else day=i-firstDay+1;
-    var date=cur?new Date(year,month,day):i<firstDay?new Date(year,month-1,day):new Date(year,month+1,day);
-    var ds=dStr(date);var isToday=ds===today;var isPast=ds<today;var isWE=date.getDay()===0||date.getDay()===6;
-    var isSel=S.ratesSelected[ds]||false;var isBlocked=S.blockedDates&&S.blockedDates.indexOf(ds)>=0;var key=prop.id+'_'+ds;
-    var ap=S.ratesPrices[key+'_air']||null;var bp=S.ratesPrices[key+'_bk']||null;
-    var isBooked=S.reservations.some(function(r){return r.prop_id===prop.id&&r.check_in&&r.check_out&&r.status!=='cancelled'&&r.check_in<=ds&&r.check_out>ds;});
-    var resOnDay=S.reservations.find(function(r){return r.prop_id===prop.id&&r.check_in&&r.check_out&&r.status!=='cancelled'&&r.check_in<=ds&&r.check_out>ds;});
-    var isCheckout=S.reservations.some(function(r){return r.prop_id===prop.id&&r.check_out===ds&&r.status!=='cancelled';});
-    if(!cur){cells+='<td style="height:88px;border-radius:8px;opacity:0.1;"></td>';if((i+1)%7===0&&i<total-1)cells+='</tr><tr>';continue;}
-    var bg=isBlocked?'#fef2f2':isSel?'#EEF4FF':isBooked?'#FFF5F3':isPast?'var(--color-background-secondary,#f9f9f9)':isWE?'#F8F8FF':'#fff';
-    var bdr=isToday?'2px solid #F59E0B':isBlocked?'2px solid #f87171':isSel?'2px solid #6366F1':isBooked?'1px solid #FECACA':'1px solid #e5e4e0';
-    var content='<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;">'
-      +'<span style="font-size:11px;font-weight:'+(isToday?'600':'400')+';color:'+(isToday?'#92400E':'#bbb')+';">'+day+(isCheckout?' ❖':'')+'</span>'
-      +(isSel?'<span style="width:14px;height:14px;background:#6366F1;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:9px;color:#fff;">✓</span>':'')
-      +'</div>';
-    if(isBooked&&resOnDay){
-      var pc=platClass(resOnDay.platform)==='airbnb'?'#991B1B':'#1E3A8A';
-      var pb=platClass(resOnDay.platform)==='airbnb'?'#FEE2E2':'#DBEAFE';
-      content+='<div style="background:'+pb+';color:'+pc+';font-size:10px;font-weight:500;border-radius:4px;padding:2px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+(resOnDay.guest||'').split(' ')[0]+'</div>';
-      if(ap||bp)content+='<div style="margin-top:3px;font-size:10px;color:#aaa;">'+(ap||'—')+(bp?' / '+bp:'')+'</div>';
-    } else {
-      var ai=(!isPast&&!isBooked)?_aiSuggestPrice(ds,prop.id):null;
-      content+='<div style="margin-top:2px;">'
-        +'<div style="display:flex;align-items:center;gap:4px;margin-bottom:2px;">'
-          +'<div style="width:14px;height:14px;background:#FF385C;border-radius:3px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;"><span style="color:#fff;font-size:7px;font-weight:700;">A</span></div>'
-          +'<span style="font-size:'+(isPast?'12':'15')+'px;font-weight:500;color:'+(ap?(isPast?'#bbb':'#1a1a1a'):'#ccc')+';">'+(ap?ap+'€':'—')+'</span>'
-        +(isBlocked?'<div style="font-size:11px;text-align:center;color:#ef4444;font-weight:500;margin-top:2px;">⛔ Bloqué</div>':'')
-        +'</div>'
-        +'<div style="display:flex;align-items:center;gap:4px;margin-bottom:2px;">'
-          +'<div style="width:14px;height:14px;background:#003580;border-radius:3px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;"><span style="color:#fff;font-size:7px;font-weight:700;">B</span></div>'
-          +'<span style="font-size:'+(isPast?'12':'15')+'px;font-weight:500;color:'+(bp?(isPast?'#bbb':'#1a1a1a'):'#ccc')+';">'+(bp?bp+'€':'—')+'</span>'
-          +(bp&&ap&&bp<ap?'<span style="font-size:9px;color:#dc2626;font-weight:600;">−'+Math.round((ap-bp)/ap*100)+'%</span>':'')
-          +(bp&&ap&&bp>ap?'<span style="font-size:9px;color:#16a34a;font-weight:600;">+'+Math.round((bp-ap)/ap*100)+'%</span>':'')
-        +'</div>'
-        +(ai?'<div style="display:flex;align-items:center;gap:3px;padding-top:1px;border-top:0.5px solid #f0efe9;">'
-          +'<div style="width:14px;height:14px;background:#7C3AED;border-radius:3px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;"><span style="color:#fff;font-size:6px;font-weight:700;">AI</span></div>'
-          +'<span style="font-size:11px;font-weight:600;color:#7C3AED;">'+ai.price+'€</span>'
-          +'<span style="font-size:9px;color:'+(ai.pct>0?'#16a34a':'#dc2626')+';">'+(ai.pct>0?'+':'')+ai.pct+'%</span>'
-        +'</div>':'')
-      +'</div>';
-    }
-    cells+='<td id="rc-'+ds+'" data-ds="'+ds+'" data-past="'+(isPast?1:0)+'" data-booked="'+(isBooked?1:0)+'" style="height:100px;vertical-align:top;padding:6px 8px;background:'+bg+';border:'+bdr+';border-radius:8px;cursor:'+(isBooked?'default':'pointer')+';transition:border .1s,background .1s;" '
-      +(isBooked?'':
-        'onclick="_rcClick(this.dataset.ds)"')+'>'+content+'</td>';
-    if((i+1)%7===0&&i<total-1)cells+='</tr><tr>';
-  }
-  var TH='font-size:11px;color:#aaa;text-align:center;padding:6px 2px;font-weight:400;';
-  var cleanHtml='<div style="background:#fff;border:1px solid #e5e4e0;border-radius:12px;overflow:hidden;">'
-    +'<div style="padding:12px 14px;border-bottom:1px solid #e5e4e0;">'
-      +'<div style="font-size:12px;font-weight:600;">Frais de ménage</div>'
-      +'<div style="font-size:11px;color:#888;margin-top:2px;">'+prop.name+'</div>'
-    +'</div>'
-    +'<div style="padding:12px 14px;">'
-      +'<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #f0efe9;margin-bottom:5px;"><span style="font-size:12px;color:#666;">Base</span><span style="font-size:14px;font-weight:600;">'+cleaning.base+' €</span></div>'
-      +'<div style="display:flex;justify-content:space-between;padding:5px 0;margin-bottom:12px;"><span style="font-size:12px;color:#666;">Nuit supp.</span><span style="font-size:14px;font-weight:600;">+'+cleaning.extra+' €</span></div>'
-      +'<div style="border-top:1px solid #e5e4e0;padding-top:12px;display:flex;flex-direction:column;gap:8px;">'
-        +'<div style="display:flex;align-items:center;justify-content:space-between;"><label style="font-size:11px;color:#666;">Base</label><div style="display:flex;align-items:center;gap:3px;"><input type="number" id="cl-base" value="'+cleaning.base+'" style="width:55px;font-size:13px;text-align:center;border:1px solid #ddd;border-radius:5px;padding:3px;"><span style="font-size:11px;color:#888;">€</span></div></div>'
-        +'<div style="display:flex;align-items:center;justify-content:space-between;"><label style="font-size:11px;color:#666;">Nuit supp.</label><div style="display:flex;align-items:center;gap:3px;"><input type="number" id="cl-extra" value="'+cleaning.extra+'" style="width:55px;font-size:13px;text-align:center;border:1px solid #ddd;border-radius:5px;padding:3px;"><span style="font-size:11px;color:#888;">€</span></div></div>'
-      +'</div>'
-      +'<button onclick="_saveClean(this.dataset.pid)" data-pid="'+prop.id+'" style="width:100%;margin-top:10px;padding:8px;border-radius:6px;border:none;background:#1D9E75;color:#fff;font-size:12px;cursor:pointer;font-weight:600;">✓ Enregistrer</button>'
-    +'</div></div>';
+  if(!prop){document.getElementById('main-content').innerHTML='<div style="padding:20px;color:#888;">Aucun bien.</div>';return;}
+  if(!S.ratesLoaded)S.ratesLoaded={};
+  if(!S.ratesLoaded[prop.id]){_loadPricesFromAPI(prop.id);S.ratesLoaded[prop.id]=true;}
 
-  // Onglets
-  var isCal=(!S.ratesTab||S.ratesTab==='cal');
-  var isRules=S.ratesTab==='rules';
-  var tabHtml='<div style="display:flex;gap:0;margin-bottom:16px;border-bottom:1px solid #e5e4e0;">'
-    +'<div onclick="S.ratesTab=\'cal\';renderRates()" style="padding:8px 16px;font-size:13px;font-weight:500;cursor:pointer;'+(isCal?'color:#1D9E75;border-bottom:2px solid #1D9E75;':'color:#888;')+'">Calendrier</div>'
-    +'<div onclick="S.ratesTab=\'rules\';renderRates()" style="padding:8px 16px;font-size:13px;font-weight:500;cursor:pointer;'+(isRules?'color:#1D9E75;border-bottom:2px solid #1D9E75;':'color:#888;')+'">R\u00e8gles tarifaires</div>'
-    +'</div>';
-
-  if(isRules){
-    document.getElementById('main-content').innerHTML=tabHtml+_renderRules(prop);
-    return;
-  }
-
-  document.getElementById('main-content').innerHTML=tabHtml+(function(){
   var MONTHS=['Janvier','F\u00e9vrier','Mars','Avril','Mai','Juin','Juillet','Ao\u00fbt','Septembre','Octobre','Novembre','D\u00e9cembre'];
   var DAYS=['L','M','M','J','V','S','D'];
-  var CELL=80,GAP=4;
-  var now2=new Date();
-  var out='';
+  var now=new Date();
+
+  function pad(n){return String(n).padStart(2,'0');}
+
+  // Sidebar
+  var propTabs=S.props.map(function(p){
+    var active=p.id===prop.id;
+    return '<div onclick="S.ratesProp=\''+p.id+'\';S.ratesLoaded={};renderRates()" style="flex:1;padding:8px 4px;border-radius:8px;border:1.5px solid '+(active?'#0F6E56':'#e5e4e0')+';background:'+(active?'#E1F5EE':'#f9f9f7')+';text-align:center;cursor:pointer;"><div style="font-size:10px;font-weight:500;color:'+(active?'#0F6E56':'#888')+';">'+p.name.split(' ')[0]+'</div></div>';
+  }).join('');
+
+  var cl=S.cleaning[prop.id]||{base:20,extra:5};
+  var cleanHtml='<div class="sep" style="height:1px;background:#e5e4e0;margin:12px 0;"></div>'
+    +'<div style="font-size:10px;font-weight:500;color:#888;letter-spacing:.05em;text-transform:uppercase;margin-bottom:10px;">Fr. m\u00e9nage</div>'
+    +S.props.map(function(p){
+      var c=S.cleaning[p.id]||{base:20,extra:5};
+      return '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">'
+        +'<div style="font-size:11px;color:#444;">'+p.name.split(' ')[0]+'</div>'
+        +'<div style="display:flex;align-items:center;gap:3px;">'
+        +'<input id="cl-'+p.id+'" type="number" value="'+c.base+'" style="width:52px;border:1px solid #d1d0c8;border-radius:6px;padding:3px 5px;font-size:12px;text-align:right;">'
+        +'<span style="font-size:10px;color:#888;">\u20ac</span>'
+        +'</div></div>';
+    }).join('')
+    +'<button onclick="S.props.forEach(function(p){_saveClean(p.id);})" style="width:100%;padding:7px;border-radius:8px;border:none;background:#0F6E56;color:#fff;font-size:12px;font-weight:500;cursor:pointer;margin-top:6px;">Enregistrer</button>';
+
+  var selCount=Object.keys(S.ratesSelected).length;
+  var blockBtn='<div style="height:1px;background:#e5e4e0;margin:12px 0;"></div>'
+    +'<button onclick="_openBlockDates(\''+prop.id+'\')" style="width:100%;padding:8px;border-radius:8px;border:1.5px solid #ef4444;background:#fff;color:#ef4444;font-size:12px;font-weight:500;cursor:pointer;">'
+    +'\u26d4 Bloquer'+(selCount>0?' ('+selCount+' j.)':'')+'</button>'
+    +'<div style="font-size:10px;color:#aaa;margin-top:5px;text-align:center;">S\u00e9lectionnez puis bloquez</div>';
+
+  var sidebar='<div style="background:#f9f9f7;border-radius:12px;border:1px solid #e5e4e0;padding:14px;">'
+    +'<div style="display:flex;gap:6px;margin-bottom:14px;">'+propTabs+'</div>'
+    +cleanHtml
+    +blockBtn
+    +'</div>';
+
+  // Calendrier 12 mois
+  var legend='<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px;">'
+    +'<div style="display:flex;align-items:center;gap:4px;font-size:11px;color:#666;"><div style="width:8px;height:8px;border-radius:50%;background:#FF385C;"></div>Airbnb</div>'
+    +'<div style="display:flex;align-items:center;gap:4px;font-size:11px;color:#666;"><div style="width:8px;height:8px;border-radius:50%;background:#003580;"></div>Booking</div>'
+    +'<div style="display:flex;align-items:center;gap:4px;font-size:11px;color:#666;"><div style="width:8px;height:8px;border-radius:50%;background:#F59E0B;"></div>Aujourd\u2019hui</div>'
+    +'<div style="display:flex;align-items:center;gap:4px;font-size:11px;color:#666;"><div style="width:8px;height:8px;border-radius:50%;background:#FECACA;"></div>R\u00e9serv\u00e9</div>'
+    +'<div style="display:flex;align-items:center;gap:4px;font-size:11px;color:#666;"><div style="width:8px;height:8px;border-radius:50%;background:#f87171;"></div>Bloqu\u00e9</div>'
+    +'</div>';
+
+  var calHtml='';
   for(var mo=0;mo<12;mo++){
-    var mDate=new Date(now2.getFullYear(),now2.getMonth()+mo,1);
+    var mDate=new Date(now.getFullYear(),now.getMonth()+mo,1);
     var yr=mDate.getFullYear(),mn=mDate.getMonth();
     var firstDow=(new Date(yr,mn,1).getDay()+6)%7;
     var dim=new Date(yr,mn+1,0).getDate();
-    var rows=Math.ceil((firstDow+dim)/7);
-    var dowRow=DAYS.map(function(d){return'<div style="font-size:10px;color:#aaa;text-align:center;padding:2px 0;">'+d+'</div>';}).join('');
+    var dowRow=DAYS.map(function(d){return'<div style="font-size:10px;color:#bbb;text-align:center;padding:2px 0;">'+d+'</div>';}).join('');
+
+    var monthPrices=[];
+    for(var dd=1;dd<=dim;dd++){
+      var ds0=yr+'-'+pad(mn+1)+'-'+pad(dd);
+      var ap0=S.ratesPrices[prop.id+'_'+ds0+'_air'];
+      if(ap0) monthPrices.push(ap0);
+    }
+    var avgA=monthPrices.length?Math.round(monthPrices.reduce(function(s,v){return s+v;},0)/monthPrices.length):null;
+
     var cells='';
     for(var i=0;i<firstDow;i++) cells+='<div></div>';
     for(var d=1;d<=dim;d++){
-      var ds3=yr+'-'+(mn+1<10?'0':'')+(mn+1)+'-'+(d<10?'0':'')+d;
+      var ds=yr+'-'+pad(mn+1)+'-'+pad(d);
       var dateObj=new Date(yr,mn,d);
-      var isToday3=dateObj.toDateString()===now2.toDateString();
-      var isPast3=dateObj<new Date(now2.getFullYear(),now2.getMonth(),now2.getDate());
-      var isSel3=S.ratesSelected&&S.ratesSelected[ds3];
-      var isBlk3=S.blockedDates&&S.blockedDates.indexOf(ds3)>=0;
-      var key3=prop.id+'_'+ds3;
-      var ap3=S.ratesPrices[key3+'_air']||null;
-      var bp3=S.ratesPrices[key3+'_bk']||null;
-      var isBooked3=S.reservations.some(function(r){return r.prop_id===prop.id&&r.check_in&&r.check_out&&r.status!=='cancelled'&&r.check_in<=ds3&&r.check_out>ds3;});
-      var isWE3=dateObj.getDay()===0||dateObj.getDay()===6;
-      var bg3=isBlk3?'#fef2f2':isSel3?'#EEF4FF':isBooked3?'#FFF5F3':isPast3?'#f5f5f3':isToday3?'#FFFBEB':isWE3?'#F8F8FF':'#fff';
-      var bdr3=isToday3?'2px solid #F59E0B':isBlk3?'2px solid #f87171':isSel3?'2px solid #6366F1':isBooked3?'1px solid #FECACA':'1px solid #d1d0c8';
-      var numCol=isToday3?'#D97706':isPast3?'#bbb':isBlk3?'#ef4444':isBooked3?'#dc2626':'#1a1a1a';
-      cells+='<div data-ds="'+ds3+'" data-past="'+(isPast3?1:0)+'" data-booked="'+(isBooked3?1:0)+'" onclick="_rcClick(this.dataset.ds)" style="border-radius:8px;height:'+CELL+'px;padding:5px 4px;border:'+bdr3+';background:'+bg3+';cursor:pointer;position:relative;overflow:hidden;">'
-        +'<div style="font-size:11px;font-weight:500;color:'+numCol+';line-height:1;margin-bottom:3px;">'+d+'</div>'
-        +(isBlk3?'<div style="font-size:9px;color:#ef4444;font-weight:500;">⛔</div>'
-          :isBooked3?'<div style="font-size:9px;color:#888;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">'+(function(){var r2=S.reservations.find(function(r){return r.prop_id===prop.id&&r.check_in<=ds3&&r.check_out>ds3&&r.status!=='cancelled';});return r2?r2.guest.split(' ')[0]:'';})()+'</div>'
-          :(ap3||bp3)?'<div style="font-size:9px;line-height:1.4;">'
-            +(ap3?'<div style="color:#E53E3E;font-weight:500;">A '+ap3+'€</div>':'')
-            +(bp3?'<div style="color:#003580;font-weight:500;">B '+bp3+'€</div>':'')
+      var isToday=dateObj.toDateString()===now.toDateString();
+      var isPast=dateObj<new Date(now.getFullYear(),now.getMonth(),now.getDate());
+      var isSel=S.ratesSelected[ds]||false;
+      var isBlk=S.blockedDates&&S.blockedDates.indexOf(ds)>=0;
+      var isBooked=S.reservations.some(function(r){return r.prop_id===prop.id&&r.check_in&&r.check_out&&r.status!=='cancelled'&&r.check_in<=ds&&r.check_out>ds;});
+      var isWE=dateObj.getDay()===0||dateObj.getDay()===6;
+      var ap=S.ratesPrices[prop.id+'_'+ds+'_air']||null;
+      var bp=S.ratesPrices[prop.id+'_'+ds+'_bk']||null;
+
+      var bg=isBlk?'#fef2f2':isSel?'#EEF4FF':isBooked?'#FFF5F3':isPast?'#f5f5f3':isToday?'#FFFBEB':isWE?'#F8F8FF':'#fff';
+      var bdr=isToday?'2px solid #F59E0B':isBlk?'2px solid #f87171':isSel?'2px solid #6366F1':isBooked?'1px solid #FECACA':'1px solid #d1d0c8';
+      var numCol=isToday?'#D97706':isPast?'#bbb':isBlk?'#ef4444':isBooked?'#dc2626':'#555';
+
+      cells+='<div data-ds="'+ds+'" data-past="'+(isPast?1:0)+'" data-booked="'+(isBooked?1:0)+'" onclick="_rcClick(this.dataset.ds)" style="border-radius:8px;height:78px;padding:6px 5px;border:'+bdr+';background:'+bg+';cursor:pointer;position:relative;">'
+        +'<div style="font-size:11px;font-weight:500;color:'+numCol+';line-height:1;margin-bottom:4px;">'+d+'</div>'
+        +(isBlk?'<div style="font-size:9px;color:#ef4444;font-weight:500;">\u26d4 bloqu\u00e9</div>'
+          :isBooked?'<div style="font-size:9px;color:#dc2626;">r\u00e9serv\u00e9</div>'
+          :(ap||bp)?'<div style="display:flex;flex-direction:column;gap:2px;">'
+            +(ap?'<div style="display:flex;align-items:center;gap:3px;"><div style="width:6px;height:6px;border-radius:50%;background:#FF385C;flex-shrink:0;"></div><span style="font-size:11px;font-weight:500;color:#E53E3E;">'+ap+'\u20ac</span></div>':'')
+            +(bp?'<div style="display:flex;align-items:center;gap:3px;"><div style="width:6px;height:6px;border-radius:50%;background:#003580;flex-shrink:0;"></div><span style="font-size:11px;font-weight:500;color:#003580;">'+bp+'\u20ac</span></div>':'')
             +'</div>':'')
         +'</div>';
     }
-    out+='<div style="margin-bottom:24px;">'
-      +'<div style="font-size:11px;font-weight:500;color:#888;letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px;">'+MONTHS[mn]+' '+yr+'</div>'
-      +'<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:'+GAP+'px;margin-bottom:'+GAP+'px;">'+dowRow+'</div>'
-      +'<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:'+GAP+'px;">'+cells+'</div>'
+
+    calHtml+='<div style="margin-bottom:24px;">'
+      +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">'
+        +'<div style="font-size:12px;font-weight:500;color:#555;letter-spacing:.05em;text-transform:uppercase;">'+MONTHS[mn]+' '+yr+'</div>'
+        +(avgA?'<div style="font-size:10px;color:#888;">moy. Airbnb '+avgA+'\u20ac</div>':'')
+      +'</div>'
+      +'<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:4px;">'+dowRow+'</div>'
+      +'<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;">'+cells+'</div>'
       +'</div>';
   }
-  return out;
-})()+cleanHtml
 
-  // Drag-select sur le tableau
-  var tbl=document.getElementById('rates-table');
-  if(tbl){
-    var dragStart=null,isDragging=false;
-    tbl.addEventListener('mousedown',function(e){
-      var td=e.target.closest('td[data-ds]');
-      if(!td||td.dataset.past==='1'||td.dataset.booked==='1')return;
-      isDragging=true;dragStart=td.dataset.ds;
-      e.preventDefault();
-    });
-    tbl.addEventListener('mouseover',function(e){
-      if(!isDragging||!dragStart)return;
-      var td=e.target.closest('td[data-ds]');
-      if(!td||td.dataset.past==='1')return;
-      var s=new Date(Math.min(new Date(dragStart+'T00:00:00'),new Date(td.dataset.ds+'T00:00:00')));
-      var en=new Date(Math.max(new Date(dragStart+'T00:00:00'),new Date(td.dataset.ds+'T00:00:00')));
-      var ns={};
-      for(var d=new Date(s);d<=en;d.setDate(d.getDate()+1)){
-        var ds2=dStr(new Date(d));
-        var c2=document.getElementById('rc-'+ds2);
-        if(c2&&c2.dataset.booked!=='1'&&c2.dataset.past!=='1')ns[ds2]=true;
-      }
-      S.ratesSelected=ns;
-      for(var k2 in ns){var c3=document.getElementById('rc-'+k2);if(c3){c3.style.background='#EEF4FF';c3.style.border='2px solid #6366F1';}}
-    });
-    document.addEventListener('mouseup',function(e){
-      if(!isDragging)return;
-      isDragging=false;
-      var n=Object.keys(S.ratesSelected).filter(function(k){return S.ratesSelected[k];}).length;
-      if(n===1&&dragStart){
-        var ds3=dragStart;dragStart=null;
-        S.ratesSelected={};
-        var c4=document.getElementById('rc-'+ds3);
-        if(c4&&c4.dataset.booked!=='1'&&c4.dataset.past!=='1')_rcClick(ds3);
-        else renderRates();
-      } else if(n>1){dragStart=null;renderRates();}
-      else{dragStart=null;}
-    });
-  }
+  document.getElementById('main-content').innerHTML=
+    '<div style="display:grid;grid-template-columns:1fr 190px;gap:16px;align-items:start;">'
+      +'<div>'+legend+calHtml+'</div>'
+      +'<div style="position:sticky;top:10px;">'+sidebar+'</div>'
+    +'</div>';
 
-  if(!S.ratesLoaded)S.ratesLoaded={};
-  var mk=year+'-'+String(month+1).padStart(2,'0');
-  if(!S.ratesLoaded[prop.id+'_'+mk]){_loadPricesFromAPI(prop.id);S.ratesLoaded[prop.id+'_'+mk]=true;}
+  // Drag select
+  var isDragging=false,dragStart=null;
+  var rc=document.getElementById('main-content');
+  rc.addEventListener('mousedown',function(e){
+    var el=e.target.closest('[data-ds]');
+    if(!el||el.dataset.past==='1'||el.dataset.booked==='1')return;
+    isDragging=true;dragStart=el.dataset.ds;
+    S.ratesSelected={};S.ratesSelected[dragStart]=true;
+    renderRates();
+  });
+  rc.addEventListener('mouseover',function(e){
+    if(!isDragging)return;
+    var el=e.target.closest('[data-ds]');
+    if(!el||el.dataset.past==='1'||el.dataset.booked==='1')return;
+    if(dragStart&&dragStart<=el.dataset.ds){
+      var all=rc.querySelectorAll('[data-ds]');
+      S.ratesSelected={};
+      all.forEach(function(c){if(c.dataset.ds>=dragStart&&c.dataset.ds<=el.dataset.ds&&c.dataset.past!=='1'&&c.dataset.booked!=='1')S.ratesSelected[c.dataset.ds]=true;});
+      renderRates();
+    }
+  });
+  document.addEventListener('mouseup',function(){isDragging=false;});
 }
-
-
 function _renderRules(prop){window._rpropId=prop.id;
   if(!S.ratesRules)S.ratesRules={};
   var r=S.ratesRules[prop.id]||{airWeek:75,bkWeek:70,airWE:95,bkWE:88,minStay:2,nonref:{on:true,pct:15},early:{on:false,pct:10,days:30},lastmin:{on:false,pct:5,days:7},weekly:{on:false,pct:10}};
