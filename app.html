@@ -412,8 +412,42 @@ function renderRates(){
     +'\u26d4 Bloquer'+(selCount>0?' ('+selCount+' j.)':'')+'</button>'
     +'<div style="font-size:10px;color:#aaa;margin-top:5px;text-align:center;">S\u00e9lectionnez puis bloquez</div>';
 
+  var r=S.ratesRules[prop.id]||S.basePrices[prop.id]||{airWeek:80,bkWeek:70,airWE:95,bkWE:88};
+  var pricesHtml='<div style="height:1px;background:#e5e4e0;margin:12px 0;"></div>'
+    +'<div style="font-size:10px;font-weight:500;color:#888;letter-spacing:.05em;text-transform:uppercase;margin-bottom:10px;">Prix de base</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px;">'
+      +'<div style="font-size:10px;color:#888;">Semaine</div>'
+      +'<div style="font-size:10px;color:#888;">Week-end</div>'
+    +'</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:4px;">'
+      +'<div style="display:flex;align-items:center;gap:4px;background:#FFF5F5;border-radius:6px;padding:6px 8px;">'
+        +'<span style="font-size:10px;font-weight:500;color:#FF385C;background:#FFE0E0;border-radius:3px;padding:1px 4px;">A</span>'
+        +'<input id="rr-airWeek" type="number" value="'+(r.airWeek||80)+'" style="width:100%;border:none;background:transparent;font-size:13px;font-weight:500;outline:none;color:#E53E3E;">'
+        +'<span style="font-size:10px;color:#888;">€</span>'
+      +'</div>'
+      +'<div style="display:flex;align-items:center;gap:4px;background:#FFF5F5;border-radius:6px;padding:6px 8px;">'
+        +'<span style="font-size:10px;font-weight:500;color:#FF385C;background:#FFE0E0;border-radius:3px;padding:1px 4px;">A</span>'
+        +'<input id="rr-airWE" type="number" value="'+(r.airWE||95)+'" style="width:100%;border:none;background:transparent;font-size:13px;font-weight:500;outline:none;color:#E53E3E;">'
+        +'<span style="font-size:10px;color:#888;">€</span>'
+      +'</div>'
+    +'</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px;">'
+      +'<div style="display:flex;align-items:center;gap:4px;background:#EEF3FF;border-radius:6px;padding:6px 8px;">'
+        +'<span style="font-size:10px;font-weight:500;color:#003580;background:#C7D7F5;border-radius:3px;padding:1px 4px;">B</span>'
+        +'<input id="rr-bkWeek" type="number" value="'+(r.bkWeek||70)+'" style="width:100%;border:none;background:transparent;font-size:13px;font-weight:500;outline:none;color:#003580;">'
+        +'<span style="font-size:10px;color:#888;">€</span>'
+      +'</div>'
+      +'<div style="display:flex;align-items:center;gap:4px;background:#EEF3FF;border-radius:6px;padding:6px 8px;">'
+        +'<span style="font-size:10px;font-weight:500;color:#003580;background:#C7D7F5;border-radius:3px;padding:1px 4px;">B</span>'
+        +'<input id="rr-bkWE" type="number" value="'+(r.bkWE||88)+'" style="width:100%;border:none;background:transparent;font-size:13px;font-weight:500;outline:none;color:#003580;">'
+        +'<span style="font-size:10px;color:#888;">€</span>'
+      +'</div>'
+    +'</div>'
+    +'<button onclick="_initRulesEvents(''+prop.id+'')" style="width:100%;padding:7px;border-radius:8px;border:none;background:#1D9E75;color:#fff;font-size:12px;font-weight:500;cursor:pointer;">↻ Appliquer sur 12 mois</button>';
+
   var sidebar='<div style="background:#f9f9f7;border-radius:12px;border:1px solid #e5e4e0;padding:14px;">'
     +'<div style="display:flex;gap:6px;margin-bottom:14px;">'+propTabs+'</div>'
+    +pricesHtml
     +cleanHtml
     +blockBtn
     +'</div>';
