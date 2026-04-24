@@ -523,7 +523,7 @@ function renderRates(){
         +(avgA?'<div style="font-size:10px;color:#888;">moy. Airbnb '+avgA+'\u20ac</div>':'')
       +'</div>'
       +'<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:4px;">'+dowRow+'</div>'
-      +'<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;">'+cells+'</div>'
+      +'<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;position:relative;" id="rates-grid-'+yr+'-'+mn+'">'+cells+'</div>'
       +'</div>';
   }
 
@@ -534,6 +534,60 @@ function renderRates(){
     +'</div>';
 
   // Drag select
+  // Dessiner barres reservations
+  setTimeout(function(){
+    var CELL=78,GAP=4;
+    var grids=document.querySelectorAll('[id^="rates-grid-"]');
+    if(!grids.length)return;
+    var gridW=grids[0].getBoundingClientRect().width;
+    var cellW=(gridW-(GAP*6))/7;
+    S.reservations.filter(function(r){return r.prop_id===prop.id&&r.status!=='cancelled';}).forEach(function(res){
+      var platCls=platClass(res.platform)==='airbnb'?'air':'bk';
+      var barColor=platCls==='air'?'linear-gradient(90deg,#ef4444,#f87171)':'linear-gradient(90deg,#3b82f6,#60a5fa)';
+      var startD=new Date(res.check_in+'T00:00:00');
+      var endD=new Date(res.check_out+'T00:00:00');
+      var endDplus1=new Date(endD.getFullYear(),endD.getMonth(),endD.getDate()+1);
+      for(var mo2=0;mo2<12;mo2++){
+        var mDate2=new Date(now.getFullYear(),now.getMonth()+mo2,1);
+        var yr2=mDate2.getFullYear(),mn2=mDate2.getMonth();
+        var grid=document.getElementById('rates-grid-'+yr2+'-'+mn2);
+        if(!grid)continue;
+        var firstDow2=(new Date(yr2,mn2,1).getDay()+6)%7;
+        var lastD2=new Date(yr2,mn2+1,0).getDate();
+        var monthStart2=new Date(yr2,mn2,1);
+        var monthEnd2=new Date(yr2,mn2+1,0);
+        if(endD<=monthStart2||startD>monthEnd2)continue;
+        var clampStart2=startD<monthStart2?monthStart2:startD;
+        var clampEnd2=endDplus1>new Date(yr2,mn2+1,1)?new Date(yr2,mn2+1,1):endDplus1;
+        var cur2=new Date(clampStart2);
+        while(cur2<clampEnd2){
+          var idx2=firstDow2+cur2.getDate()-1;
+          var rowEndIdx2=Math.floor(idx2/7)*7+7;
+          var rowEndDate2=new Date(yr2,mn2,cur2.getDate()+(rowEndIdx2-idx2));
+          if(rowEndDate2>clampEnd2)rowEndDate2=new Date(clampEnd2);
+          var cellCount2=Math.round((rowEndDate2-cur2)/86400000);
+          var col2=idx2%7;
+          var row2=Math.floor(idx2/7);
+          var isRS=cur2.toDateString()===startD.toDateString();
+          var isRE=rowEndDate2>=endDplus1&&!isRS||rowEndDate2>=endDplus1&&isRS&&cellCount2>1;
+          var left2=col2*(cellW+GAP)+(isRS?cellW/2:0);
+          var rawW2=cellCount2*(cellW+GAP)-GAP;
+          var width2=rawW2-(isRS?cellW/2:0)-(isRE?cellW/2:0);
+          var top2=row2*(CELL+GAP)+CELL-22;
+          var br2=isRS&&isRE?'6px':isRS?'6px 0 0 6px':isRE?'0 6px 6px 0':'0';
+          var nights2=Math.round((endD-startD)/86400000);
+          var label2=isRS?(res.guest.split(' ')[0]+' · '+nights2+'n · '+(platCls==='air'?'AIR':'BK')+' · '+Math.round(res.amount)+'€'):'';
+          var bar=document.createElement('div');
+          bar.style.cssText='position:absolute;height:16px;border-radius:'+br2+';z-index:3;display:flex;align-items:center;padding:0 6px;font-size:9px;font-weight:500;color:#fff;white-space:nowrap;overflow:hidden;cursor:pointer;box-shadow:0 2px 4px rgba(0,0,0,.2);background:'+barColor+';left:'+left2+'px;top:'+top2+'px;width:'+width2+'px;';
+          bar.textContent=label2;
+          (function(r3){bar.onclick=function(e){e.stopPropagation();openResDetail(r3.id);};})(res);
+          grid.appendChild(bar);
+          cur2=rowEndDate2;
+        }
+      }
+    });
+  },100);
+
   var isDragging=false,hasDragged=false,dragStart=null;
   var rc=document.getElementById('main-content');
   rc.addEventListener('mousedown',function(e){
