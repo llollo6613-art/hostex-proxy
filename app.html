@@ -895,7 +895,7 @@ function openWeekend(){showModal(`<h3>Supplément week-end</h3><div class="form-
 function renderProps(){var h2='<div style="display:grid;gap:14px">';S.props.forEach(function(p){h2+='<div class="card" style="padding:16px"><div style="font-size:14px;font-weight:600">'+p.name+'</div><div style="font-size:11px;color:#888;margin-top:4px">Check-in '+p.checkin+' • Check-out '+p.checkout+'</div><div style="margin-top:8px;display:flex;gap:6px">'+p.channels.map(function(ch){return'<span class="badge b-'+platClass(ch.channel_type)+'">'+platLabel(ch.channel_type)+'</span>';}).join('')+'</div></div>';});document.getElementById('main-content').innerHTML=h2+'</div>';}
 function renderMsgs(){
   var mc=document.getElementById('main-content');
-  if(!S._msgsOpened)S._msgsOpened={};
+  if(!S._msgsOpened){try{S._msgsOpened=JSON.parse(localStorage.getItem('msgsOpened')||'{}');}catch(e){S._msgsOpened={}}}
   mc.innerHTML='<div style="display:flex;align-items:center;margin-bottom:14px;">'
     +'<div style="font-size:15px;font-weight:500;color:var(--color-text-primary);">Messages</div>'
     +'<button class="btn" style="font-size:11px;margin-left:auto;" onclick="S._msgsLoaded=false;renderMsgs()">\u21bb Actualiser</button>'
@@ -937,7 +937,7 @@ function _renderConvList(convs){
 
 function openConv(convId){
   if(!S._msgsOpened)S._msgsOpened={};
-  S._msgsOpened[convId]=true;
+  S._msgsOpened[convId]=true;try{localStorage.setItem('msgsOpened',JSON.stringify(S._msgsOpened));}catch(e){}
   var convList=document.getElementById('conv-list');
   var convDetail=document.getElementById('conv-detail');
   if(convList)convList.style.display='none';
