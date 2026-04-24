@@ -170,9 +170,14 @@ async function syncLive(){
       if(existing&&existing.status==='accepted'&&mapped.status==='cancelled')continue;
       map[key]=mapped;
     }
-    // Dedup par guest+check_in+prop_id - garder accepted si doublon
+    // Dedup par guest+check_in+prop_id - toujours garder accepted sur cancelled
     const seen2={};const final2={};
-    Object.values(map).sort((a,b)=>a.status==='accepted'?-1:1).forEach(r=>{
+    // Trier: accepted en premier, puis par date de réservation (plus récent en premier)
+    Object.values(map).sort((a,b)=>{
+      if(a.status==='accepted'&&b.status!=='accepted')return -1;
+      if(b.status==='accepted'&&a.status!=='accepted')return 1;
+      return (b.booked_at||'').localeCompare(a.booked_at||'');
+    }).forEach(r=>{
       const dk=(r.guest||'')+'_'+(r.check_in||'')+'_'+(r.prop_id||'');
       if(!seen2[dk]){seen2[dk]=r.id;final2[r.id]=r;}
     });
