@@ -162,15 +162,21 @@ async function syncLive(){
     if(!liveRes.length)return;
     const map={};
     for(const r of S.reservations)map[r.id]=r;
-    // Ajouter/remplacer avec les données API
-    for(const r of liveRes){const key=r.reservation_code||r.id;map[key]=mapRes(r);}
-    // Dedup par guest+check_in+prop_id - garder l'entrée API si doublon
-    const seen={};const final={};
-    Object.values(map).sort((a,b)=>a.id.includes('-ic')?-1:1).forEach(r=>{
+    // Ajouter/remplacer avec les données API (sans écraser accepted par cancelled)
+    for(const r of liveRes){
+      const key=r.reservation_code||r.id;
+      const mapped=mapRes(r);
+      const existing=map[key];
+      if(existing&&existing.status==='accepted'&&mapped.status==='cancelled')continue;
+      map[key]=mapped;
+    }
+    // Dedup par guest+check_in+prop_id - garder accepted si doublon
+    const seen2={};const final2={};
+    Object.values(map).sort((a,b)=>a.status==='accepted'?-1:1).forEach(r=>{
       const dk=(r.guest||'')+'_'+(r.check_in||'')+'_'+(r.prop_id||'');
-      if(!seen[dk]){seen[dk]=r.id;final[r.id]=r;}
+      if(!seen2[dk]){seen2[dk]=r.id;final2[r.id]=r;}
     });
-    S.reservations=Object.values(final).sort((a,b)=>(b.check_in||'').localeCompare(a.check_in||''));
+    S.reservations=Object.values(final2).sort((a,b)=>(b.check_in||'').localeCompare(a.check_in||''));
     document.getElementById('conn-label').innerHTML='&#10003; '+S.reservations.length+' r\u00e9servations';
     document.getElementById('live-badge').innerHTML='<span class="badge b-ok">Live</span>';
     if(S.page==='dashboard'||S.page==='calendar')render();
