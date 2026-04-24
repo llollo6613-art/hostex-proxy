@@ -90,19 +90,8 @@ app.get('/all-reservations', async function(req, res) {
     } catch (e) {}
     const map = {};
     for (const r of stored) map[r.reservation_code || r.id] = r;
-    // Dedup secondaire par guest+check_in pour éviter les doublons CSV/API
-    const dedupKey = {};
-    for (const r of stored) {
-      const dk = (r.guest_name||r.guest||'')+'_'+(r.check_in_date||r.check_in||'');
-      if(!dedupKey[dk]) dedupKey[dk] = r.reservation_code || r.id;
-    }
-    for (const r of liveRes) {
-      const key = r.reservation_code || r.id;
-      const dk = (r.guest_name||r.guest||r.guest?.name||'')+'_'+(r.check_in_date||'');
-      const existId = dedupKey[dk];
-      if(existId && existId !== key) delete map[existId];
-      map[key] = r;
-    }
+    // API overrides CSV - same key or newer data
+    for (const r of liveRes) map[r.reservation_code || r.id] = r;
     const all = Object.values(map).sort(function(a, b) {
       return (b.check_in_date || '').localeCompare(a.check_in_date || '');
     });
