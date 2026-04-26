@@ -219,7 +219,7 @@ async function loadAll(){
     }).catch(()=>{S.conversations=[];});
   },100);
 }
-const navDef=[{id:'dashboard',label:'Tableau de bord',icon:'◈'},{id:'reservations',label:'Réservations',icon:'≡'},{id:'calendar',label:'Calendrier',icon:'▦'},{id:'rates',label:'Tarifs',icon:'€'},{id:'properties',label:'Mes biens',icon:'⌂'},{id:'messages',label:'Messages',icon:'✉'}];
+const navDef=[{id:'dashboard',label:'Tableau de bord',icon:'◈'},{id:'reservations',label:'Réservations',icon:'≡'},{id:'calendar',label:'Calendrier',icon:'▦'},{id:'rates',label:'Tarifs',icon:'€'},{id:'properties',label:'Mes biens',icon:'⌂'},{id:'messages',label:'Messages',icon:'✉'},{id:'bilan',label:'Bilan',icon:'▣'}];
 
 function navigate(p){S.page=p;render();}
 
@@ -307,6 +307,89 @@ async function _unblockDates(propId,from,to){
     S.ratesLoaded={};
     renderRates();
   }catch(e){showToast('Erreur: '+e.message);}
+}
+
+function renderBilan(){
+  var now=new Date();
+  var MONTHS=['Janvier','Fevrier','Mars','Avril','Mai','Juin','Juillet','Aout','Septembre','Octobre','Novembre','Decembre'];
+  var years=[...new Set(S.reservations.filter(r=>r.check_in&&r.status!=='cancelled').map(r=>new Date(r.check_in+'T00:00:00').getFullYear()))].sort((a,b)=>b-a);
+  var selYear=S.bilanYear||now.getFullYear();
+  if(!S.bilanYear)S.bilanYear=selYear;
+
+  function netRev(r){var isB=r.platform==='booking.com'||r.platform==='booking';return isB?r.amount-r.commission:r.amount;}
+
+  // Stats par bien par mois
+  var html2='<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap;">'
+    +'<div style="font-size:15px;font-weight:500;">Bilan financier</div>'
+    +'<div style="display:flex;gap:4px;">'+years.map(y=>'<button onclick="S.bilanYear='+y+';renderBilan()" style="padding:5px 12px;border-radius:6px;border:1px solid '+(y===selYear?'#0F6E56':'#d1d0c8')+';background:'+(y===selYear?'#0F6E56':'#fff')+';color:'+(y===selYear?'#fff':'#444')+';font-size:12px;cursor:pointer;">'+y+'</button>').join('')+'</div>'
+    +'</div>';
+
+  // Vue globale annuelle
+  var yearRes=S.reservations.filter(r=>{if(!r.check_in||r.status==='cancelled')return false;return new Date(r.check_in+'T00:00:00').getFullYear()===selYear;});
+  var totalRev=yearRes.reduce((s,r)=>s+netRev(r),0);
+  var totalRes=yearRes.length;
+  var totalCleaning=yearRes.reduce((s,r)=>{var c=S.cleaning&&S.cleaning[r.prop_id]?S.cleaning[r.prop_id]:{base:20};return s+c.base;},0);
+  var totalNet=totalRev-totalCleaning;
+  var airRes=yearRes.filter(r=>platClass(r.platform)==='airbnb');
+  var bkRes=yearRes.filter(r=>platClass(r.platform)==='booking');
+
+  html2+='<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px;">'
+    +'<div class="stat" style="background:linear-gradient(135deg,#0F6E56,#1D9E75);"><div class="stat-l" style="color:rgba(255,255,255,.8);">Revenus nets '+selYear+'</div><div class="stat-v" style="color:#fff;">'+Math.round(totalRev).toLocaleString('fr-FR')+' \u20ac</div><div class="stat-s" style="color:rgba(255,255,255,.7);">'+totalRes+' r\u00e9servations</div></div>'
+    +'<div class="stat"><div class="stat-l">Net apr\u00e8s m\u00e9nage</div><div class="stat-v" style="color:#0F6E56;">'+Math.round(totalNet).toLocaleString('fr-FR')+' \u20ac</div><div class="stat-s">\u2212'+Math.round(totalCleaning).toLocaleString('fr-FR')+'\u20ac m\u00e9nage</div></div>'
+    +'<div class="stat"><div class="stat-l">Airbnb</div><div class="stat-v" style="color:#FF385C;">'+Math.round(airRes.reduce((s,r)=>s+netRev(r),0)).toLocaleString('fr-FR')+' \u20ac</div><div class="stat-s">'+airRes.length+' r\u00e9s. ('+Math.round(airRes.length/Math.max(totalRes,1)*100)+'%)</div></div>'
+    +'<div class="stat"><div class="stat-l">Booking</div><div class="stat-v" style="color:#003580;">'+Math.round(bkRes.reduce((s,r)=>s+netRev(r),0)).toLocaleString('fr-FR')+' \u20ac</div><div class="stat-s">'+bkRes.length+' r\u00e9s. ('+Math.round(bkRes.length/Math.max(totalRes,1)*100)+'%)</div></div>'
+    +'</div>';
+
+  // Tableau mensuel par bien
+  html2+='<div class="card" style="padding:0;overflow:hidden;margin-bottom:16px;">'
+    +'<div style="display:grid;grid-template-columns:auto repeat('+S.props.length+',1fr) auto;background:#f9f9f7;border-bottom:1px solid #e5e4e0;">'
+    +'<div style="padding:10px 14px;font-size:11px;font-weight:500;color:#888;">Mois</div>'
+    +S.props.map(p=>'<div style="padding:10px 14px;font-size:11px;font-weight:500;color:#888;">'+p.name.split(' ')[0]+'</div>').join('')
+    +'<div style="padding:10px 14px;font-size:11px;font-weight:500;color:#888;">Total</div>'
+    +'</div>';
+
+  var grandTotal=0;
+  for(var m=0;m<12;m++){
+    var mRes=yearRes.filter(r=>{var d=new Date(r.check_in+'T00:00:00');return d.getMonth()===m;});
+    var mTotal=mRes.reduce((s,r)=>s+netRev(r),0);
+    grandTotal+=mTotal;
+    var isCur=m===now.getMonth()&&selYear===now.getFullYear();
+    html2+='<div style="display:grid;grid-template-columns:auto repeat('+S.props.length+',1fr) auto;border-bottom:1px solid #f0efe9;background:'+(isCur?'#E1F5EE':'#fff')+';align-items:center;">'
+      +'<div style="padding:8px 14px;font-size:12px;color:#444;font-weight:'+(isCur?500:400)+';">'+MONTHS[m].slice(0,4)+'.</div>'
+      +S.props.map(p=>{
+        var pRes=mRes.filter(r=>r.prop_id===p.id);
+        var pRev=pRes.reduce((s,r)=>s+netRev(r),0);
+        return '<div style="padding:8px 14px;font-size:12px;color:'+(pRev>0?'#1a1a1a':'#ccc')+';font-weight:'+(pRev>0?500:400)+';">'+(pRev>0?Math.round(pRev).toLocaleString('fr-FR')+'\u20ac':'\u2014')+'<span style="font-size:10px;color:#aaa;margin-left:3px;">'+(pRes.length>0?'('+pRes.length+')'):'')+'</span></div>';
+      }).join('')
+      +'<div style="padding:8px 14px;font-size:12px;font-weight:500;color:'+(mTotal>0?'#0F6E56':'#ccc')+'">'+(mTotal>0?Math.round(mTotal).toLocaleString('fr-FR')+'\u20ac':'\u2014')+'</div>'
+      +'</div>';
+  }
+  html2+='<div style="display:grid;grid-template-columns:auto repeat('+S.props.length+',1fr) auto;background:#f9f9f7;border-top:2px solid #e5e4e0;">'
+    +'<div style="padding:10px 14px;font-size:12px;font-weight:600;">Total</div>'
+    +S.props.map(p=>{var pRev=yearRes.filter(r=>r.prop_id===p.id).reduce((s,r)=>s+netRev(r),0);return'<div style="padding:10px 14px;font-size:12px;font-weight:600;color:#0F6E56;">'+Math.round(pRev).toLocaleString('fr-FR')+'\u20ac</div>';}).join('')
+    +'<div style="padding:10px 14px;font-size:13px;font-weight:700;color:#0F6E56;">'+Math.round(grandTotal).toLocaleString('fr-FR')+'\u20ac</div>'
+    +'</div></div>';
+
+  // Taux occupation par bien
+  html2+='<div class="section-h">Taux d\u2019occupation '+selYear+'</div>'
+    +'<div class="card" style="padding:14px;">'
+    +S.props.map(p=>{
+      var pRes=yearRes.filter(r=>r.prop_id===p.id);
+      var totalDays=365;var bookedDays=0;
+      for(var r of pRes){if(r.check_in&&r.check_out)bookedDays+=Math.round((new Date(r.check_out)-new Date(r.check_in))/86400000);}
+      var occ=Math.round(bookedDays/totalDays*100);
+      var avgRev=pRes.length?Math.round(yearRes.filter(r=>r.prop_id===p.id).reduce((s,r)=>s+netRev(r),0)/pRes.length):0;
+      return '<div style="margin-bottom:12px;">'
+        +'<div style="display:flex;justify-content:space-between;margin-bottom:4px;">'
+          +'<span style="font-size:12px;font-weight:500;">'+p.name+'</span>'
+          +'<span style="font-size:12px;font-weight:600;color:#0F6E56;">'+occ+'% <span style="font-size:10px;font-weight:400;color:#aaa;">('+bookedDays+'j) \u00b7 moy '+avgRev+'\u20ac/r\u00e9s.</span></span>'
+        +'</div>'
+        +'<div style="background:#f0efe9;border-radius:20px;height:8px;overflow:hidden;"><div style="width:'+occ+'%;background:linear-gradient(90deg,#0F6E56,#1D9E75);height:100%;border-radius:20px;"></div></div>'
+        +'</div>';
+    }).join('')
+    +'</div>';
+
+  document.getElementById('main-content').innerHTML=html2;
 }
 
 function showToast(msg,dur){var t=document.getElementById('toast');if(!t){t=document.createElement('div');t.id='toast';t.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;padding:10px 20px;border-radius:8px;font-size:13px;z-index:9999;transition:opacity .3s;pointer-events:none;';document.body.appendChild(t);}t.textContent=msg;t.style.opacity='1';clearTimeout(t._t);t._t=setTimeout(function(){t.style.opacity='0';},dur||2500);}
