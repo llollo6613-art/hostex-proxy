@@ -484,7 +484,7 @@ function renderBilan(){
   if(selProp==='all'){
     var allB=getBilan('all');
     out+='<div style="background:linear-gradient(135deg,#0F6E56,#1D9E75);border-radius:12px;padding:14px;margin-bottom:14px;color:#fff;">'
-      +'<div style="font-size:12px;opacity:.8;margin-bottom:10px;">Bilan consolid\u00e9 \u00b7 Tous les biens \u00b7 '+selYear+'</div>'
+      +'<div style="font-size:12px;opacity:.8;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;"><span>Bilan consolid\u00e9 \u00b7 Tous les biens \u00b7 '+selYear+'</span><button onclick=\"_downloadBilanPDF(\'all\')\" style=\"display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:6px;border:1px solid rgba(255,255,255,.4);background:rgba(255,255,255,.15);font-size:11px;cursor:pointer;color:#fff;\">\u2193 PDF G\u00e9n\u00e9ral</button></div>'
       +'<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;">'
       +'<div style="text-align:center;"><div style="font-size:10px;opacity:.7;margin-bottom:2px;">Brut total</div><div style="font-size:18px;font-weight:500;">'+Math.round(allB.brut).toLocaleString('fr-FR')+'\u00a0\u20ac</div><div style="font-size:10px;opacity:.6;">'+allB.res.length+' r\u00e9s.</div></div>'
       +'<div style="text-align:center;"><div style="font-size:10px;opacity:.7;margin-bottom:2px;">Charges</div><div style="font-size:18px;font-weight:500;">\u2212'+Math.round(allB.com+allB.cl).toLocaleString('fr-FR')+'\u00a0\u20ac</div><div style="font-size:10px;opacity:.6;">'+Math.round((allB.com+allB.cl)/Math.max(allB.brut,1)*100)+'%</div></div>'
