@@ -413,7 +413,7 @@ function renderDash(){
   var monthRes=past.filter(function(r){var d=new Date(r.check_in+'T00:00:00');return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();});
   var rev=monthRes.reduce(function(s,r){var isB=r.platform==='booking.com'||r.platform==='booking';return s+(isB?r.amount-r.commission:r.amount);},0);
   var cl=0;monthRes.forEach(function(r){var c=S.cleaning&&S.cleaning[r.prop_id]?S.cleaning[r.prop_id]:{base:20,extra:5};cl+=c.base;});
-  var yearRes=past.filter(function(r){return new Date(r.check_in+'T00:00:00').getFullYear()===now.getFullYear();});
+  var yearRes=past.filter(function(r){var d=new Date(r.check_in+'T00:00:00');return d.getFullYear()===now.getFullYear()&&d<=now;});
   var yearRev=yearRes.reduce(function(s,r){var isB=r.platform==='booking.com'||r.platform==='booking';return s+(isB?r.amount-r.commission:r.amount);},0);
   var upcoming=S.reservations.filter(function(r){return r.check_in&&new Date(r.check_in+'T00:00:00')>=now&&r.status!=='cancelled';}).sort(function(a,b){return a.check_in.localeCompare(b.check_in);}).slice(0,5);
   var conflicts=checkConflicts?checkConflicts():[];
@@ -442,7 +442,7 @@ function renderDash(){
     +'<div class="grid4">'
     +'<div class="stat"><div class="stat-l">Revenus ce mois</div><div class="stat-v">'+Math.round(rev).toLocaleString('fr-FR')+' €</div><div class="stat-s">'+MONTHS[now.getMonth()]+'</div>'+(cl>0?'<div style="font-size:10px;color:#888;margin-top:2px;">Net: <b style="color:#1D9E75;">'+Math.round(rev-cl).toLocaleString('fr-FR')+'€</b> <span style="color:#bbb;">(−'+Math.round(cl)+'€)</span></div>':'')+' </div>'
     +'<div class="stat" onclick="_showYearDetail()" style="cursor:pointer"">'
-      +'<div class="stat-l">Revenus '+now.getFullYear()+' <span style="font-size:10px;color:#1D9E75">▼ détails</span></div>'
+      +'<div class="stat-l">Encaissé '+now.getFullYear()+' <span style="font-size:10px;color:#1D9E75">▼ détails</span></div>'
       +'<div class="stat-v">'+Math.round(yearRev).toLocaleString('fr-FR')+' €</div>'
       +'<div class="stat-s">'+yearRes.length+' rés. — cliquer</div>'
     +'</div>'
