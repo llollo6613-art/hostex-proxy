@@ -233,7 +233,7 @@ function render(){
   if(S.page==='reservations')ta.innerHTML=`<button class="btn btn-green" onclick="openAddRes()">+ Nouvelle réservation</button>`;
   if(S.page==='calendar')ta.innerHTML=`<button class="btn" onclick="openBlock()">Bloquer dates</button>`;
   if(S.page==='rates')ta.innerHTML=`<button class="btn btn-green" onclick="S.ratesLoaded={};_loadPricesFromAPI(S.ratesProp)">↻ Charger tarifs Hostex</button>`;
-  const pages={dashboard:renderDash,reservations:renderRes,calendar:renderCal,rates:renderRates,properties:renderProps,messages:renderMsgs};
+  const pages={dashboard:renderDash,reservations:renderRes,calendar:renderCal,rates:renderRates,properties:renderProps,messages:renderMsgs,bilan:renderBilan};
   (pages[S.page]||renderDash)();
 }
 
