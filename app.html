@@ -359,7 +359,7 @@ function renderBilan(){
       +S.props.map(p=>{
         var pRes=mRes.filter(r=>r.prop_id===p.id);
         var pRev=pRes.reduce((s,r)=>s+netRev(r),0);
-        return '<div style="padding:8px 14px;font-size:12px;color:'+(pRev>0?'#1a1a1a':'#ccc')+';font-weight:'+(pRev>0?500:400)+';">'+(pRev>0?Math.round(pRev).toLocaleString('fr-FR')+'\u20ac':'\u2014')+'<span style="font-size:10px;color:#aaa;margin-left:3px;">'+(pRes.length>0?'('+pRes.length+')'):'')+'</span></div>';
+        return '<div style="padding:8px 14px;font-size:12px;color:'+(pRev>0?'#1a1a1a':'#ccc')+';font-weight:'+(pRev>0?500:400)+';">'+(pRev>0?Math.round(pRev).toLocaleString('fr-FR')+'\u20ac':'\u2014')+'<span style="font-size:10px;color:#aaa;margin-left:3px;">'+(pRes.length>0?'('+pRes.length+')':'')+'</span></div>';
       }).join('')
       +'<div style="padding:8px 14px;font-size:12px;font-weight:500;color:'+(mTotal>0?'#0F6E56':'#ccc')+'">'+(mTotal>0?Math.round(mTotal).toLocaleString('fr-FR')+'\u20ac':'\u2014')+'</div>'
       +'</div>';
