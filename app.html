@@ -311,7 +311,7 @@ async function _unblockDates(propId,from,to){
 
 function renderBilan(){
   var now=new Date();
-  var MONTHS=['Jan','Fev','Mar','Avr','Mai','Jun','Jul','Aou','Sep','Oct','Nov','Dec'];
+  var MONTHS=['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
   var selYear=S.bilanYear||now.getFullYear();
   var selProp=S.bilanProp||'all';
 
@@ -348,129 +348,166 @@ function renderBilan(){
   }
 
   function renderPropBilan(propId,propName,b){
-    var maxMonth=Math.max(...b.months.map(m=>m.brut),1);
-    return '<div class="bilan-section" id="bilan-'+propId+'">'
-      +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">'
-        +'<div style="font-size:14px;font-weight:500;color:var(--color-text-primary);">'+propName+'</div>'
-        +'<button onclick="_downloadBilanPDF(\''+propId+'\')" style="display:flex;align-items:center;gap:5px;padding:6px 12px;border-radius:8px;border:0.5px solid var(--color-border-secondary);background:var(--color-background-secondary);font-size:11px;cursor:pointer;color:var(--color-text-secondary);">'
-          +'<svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M8 2v9M4 7l4 4 4-4M2 13h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>'
-          +'T\u00e9l\u00e9charger PDF'
-        +'</button>'
-      +'</div>'
-      +'<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px;">'
-        +'<div style="background:var(--color-background-secondary);border-radius:8px;padding:12px;text-align:center;">'
-          +'<div style="font-size:11px;color:var(--color-text-secondary);margin-bottom:4px;">Revenus bruts</div>'
-          +'<div style="font-size:20px;font-weight:500;color:#0F6E56;">'+Math.round(b.brut).toLocaleString('fr-FR')+'\u00a0\u20ac</div>'
-          +'<div style="font-size:10px;color:var(--color-text-tertiary);">'+b.res.length+' r\u00e9s. \u00b7 '+b.avgNight+'\u20ac/nuit</div>'
-        +'</div>'
-        +'<div style="background:var(--color-background-secondary);border-radius:8px;padding:12px;text-align:center;">'
-          +'<div style="font-size:11px;color:var(--color-text-secondary);margin-bottom:4px;">Charges</div>'
-          +'<div style="font-size:20px;font-weight:500;color:#E24B4A;">\u2212'+Math.round(b.com+b.cl).toLocaleString('fr-FR')+'\u00a0\u20ac</div>'
-          +'<div style="font-size:10px;color:var(--color-text-tertiary);">Com. '+Math.round(b.com)+'\u20ac \u00b7 M\u00e9nage '+Math.round(b.cl)+'\u20ac</div>'
-        +'</div>'
-        +'<div style="background:#E1F5EE;border-radius:8px;padding:12px;text-align:center;border:1px solid #1D9E75;">'
-          +'<div style="font-size:11px;color:#0F6E56;margin-bottom:4px;">Net encaiss\u00e9</div>'
-          +'<div style="font-size:20px;font-weight:500;color:#0F6E56;">'+Math.round(b.net).toLocaleString('fr-FR')+'\u00a0\u20ac</div>'
-          +'<div style="font-size:10px;color:#1D9E75;">'+Math.round((b.net/Math.max(b.brut,1))*100)+'% du brut</div>'
-        +'</div>'
-        +'<div style="background:var(--color-background-secondary);border-radius:8px;padding:12px;text-align:center;">'
-          +'<div style="font-size:11px;color:var(--color-text-secondary);margin-bottom:4px;">Occupation</div>'
-          +'<div style="font-size:20px;font-weight:500;color:#1a1a1a;">'+b.occ+'%</div>'
-          +'<div style="font-size:10px;color:var(--color-text-tertiary);">'+b.bookedDays+' jours lou\u00e9s</div>'
-        +'</div>'
-      +'</div>'
-      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">'
-        +'<div style="background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:10px;padding:12px;">'
-          +'<div style="font-size:12px;font-weight:500;color:var(--color-text-secondary);margin-bottom:10px;padding-bottom:6px;border-bottom:0.5px solid var(--color-border-tertiary);">Plateformes</div>'
-          +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">'
-            +'<div style="width:8px;height:8px;border-radius:50%;background:#FF385C;flex-shrink:0;"></div>'
-            +'<div style="font-size:12px;color:var(--color-text-secondary);flex:1;">Airbnb</div>'
-            +'<div style="flex:2;height:8px;background:var(--color-background-secondary);border-radius:4px;overflow:hidden;"><div style="height:100%;background:#FF385C;border-radius:4px;width:'+Math.round(b.airRev/Math.max(b.brut,1)*100)+'%;"></div></div>'
-            +'<div style="font-size:12px;font-weight:500;width:60px;text-align:right;">'+Math.round(b.airRev).toLocaleString('fr-FR')+'\u20ac</div>'
-          +'</div>'
-          +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">'
-            +'<div style="width:8px;height:8px;border-radius:50%;background:#003580;flex-shrink:0;"></div>'
-            +'<div style="font-size:12px;color:var(--color-text-secondary);flex:1;">Booking</div>'
-            +'<div style="flex:2;height:8px;background:var(--color-background-secondary);border-radius:4px;overflow:hidden;"><div style="height:100%;background:#003580;border-radius:4px;width:'+Math.round(b.bkRev/Math.max(b.brut,1)*100)+'%;"></div></div>'
-            +'<div style="font-size:12px;font-weight:500;width:60px;text-align:right;">'+Math.round(b.bkRev).toLocaleString('fr-FR')+'\u20ac</div>'
-          +'</div>'
-          +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">'
-            +'<div style="background:var(--color-background-secondary);border-radius:6px;padding:8px;text-align:center;">'
-              +'<div style="font-size:10px;color:var(--color-text-tertiary);">Airbnb</div>'
-              +'<div style="font-size:14px;font-weight:500;">'+b.airRes.length+' r\u00e9s.</div>'
-              +'<div style="font-size:10px;color:var(--color-text-tertiary);">'+(b.airRes.length?Math.round(b.airRev/b.airRes.length):0)+'\u20ac moy.</div>'
-            +'</div>'
-            +'<div style="background:var(--color-background-secondary);border-radius:6px;padding:8px;text-align:center;">'
-              +'<div style="font-size:10px;color:var(--color-text-tertiary);">Booking</div>'
-              +'<div style="font-size:14px;font-weight:500;">'+b.bkRes.length+' r\u00e9s.</div>'
-              +'<div style="font-size:10px;color:var(--color-text-tertiary);">'+(b.bkRes.length?Math.round(b.bkRev/b.bkRes.length):0)+'\u20ac moy.</div>'
-            +'</div>'
-          +'</div>'
-        +'</div>'
-        +'<div style="background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:10px;padding:12px;">'
-          +'<div style="font-size:12px;font-weight:500;color:var(--color-text-secondary);margin-bottom:10px;padding-bottom:6px;border-bottom:0.5px solid var(--color-border-tertiary);">Charges d\u00e9taill\u00e9es</div>'
-          +'<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:0.5px solid var(--color-border-tertiary);font-size:12px;"><span style="color:var(--color-text-secondary);">Revenus bruts</span><span style="font-weight:500;">'+Math.round(b.brut).toLocaleString('fr-FR')+'\u00a0\u20ac</span></div>'
-          +'<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:0.5px solid var(--color-border-tertiary);font-size:12px;"><span style="color:var(--color-text-secondary);">Commissions Booking</span><span style="color:#E24B4A;">\u2212'+Math.round(b.com).toLocaleString('fr-FR')+'\u00a0\u20ac</span></div>'
-          +'<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:0.5px solid var(--color-border-tertiary);font-size:12px;"><span style="color:var(--color-text-secondary);">Frais m\u00e9nage</span><span style="color:#E24B4A;">\u2212'+Math.round(b.cl).toLocaleString('fr-FR')+'\u00a0\u20ac</span></div>'
-          +'<div style="display:flex;justify-content:space-between;padding:5px 0;font-size:13px;font-weight:500;"><span>R\u00e9sultat net</span><span style="color:#0F6E56;">'+Math.round(b.net).toLocaleString('fr-FR')+'\u00a0\u20ac</span></div>'
-          +'<div style="background:var(--color-background-secondary);border-radius:6px;padding:8px;margin-top:8px;font-size:11px;color:var(--color-text-secondary);">Taux de charge\u00a0: '+Math.round((b.com+b.cl)/Math.max(b.brut,1)*100)+'% \u00b7 Prix moy./nuit\u00a0: '+b.avgNight+'\u00a0\u20ac</div>'
-        +'</div>'
-      +'</div>'
-      +'<div style="background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:10px;padding:12px;">'
-        +'<div style="font-size:12px;font-weight:500;color:var(--color-text-secondary);margin-bottom:10px;padding-bottom:6px;border-bottom:0.5px solid var(--color-border-tertiary);">Revenus mensuels '+selYear+'</div>'
-        +'<div style="display:grid;grid-template-columns:44px 1fr 64px 64px 36px;gap:6px;font-size:10px;color:var(--color-text-tertiary);padding-bottom:6px;border-bottom:0.5px solid var(--color-border-tertiary);margin-bottom:4px;">'
-          +'<div>Mois</div><div>Progression</div><div style="text-align:right;">Brut</div><div style="text-align:right;">Net</div><div style="text-align:right;">Rés.</div>'
-        +'</div>'
-        +b.months.map(function(m,i){
-          var isCur=i===now.getMonth()&&selYear===now.getFullYear();
-          var pct=Math.round(m.brut/maxMonth*100);
-          return '<div style="display:grid;grid-template-columns:44px 1fr 64px 64px 36px;gap:6px;align-items:center;padding:5px 0;border-bottom:0.5px solid var(--color-border-tertiary);background:'+(isCur?'var(--color-background-secondary)':'transparent')+';border-radius:'+(isCur?'6px':'0')+';font-size:12px;">'
-            +'<div style="color:'+(isCur?'#0F6E56':'var(--color-text-secondary)')+';font-weight:'+(isCur?500:400)+';">'+m.lbl+'</div>'
-            +'<div style="height:6px;background:var(--color-background-secondary);border-radius:3px;overflow:hidden;"><div style="height:100%;background:'+(isCur?'#1D9E75':'#A8D5C2')+';border-radius:3px;width:'+pct+'%;"></div></div>'
-            +'<div style="text-align:right;color:'+(m.brut>0?'var(--color-text-primary)':'var(--color-text-tertiary)')+'">'+(m.brut>0?Math.round(m.brut).toLocaleString('fr-FR')+'\u20ac':'\u2014')+'</div>'
-            +'<div style="text-align:right;color:'+(m.net>0?'#0F6E56':'var(--color-text-tertiary)')+';font-weight:'+(isCur?500:400)+';">'+(m.net>0?Math.round(m.net).toLocaleString('fr-FR')+'\u20ac':'\u2014')+'</div>'
-            +'<div style="text-align:right;color:var(--color-text-tertiary);">'+(m.count>0?m.count:'')+'</div>'
-          +'</div>';
-        }).join('')
-        +'<div style="display:grid;grid-template-columns:44px 1fr 64px 64px 36px;gap:6px;padding-top:8px;font-size:12px;font-weight:500;border-top:0.5px solid var(--color-border-secondary);margin-top:4px;">'
-          +'<div>Total</div><div></div>'
-          +'<div style="text-align:right;">'+Math.round(b.brut).toLocaleString('fr-FR')+'\u20ac</div>'
-          +'<div style="text-align:right;color:#0F6E56;">'+Math.round(b.net).toLocaleString('fr-FR')+'\u20ac</div>'
-          +'<div style="text-align:right;color:var(--color-text-tertiary);">'+b.res.length+'</div>'
-        +'</div>'
-      +'</div>'
+    var maxMonth=Math.max.apply(null,b.months.map(function(m){return m.brut||0;}));
+    if(!maxMonth)maxMonth=1;
+    var totalDaysInYear=propId==='all'?365*S.props.length:365;
+    var monthsHtml=b.months.map(function(m,i){
+      var isCur=i===now.getMonth()&&selYear===now.getFullYear();
+      var pct=Math.round(m.brut/maxMonth*100);
+      var occDays=Math.round((new Date(now.getFullYear(),i+1,0).getDate())*0.7);
+      var occPct=m.count?Math.min(Math.round(m.brut/(maxMonth)*100),99):0;
+      return '<div style="display:grid;grid-template-columns:48px 1fr 70px 70px 36px 38px;padding:9px 14px;border-bottom:0.5px solid var(--color-border-tertiary);align-items:center;background:'+(isCur?'#E1F5EE':'var(--color-background-primary)')+'">'
+        +'<div style="font-size:12px;font-weight:'+(isCur?500:400)+';color:'+(isCur?'#0F6E56':'var(--color-text-secondary)')+';">'+m.lbl+(isCur?' \u25cf':'')+'</div>'
+        +'<div style="height:8px;background:'+(isCur?'rgba(255,255,255,.5)':'var(--color-background-secondary)')+';border-radius:4px;overflow:hidden;"><div style="height:100%;background:'+(isCur?'#1D9E75':'#A8D5C2')+';border-radius:4px;width:'+pct+'%;"></div></div>'
+        +'<div style="text-align:right;font-size:12px;color:var(--color-text-primary);">'+(m.brut>0?Math.round(m.brut).toLocaleString('fr-FR')+'\u20ac':'\u2014')+'</div>'
+        +'<div style="text-align:right;font-size:12px;font-weight:'+(isCur?500:400)+';color:'+(m.net>0?'#0F6E56':'var(--color-text-tertiary)')+'">'+(m.net>0?Math.round(m.net).toLocaleString('fr-FR')+'\u20ac':'\u2014')+'</div>'
+        +'<div style="text-align:right;font-size:12px;color:var(--color-text-tertiary);">'+(m.count>0?m.count:'')+'</div>'
+        +'<div style="text-align:right;font-size:11px;color:'+(occPct>70?'#0F6E56':occPct>40?'#EF9F27':'var(--color-text-tertiary)')+'">'+(m.count>0?occPct+'%':'')+'</div>'
       +'</div>';
-  }
+    }).join('');
 
-  // Générer le HTML
-  var out='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px;">'
-    +'<div><div style="font-size:15px;font-weight:500;">Bilan financier</div></div>'
+    return '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">'
+      +'<div style="font-size:14px;font-weight:500;">'+propName+'</div>'
+      +'<button onclick="_downloadBilanPDF(\''+propId+'\')" style="display:flex;align-items:center;gap:5px;padding:6px 12px;border-radius:8px;border:0.5px solid var(--color-border-secondary);background:var(--color-background-secondary);font-size:11px;cursor:pointer;color:var(--color-text-secondary);">'
+        +'<svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M8 2v9M4 7l4 4 4-4M2 13h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>'
+        +'T\u00e9l\u00e9charger PDF'
+      +'</button>'
+    +'</div>'
+    // Métriques
+    +'<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px;">'
+      +'<div style="background:var(--color-background-secondary);border-radius:8px;padding:12px;text-align:center;">'
+        +'<div style="font-size:11px;color:var(--color-text-secondary);margin-bottom:4px;">Revenus bruts</div>'
+        +'<div style="font-size:20px;font-weight:500;color:#0F6E56;">'+Math.round(b.brut).toLocaleString('fr-FR')+'\u00a0\u20ac</div>'
+        +'<div style="font-size:10px;color:var(--color-text-tertiary);">'+b.res.length+' r\u00e9s. \u00b7 '+b.avgNight+'\u20ac/nuit</div>'
+      +'</div>'
+      +'<div style="background:var(--color-background-secondary);border-radius:8px;padding:12px;text-align:center;">'
+        +'<div style="font-size:11px;color:var(--color-text-secondary);margin-bottom:4px;">Charges</div>'
+        +'<div style="font-size:20px;font-weight:500;color:#E24B4A;">\u2212'+Math.round(b.com+b.cl).toLocaleString('fr-FR')+'\u00a0\u20ac</div>'
+        +'<div style="font-size:10px;color:var(--color-text-tertiary);">Com. '+Math.round(b.com)+'\u20ac \u00b7 M\u00e9nage '+Math.round(b.cl)+'\u20ac</div>'
+      +'</div>'
+      +'<div style="background:#E1F5EE;border-radius:8px;padding:12px;text-align:center;border:1px solid #1D9E75;">'
+        +'<div style="font-size:11px;color:#0F6E56;margin-bottom:4px;">Net encaiss\u00e9</div>'
+        +'<div style="font-size:20px;font-weight:500;color:#0F6E56;">'+Math.round(b.net).toLocaleString('fr-FR')+'\u00a0\u20ac</div>'
+        +'<div style="font-size:10px;color:#1D9E75;">'+Math.round((b.net/Math.max(b.brut,1))*100)+'% du brut</div>'
+      +'</div>'
+      +'<div style="background:var(--color-background-secondary);border-radius:8px;padding:12px;text-align:center;">'
+        +'<div style="font-size:11px;color:var(--color-text-secondary);margin-bottom:4px;">Occupation</div>'
+        +'<div style="font-size:20px;font-weight:500;">'+b.occ+'%</div>'
+        +'<div style="font-size:10px;color:var(--color-text-tertiary);">'+b.bookedDays+' jours lou\u00e9s</div>'
+      +'</div>'
+    +'</div>'
+    // Plateformes + Charges côte à côte
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">'
+      // Plateformes
+      +'<div style="background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:10px;overflow:hidden;">'
+        +'<div style="padding:10px 14px;background:var(--color-background-secondary);border-bottom:0.5px solid var(--color-border-tertiary);font-size:11px;font-weight:500;color:var(--color-text-secondary);">R\u00e9partition plateformes</div>'
+        +'<div style="padding:12px 14px;">'
+          +'<div style="display:flex;height:10px;border-radius:5px;overflow:hidden;margin-bottom:12px;">'
+            +'<div style="width:'+Math.round(b.airRev/Math.max(b.brut,1)*100)+'%;background:#FF385C;"></div>'
+            +'<div style="flex:1;background:#003580;"></div>'
+          +'</div>'
+          +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">'
+            +'<div style="border:0.5px solid #FECACA;background:#FFF5F5;border-radius:8px;padding:10px;">'
+              +'<div style="display:flex;align-items:center;gap:5px;margin-bottom:5px;">'
+                +'<div style="width:7px;height:7px;border-radius:50%;background:#FF385C;"></div>'
+                +'<div style="font-size:11px;font-weight:500;color:#FF385C;">Airbnb</div>'
+                +'<div style="font-size:10px;color:#aaa;margin-left:auto;">'+Math.round(b.airRev/Math.max(b.brut,1)*100)+'%</div>'
+              +'</div>'
+              +'<div style="font-size:16px;font-weight:500;color:var(--color-text-primary);">'+Math.round(b.airRev).toLocaleString('fr-FR')+'\u20ac</div>'
+              +'<div style="font-size:10px;color:var(--color-text-tertiary);">'+b.airRes.length+' r\u00e9s. \u00b7 '+(b.airRes.length?Math.round(b.airRev/b.airRes.length):0)+'\u20ac moy.</div>'
+            +'</div>'
+            +'<div style="border:0.5px solid #BFDBFE;background:#EFF6FF;border-radius:8px;padding:10px;">'
+              +'<div style="display:flex;align-items:center;gap:5px;margin-bottom:5px;">'
+                +'<div style="width:7px;height:7px;border-radius:50%;background:#003580;"></div>'
+                +'<div style="font-size:11px;font-weight:500;color:#003580;">Booking</div>'
+                +'<div style="font-size:10px;color:#aaa;margin-left:auto;">'+Math.round(b.bkRev/Math.max(b.brut,1)*100)+'%</div>'
+              +'</div>'
+              +'<div style="font-size:16px;font-weight:500;color:var(--color-text-primary);">'+Math.round(b.bkRev).toLocaleString('fr-FR')+'\u20ac</div>'
+              +'<div style="font-size:10px;color:var(--color-text-tertiary);">'+b.bkRes.length+' r\u00e9s. \u00b7 '+(b.bkRes.length?Math.round(b.bkRev/b.bkRes.length):0)+'\u20ac moy.</div>'
+            +'</div>'
+          +'</div>'
+        +'</div>'
+      +'</div>'
+      // Charges
+      +'<div style="background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:10px;overflow:hidden;">'
+        +'<div style="padding:10px 14px;background:var(--color-background-secondary);border-bottom:0.5px solid var(--color-border-tertiary);font-size:11px;font-weight:500;color:var(--color-text-secondary);">D\u00e9tail des charges</div>'
+        +'<div style="padding:0;">'
+          +'<div style="display:flex;align-items:center;padding:11px 14px;border-bottom:0.5px solid var(--color-border-tertiary);">'
+            +'<div style="width:8px;height:8px;border-radius:2px;background:#003580;margin-right:10px;flex-shrink:0;"></div>'
+            +'<div style="flex:1;"><div style="font-size:12px;">Commissions Booking</div><div style="font-size:10px;color:var(--color-text-tertiary);">~15% sur '+b.bkRes.length+' r\u00e9servations</div></div>'
+            +'<div style="font-size:13px;font-weight:500;color:#E24B4A;">\u2212'+Math.round(b.com).toLocaleString('fr-FR')+'\u20ac</div>'
+          +'</div>'
+          +'<div style="display:flex;align-items:center;padding:11px 14px;border-bottom:0.5px solid var(--color-border-tertiary);">'
+            +'<div style="width:8px;height:8px;border-radius:2px;background:#EF9F27;margin-right:10px;flex-shrink:0;"></div>'
+            +'<div style="flex:1;"><div style="font-size:12px;">Frais de m\u00e9nage</div><div style="font-size:10px;color:var(--color-text-tertiary);">'+(S.cleaning&&S.cleaning[propId]?S.cleaning[propId].base:20)+' \u20ac \u00d7 '+b.res.length+' d\u00e9parts</div></div>'
+            +'<div style="font-size:13px;font-weight:500;color:#E24B4A;">\u2212'+Math.round(b.cl).toLocaleString('fr-FR')+'\u20ac</div>'
+          +'</div>'
+          +'<div style="display:flex;align-items:center;padding:11px 14px;background:var(--color-background-secondary);">'
+            +'<div style="width:8px;height:8px;border-radius:50%;background:#0F6E56;margin-right:10px;flex-shrink:0;"></div>'
+            +'<div style="flex:1;font-weight:500;font-size:12px;">R\u00e9sultat net</div>'
+            +'<div style="font-size:14px;font-weight:500;color:#0F6E56;">'+Math.round(b.net).toLocaleString('fr-FR')+'\u20ac</div>'
+          +'</div>'
+        +'</div>'
+      +'</div>'
+    +'</div>'
+    // Tableau mensuel
+    +'<div style="background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:10px;overflow:hidden;">'
+      +'<div style="padding:10px 14px;background:var(--color-background-secondary);border-bottom:0.5px solid var(--color-border-tertiary);display:flex;align-items:center;justify-content:space-between;">'
+        +'<div style="font-size:11px;font-weight:500;color:var(--color-text-secondary);">Revenus mensuels '+selYear+'</div>'
+        +'<div style="font-size:11px;color:var(--color-text-tertiary);">Net total\u00a0: <b style="color:#0F6E56;">'+Math.round(b.net).toLocaleString('fr-FR')+'\u20ac</b></div>'
+      +'</div>'
+      +'<div style="display:grid;grid-template-columns:48px 1fr 70px 70px 36px 38px;font-size:10px;color:var(--color-text-tertiary);padding:7px 14px;border-bottom:0.5px solid var(--color-border-tertiary);letter-spacing:.04em;text-transform:uppercase;">'
+        +'<div>Mois</div><div>Activit\u00e9</div><div style="text-align:right;">Brut</div><div style="text-align:right;">Net</div><div style="text-align:right;">R\u00e9s.</div><div style="text-align:right;">Occ.</div>'
+      +'</div>'
+      +monthsHtml
+      +'<div style="display:grid;grid-template-columns:48px 1fr 70px 70px 36px 38px;padding:9px 14px;background:var(--color-background-secondary);border-top:0.5px solid var(--color-border-secondary);font-size:12px;font-weight:500;">'
+        +'<div>Total</div><div></div>'
+        +'<div style="text-align:right;">'+Math.round(b.brut).toLocaleString('fr-FR')+'\u20ac</div>'
+        +'<div style="text-align:right;color:#0F6E56;">'+Math.round(b.net).toLocaleString('fr-FR')+'\u20ac</div>'
+        +'<div style="text-align:right;color:var(--color-text-tertiary);">'+b.res.length+'</div>'
+        +'<div style="text-align:right;color:var(--color-text-tertiary);">'+b.occ+'%</div>'
+      +'</div>'
+    +'</div>';
+  }
+  var propTabs='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;">'
+    +'<div onclick="S.bilanProp=\'all\';renderBilan()" style="padding:6px 14px;border-radius:20px;border:1px solid '+(selProp==='all'?'#0F6E56':'var(--color-border-secondary)')+';background:'+(selProp==='all'?'#0F6E56':'var(--color-background-secondary)')+';color:'+(selProp==='all'?'#fff':'var(--color-text-secondary)')+';font-size:12px;cursor:pointer;">G\u00e9n\u00e9ral</div>'
+    +S.props.map(function(p){return'<div onclick="S.bilanProp=\''+p.id+'\';renderBilan()" style="padding:6px 14px;border-radius:20px;border:1px solid '+(selProp===p.id?'#0F6E56':'var(--color-border-secondary)')+';background:'+(selProp===p.id?'#0F6E56':'var(--color-background-secondary)')+';color:'+(selProp===p.id?'#fff':'var(--color-text-secondary)')+';font-size:12px;cursor:pointer;">'+p.name.split(' ')[0]+'</div>';}).join('')
+    +'</div>';
+
+  var out='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;">'
+    +'<div style="font-size:15px;font-weight:500;">Bilan financier</div>'
     +'<div style="display:flex;gap:6px;">'
     +years.map(y=>'<button onclick="S.bilanYear='+y+';renderBilan()" style="padding:5px 12px;border-radius:20px;border:1px solid '+(y===selYear?'#0F6E56':'var(--color-border-secondary)')+';background:'+(y===selYear?'#0F6E56':'var(--color-background-secondary)')+';color:'+(y===selYear?'#fff':'var(--color-text-secondary)')+';font-size:12px;cursor:pointer;">'+y+'</button>').join('')
-    +'</div></div>';
+    +'</div></div>'
+    +propTabs;
 
-  // Bilan consolidé
-  var allB=getBilan('all');
-  out+='<div style="background:linear-gradient(135deg,#0F6E56,#1D9E75);border-radius:12px;padding:14px;margin-bottom:16px;color:#fff;">'
-    +'<div style="font-size:13px;font-weight:500;opacity:.8;margin-bottom:10px;">Bilan consolid\u00e9 \u00b7 Tous les biens \u00b7 '+selYear+'</div>'
-    +'<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;">'
-    +'<div style="text-align:center;"><div style="font-size:10px;opacity:.7;margin-bottom:2px;">Brut total</div><div style="font-size:18px;font-weight:500;">'+Math.round(allB.brut).toLocaleString('fr-FR')+'\u00a0\u20ac</div><div style="font-size:10px;opacity:.6;">'+allB.res.length+' r\u00e9s.</div></div>'
-    +'<div style="text-align:center;"><div style="font-size:10px;opacity:.7;margin-bottom:2px;">Charges</div><div style="font-size:18px;font-weight:500;">\u2212'+Math.round(allB.com+allB.cl).toLocaleString('fr-FR')+'\u00a0\u20ac</div><div style="font-size:10px;opacity:.6;">'+Math.round((allB.com+allB.cl)/Math.max(allB.brut,1)*100)+'% du brut</div></div>'
-    +'<div style="text-align:center;background:rgba(255,255,255,.15);border-radius:8px;padding:8px;"><div style="font-size:10px;opacity:.7;margin-bottom:2px;">Net encaiss\u00e9</div><div style="font-size:20px;font-weight:500;">'+Math.round(allB.net).toLocaleString('fr-FR')+'\u00a0\u20ac</div></div>'
-    +'<div style="text-align:center;"><div style="font-size:10px;opacity:.7;margin-bottom:2px;">Occupation</div><div style="font-size:18px;font-weight:500;">'+allB.occ+'%</div><div style="font-size:10px;opacity:.6;">'+allB.avgNight+'\u00a0\u20ac/nuit</div></div>'
-    +'</div></div>';
-
-  // Bilan par bien
-  S.props.forEach(function(p){
-    var b=getBilan(p.id);
-    out+='<div style="margin-bottom:16px;background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:12px;padding:14px;">';
-    out+=renderPropBilan(p.id,p.name,b);
-    out+='</div>';
-  });
-
+  if(selProp==='all'){
+    var allB=getBilan('all');
+    out+='<div style="background:linear-gradient(135deg,#0F6E56,#1D9E75);border-radius:12px;padding:14px;margin-bottom:14px;color:#fff;">'
+      +'<div style="font-size:12px;opacity:.8;margin-bottom:10px;">Bilan consolid\u00e9 \u00b7 Tous les biens \u00b7 '+selYear+'</div>'
+      +'<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;">'
+      +'<div style="text-align:center;"><div style="font-size:10px;opacity:.7;margin-bottom:2px;">Brut total</div><div style="font-size:18px;font-weight:500;">'+Math.round(allB.brut).toLocaleString('fr-FR')+'\u00a0\u20ac</div><div style="font-size:10px;opacity:.6;">'+allB.res.length+' r\u00e9s.</div></div>'
+      +'<div style="text-align:center;"><div style="font-size:10px;opacity:.7;margin-bottom:2px;">Charges</div><div style="font-size:18px;font-weight:500;">\u2212'+Math.round(allB.com+allB.cl).toLocaleString('fr-FR')+'\u00a0\u20ac</div><div style="font-size:10px;opacity:.6;">'+Math.round((allB.com+allB.cl)/Math.max(allB.brut,1)*100)+'%</div></div>'
+      +'<div style="text-align:center;background:rgba(255,255,255,.15);border-radius:8px;padding:8px;"><div style="font-size:10px;opacity:.7;margin-bottom:2px;">Net encaiss\u00e9</div><div style="font-size:20px;font-weight:500;">'+Math.round(allB.net).toLocaleString('fr-FR')+'\u00a0\u20ac</div></div>'
+      +'<div style="text-align:center;"><div style="font-size:10px;opacity:.7;margin-bottom:2px;">Occupation</div><div style="font-size:18px;font-weight:500;">'+allB.occ+'%</div><div style="font-size:10px;opacity:.6;">'+allB.avgNight+'\u00a0\u20ac/nuit</div></div>'
+      +'</div></div>';
+    S.props.forEach(function(p){
+      var b=getBilan(p.id);
+      out+='<div style="background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:12px;padding:14px;margin-bottom:14px;">'
+        +renderPropBilan(p.id,p.name,b)
+        +'</div>';
+    });
+  } else {
+    var prop2=S.props.find(function(p){return p.id===selProp;});
+    if(prop2){
+      var b2=getBilan(selProp);
+      out+='<div style="background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:12px;padding:14px;">'
+        +renderPropBilan(selProp,prop2.name,b2)
+        +'</div>';
+    }
+  }
   document.getElementById('main-content').innerHTML=out;
 }
-
 async function _downloadBilanPDF(propId){
   var prop=propId==='all'?{name:'Consolide'}:S.props.find(p=>p.id===propId);
   var selYear=S.bilanYear||new Date().getFullYear();
