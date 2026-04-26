@@ -419,9 +419,9 @@ function renderDash(){
   var conflicts=checkConflicts?checkConflicts():[];
   var unread=S.conversations.filter(function(c){return c.unread;}).length;
   var months12=[];
-  for(var i=0;i<12;i++){
-    var d=new Date(now.getFullYear(),i,1);
-    var lbl=MONTHS[d.getMonth()].slice(0,3);
+  for(var i=11;i>=0;i--){
+    var d=new Date(now.getFullYear(),now.getMonth()-i,1);
+    var lbl=MONTHS[d.getMonth()].slice(0,3)+' '+String(d.getFullYear()).slice(2);
     var res=past.filter(function(r){if(!r.check_in)return false;var rd=new Date(r.check_in+'T00:00:00');return rd.getMonth()===d.getMonth()&&rd.getFullYear()===d.getFullYear();});
     var rv=res.reduce(function(s,r){var isB=r.platform==='booking.com'||r.platform==='booking';return s+(isB?r.amount-r.commission:r.amount);},0);
     months12.push({lbl:lbl,rv:rv,count:res.length,month:d.getMonth(),year:d.getFullYear()});
