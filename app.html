@@ -650,7 +650,7 @@ function renderDash(){
       +'<div class="card" style="padding:14px;position:relative"><div style="font-size:12px;font-weight:600;margin-bottom:4px">Plateformes</div><canvas id="chart-plat" height="140" style="width:100%"></canvas><div id="pleg" style="margin-top:6px"></div></div>'
     +'</div>'
     +'<div class="card" style="padding:14px;margin-bottom:14px">'
-      +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px"><div style="font-size:12px;font-weight:600">Taux d'occupation — '+MONTHS[now.getMonth()]+' '+now.getFullYear()+'</div><button class="btn" style="font-size:10px" onclick="_showOccDetail()">Historique 12 mois ▼</button></div>'
+      +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px"><div style="font-size:12px;font-weight:600">Taux d&#8217;occupation — '+MONTHS[now.getMonth()]+' '+now.getFullYear()+'</div><button class="btn" style="font-size:10px" onclick="_showOccDetail()">Historique 12 mois ▼</button></div>'
       +occMonth.map(function(o){var col=o.pct>70?'#1D9E75':o.pct>40?'#EF9F27':'#E24B4A';return'<div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="font-size:12px;color:#444;font-weight:500">'+o.name+'</span><span style="font-size:12px;font-weight:700;color:'+col+'">'+o.pct+'% <span style="font-size:10px;font-weight:400;color:#aaa">'+o.days+'/'+o.total+'j</span></span></div><div style="background:#f0efe9;border-radius:20px;height:10px;overflow:hidden"><div style="width:'+o.pct+'%;background:'+col+';height:100%;border-radius:20px"></div></div></div>';}).join('')
     +'</div>'
     +'<div class="section-h">Prochaines arrivées</div>'
