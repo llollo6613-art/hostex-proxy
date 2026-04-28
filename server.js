@@ -18,7 +18,8 @@ app.get('/', function(req, res) {
   if (fs.existsSync(htmlPath)) {
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.set('Cache-Control','no-store, no-cache, must-revalidate');
-  res.set('Pragma','no-cache');
+    res.set('Pragma','no-cache');
+    res.removeHeader('X-XSS-Protection');
   res.sendFile(htmlPath);
   } else {
     res.send('<h2>app.html manquant</h2>');
