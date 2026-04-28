@@ -214,7 +214,7 @@ async function loadAll(){
     // Charger les nouvelles réservations depuis Hostex en arrière-plan
     syncLive();
     api('/conversations?limit=50&offset=0').then(cd=>{
-      S.conversations=(cd.data?.conversations||cd.data||[]).map(c=>({id:String(c.id),guest:(c.guest&&c.guest.name)||c.guest_name||'Voyageur',platform:c.channel_type||c.channel||'direct',preview:c.last_message||'',unread:!S._msgsOpened||!S._msgsOpened[String(c.id)],prop_id:String(c.property?.id||c.property_id||'')}));
+      S.conversations=(cd.data?.conversations||cd.data||[]).map(c=>({id:String(c.id),guest:(c.guest&&c.guest.name)||c.guest_name||'Voyageur',platform:c.channel_type||c.channel||'direct',preview:c.last_message||'',unread:false,prop_id:String(c.property?.id||c.property_id||'')}));
       if(S.page==='messages'||S.page==='dashboard')render();
     }).catch(()=>{S.conversations=[];});
   },100);
@@ -607,7 +607,7 @@ function renderDash(){
   var yearRev=yearRes.reduce(function(s,r){var isB=r.platform==='booking.com'||r.platform==='booking';return s+(isB?r.amount-r.commission:r.amount);},0);
   var upcoming=S.reservations.filter(function(r){return r.check_in&&new Date(r.check_in+'T00:00:00')>=now&&r.status!=='cancelled';}).sort(function(a,b){return a.check_in.localeCompare(b.check_in);}).slice(0,5);
   var conflicts=checkConflicts?checkConflicts():[];
-  var unread=S.conversations.filter(function(c){return c.unread;}).length;
+  if(!S._msgsOpened){try{S._msgsOpened=JSON.parse(localStorage.getItem('msgsOpened')||'{}');}catch(e){S._msgsOpened={};}}var unread=S.conversations.filter(function(c){return !S._msgsOpened[c.id];}).length;
   var months12=[];
   for(var i=11;i>=0;i--){
     var d=new Date(now.getFullYear(),now.getMonth()-i,1);
