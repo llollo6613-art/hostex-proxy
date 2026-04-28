@@ -111,6 +111,22 @@ app.all('/api/*', async function(req, res) {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+app.post('/api-claude', async function(req, res) {
+  try {
+    const r = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': process.env.ANTHROPIC_API_KEY || '',
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify(req.body)
+    });
+    const data = await r.json();
+    res.json(data);
+  } catch(e) { res.status(500).json({error: e.message}); }
+});
+
 app.get('/health', function(req, res) {
   const db = loadDB();
   res.json({ status: 'ok', token_set: !!HOSTEX_TOKEN, reservations_stored: db.total || 0, last_sync: db.last_sync, timestamp: new Date().toISOString() });
