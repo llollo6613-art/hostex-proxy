@@ -224,7 +224,7 @@ const navDef=[{id:'dashboard',label:'Tableau de bord',icon:'◈'},{id:'reservati
 function navigate(p){S.page=p;render();}
 
 function render(){
-  const unread=S.conversations.filter(c=>c.unread).length;
+  if(!S._msgsOpened){try{S._msgsOpened=JSON.parse(localStorage.getItem('msgsOpened')||'{}');}catch(e){S._msgsOpened={};}}const unread=S.conversations.filter(c=>!S._msgsOpened[c.id]).length;
   document.getElementById('nav').innerHTML=navDef.map(n=>`<div class="nav-item ${S.page===n.id?'active':''}" onclick="navigate('${n.id}')"><span style="font-size:12px">${n.icon}</span><span>${n.label}</span>${n.id==='messages'&&unread?`<span class="nav-badge">${unread}</span>`:''}</div>`).join('');
   const titles={dashboard:'Tableau de bord',reservations:'Réservations',calendar:'Calendrier',rates:'Tarifs & Prix',properties:'Mes biens',messages:'Messages voyageurs'};
   document.getElementById('page-title').textContent=titles[S.page]||'';
