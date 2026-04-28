@@ -240,7 +240,7 @@ function render(){
 
 async function _openBlockDates(propId){
   var sel=Object.keys(S.ratesSelected||{});
-  if(!sel.length){showToast('⚠ Sélectionnez d’abord des dates sur le calendrier');return;}
+  if(!sel.length){showToast('⚠ Sélectionnez des dates sur le calendrier');return;}
   sel.sort();
   var from=sel[0],to=sel[sel.length-1];
   var n=sel.length;
