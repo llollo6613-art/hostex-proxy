@@ -214,7 +214,7 @@ async function loadAll(){
     // Charger les nouvelles réservations depuis Hostex en arrière-plan
     syncLive();
     api('/conversations?limit=50&offset=0').then(cd=>{
-      S.conversations=(cd.data?.conversations||cd.data||[]).map(c=>({id:String(c.id),guest:c.guest_name||'Voyageur',platform:c.channel_type||c.channel||'direct',preview:c.last_message||'',unread:!!(c.unread||c.has_unread),prop_id:String(c.property_id||'')}));
+      S.conversations=(cd.data?.conversations||cd.data||[]).map(c=>({id:String(c.id),guest:(c.guest&&c.guest.name)||c.guest_name||'Voyageur',platform:c.channel_type||c.channel||'direct',preview:c.last_message||'',unread:!S._msgsOpened||!S._msgsOpened[String(c.id)],prop_id:String(c.property?.id||c.property_id||'')}));
       if(S.page==='messages'||S.page==='dashboard')render();
     }).catch(()=>{S.conversations=[];});
   },100);
