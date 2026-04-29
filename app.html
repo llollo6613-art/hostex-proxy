@@ -683,8 +683,8 @@ function renderDash(){
   var barsHtml=monthData.map(function(m){
     var pct=maxRev>0?Math.round(m.rev/maxRev*100):0;
     var bg=m.isCur?"#0F6E56":m.isFut?"var(--color-background-tertiary)":"#A8D5C2";
-    return "<div style=\"flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;\">"
-      +"<div style=\"width:100%;border-radius:2px 2px 0 0;background:"+bg+";height:"+(Math.max(pct,m.isFut?0:2))+"%;min-height:"+(m.isFut?0:2)+"px;\"></div>"
+    return "<div style=\"flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;align-self:stretch;justify-content:flex-end;\">"
+      +"<div style=\"width:100%;border-radius:2px 2px 0 0;background:"+bg+";flex-grow:"+pct+";min-height:"+(m.isFut||pct===0?1:3)+"px;\"></div>"
       +"<div style=\"font-size:7px;color:"+(m.isCur?"#0F6E56":"var(--color-text-tertiary)")+";font-weight:"+(m.isCur?500:400)+";\">"+m.lbl+"</div>"
     +"</div>";
   }).join("");
@@ -789,7 +789,7 @@ function renderDash(){
         +"<div style=\"font-size:11px;font-weight:500;color:var(--color-text-secondary);\">Revenus nets \u2014 12 mois</div>"
         +"<div style=\"font-size:11px;color:var(--color-text-tertiary);\">"+Math.round(yearRev).toLocaleString("fr-FR")+" \u20ac</div>"
       +"</div>"
-      +"<div style=\"display:flex;align-items:flex-end;gap:3px;height:60px;\">"+barsHtml+"</div>"
+      +"<div style=\"display:flex;align-items:flex-end;gap:3px;height:64px;border-bottom:0.5px solid var(--color-border-tertiary);\">"+barsHtml+"</div>"
     +"</div>"
     // Mini calendrier
     +"<div style=\"background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:12px;\">"
