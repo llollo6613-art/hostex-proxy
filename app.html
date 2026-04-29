@@ -785,6 +785,7 @@ function renderDash(){
   h+="</div>";
 
   // --- 3. Messages en attente ---
+  if(!S._msgsOpened){try{S._msgsOpened=JSON.parse(localStorage.getItem("msgsOpened")||"{}");}catch(e){S._msgsOpened={};}}
   var unreadConvs=S.conversations.filter(function(c){return !S._msgsOpened[c.id];});
   unreadConvs.sort(function(a,b){return (b.last_message_at||"").localeCompare(a.last_message_at||"");});
   var unreadShow=unreadConvs.slice(0,5);
