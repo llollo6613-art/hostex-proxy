@@ -112,6 +112,14 @@ app.all('/api/*', async function(req, res) {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+app.get('/api/reviews', async function(req, res) {
+  try {
+    const params = new URLSearchParams(req.query).toString();
+    const d = await hostexGet('/reviews?' + params);
+    res.json(d);
+  } catch(e) { res.status(500).json({error: e.message}); }
+});
+
 app.post('/api-claude', async function(req, res) {
   try {
     const r = await fetch('https://api.anthropic.com/v1/messages', {
