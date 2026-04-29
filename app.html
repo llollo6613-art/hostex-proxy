@@ -718,7 +718,7 @@ function renderDash(){
     {l:"Messages non lus",v:unread,s:unread>0?"A r\u00e9pondre":"Tout lu",c:unread>0?"#E24B4A":""},
     {l:"Arriv\u00e9es \u00e0 venir",v:upcoming.length,s:"prochaines",c:""}
   ].forEach(function(k){
-    h+="<div style=\"background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:16px 18px;\">"
+    h+="<div style=\"background:var(--color-background-primary);border:1.5px solid var(--color-border-secondary);border-radius:var(--border-radius-lg);box-shadow:0 2px 8px rgba(0,0,0,.06);padding:16px 18px;\">"
       +"<div style=\"font-size:11px;color:var(--color-text-tertiary);margin-bottom:6px;\">"+k.l+"</div>"
       +"<div style=\"font-size:26px;font-weight:500;color:"+(k.c||"var(--color-text-primary)")+";line-height:1;margin-bottom:4px;\">"+k.v+"</div>"
       +"<div style=\"font-size:11px;color:var(--color-text-tertiary);\">"+k.s+"</div>"
@@ -733,7 +733,7 @@ function renderDash(){
     var evt=nextEvt(prop.id);
     var arrR=evt.arr,depR=evt.dep;
     var propColor=prop.id==="12619011"?"#0F6E56":"#6366F1";
-    h+="<div style=\"background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:16px;\">"
+    h+="<div style=\"background:var(--color-background-primary);border:1.5px solid var(--color-border-secondary);border-radius:var(--border-radius-lg);box-shadow:0 2px 8px rgba(0,0,0,.06);padding:16px;\">"
       +"<div style=\"font-size:12px;font-weight:500;color:"+propColor+";margin-bottom:12px;padding-bottom:8px;border-bottom:0.5px solid var(--color-border-tertiary);\">"+prop.name+"</div>"
       +"<div style=\"display:grid;grid-template-columns:1fr 1fr;gap:8px;\">";
 
@@ -753,7 +753,7 @@ function renderDash(){
         +platBadge(arrR.platform)
       +"</div>";
     } else {
-      h+="<div style=\"background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:10px;\">"
+      h+="<div style=\"background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:10px;border:1px solid var(--color-border-secondary);\">"
         +"<div style=\"font-size:10px;color:var(--color-text-tertiary);margin-bottom:4px;\">Prochaine arriv\u00e9e</div>"
         +"<div style=\"font-size:12px;color:var(--color-text-tertiary);\">Aucune</div>"
       +"</div>";
@@ -775,7 +775,7 @@ function renderDash(){
         +platBadge(depR.platform)
       +"</div>";
     } else {
-      h+="<div style=\"background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:10px;\">"
+      h+="<div style=\"background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:10px;border:1px solid var(--color-border-secondary);\">"
         +"<div style=\"font-size:10px;color:var(--color-text-tertiary);margin-bottom:4px;\">Prochain d\u00e9part</div>"
         +"<div style=\"font-size:12px;color:var(--color-text-tertiary);\">Aucun</div>"
       +"</div>";
@@ -786,7 +786,7 @@ function renderDash(){
 
   // --- 3. Messages en attente ---
   var unreadConvs=S.conversations.filter(function(c){return !S._msgsOpened[c.id];}).slice(0,4);
-  h+="<div style=\"background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:16px;margin-bottom:16px;\">"
+  h+="<div style=\"background:var(--color-background-primary);border:1.5px solid var(--color-border-secondary);border-radius:var(--border-radius-lg);box-shadow:0 2px 8px rgba(0,0,0,.06);padding:16px;margin-bottom:16px;\">"
     +"<div style=\"display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;\">"
       +"<div style=\"display:flex;align-items:center;gap:8px;\">"
         +"<div style=\"font-size:13px;font-weight:500;\">Messages en attente</div>"
@@ -829,7 +829,7 @@ function renderDash(){
   h+="<div style=\"display:grid;grid-template-columns:2fr 1fr;gap:12px;margin-bottom:16px;\">";
 
   // Histogramme
-  h+="<div style=\"background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:16px;\">"
+  h+="<div style=\"background:var(--color-background-primary);border:1.5px solid var(--color-border-secondary);border-radius:var(--border-radius-lg);box-shadow:0 2px 8px rgba(0,0,0,.06);padding:16px;\">"
     +"<div style=\"display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;\">"
       +"<div style=\"font-size:13px;font-weight:500;\">Revenus nets \u2014 12 mois</div>"
       +"<div style=\"font-size:12px;color:var(--color-text-tertiary);\">"+Math.round(yearRev).toLocaleString("fr-FR")+" \u20ac encaiss\u00e9</div>"
@@ -848,8 +848,8 @@ function renderDash(){
   h+="</div></div>";
 
   // Mini-calendrier
-  h+="<div style=\"background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:16px;\">"
-    +"<div style=\"font-size:13px;font-weight:500;margin-bottom:12px;\">"+MONTHS_FULL[calMonth]+" "+calYear+"</div>"
+  h+="<div style=\"background:var(--color-background-primary);border:1.5px solid var(--color-border-secondary);border-radius:var(--border-radius-lg);box-shadow:0 2px 8px rgba(0,0,0,.06);padding:16px;\">"
+    +"<div style=\"font-size:13px;font-weight:500;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--color-border-tertiary);\">"+MONTHS_FULL[calMonth]+" "+calYear+"</div>"
     +"<div style=\"display:grid;grid-template-columns:repeat(7,1fr);gap:3px;\">";
   ["L","M","M","J","V","S","D"].forEach(function(hl){
     h+="<div style=\"height:20px;display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--color-text-tertiary);\">"+hl+"</div>";
@@ -878,26 +878,26 @@ function renderDash(){
 
   // Plateformes + Occ
   h+="<div style=\"display:flex;flex-direction:column;gap:12px;\">"
-    +"<div style=\"background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:16px;\">"
+    +"<div style=\"background:var(--color-background-primary);border:1.5px solid var(--color-border-secondary);border-radius:var(--border-radius-lg);box-shadow:0 2px 8px rgba(0,0,0,.06);padding:16px;\">"
       +"<div style=\"font-size:13px;font-weight:500;margin-bottom:12px;\">Plateformes</div>"
       +"<div style=\"display:flex;height:10px;border-radius:5px;overflow:hidden;margin-bottom:12px;\">"
         +"<div style=\"width:"+airPct+"%;background:#FF385C;\"></div>"
         +"<div style=\"flex:1;background:#003580;\"></div>"
       +"</div>"
       +"<div style=\"display:grid;grid-template-columns:1fr 1fr;gap:8px;\">"
-        +"<div style=\"background:#FFF5F5;border:0.5px solid #FECACA;border-radius:8px;padding:10px;\">"
+        +"<div style=\"background:#FFF5F5;border:1.5px solid #FECACA;border-radius:8px;padding:10px;\">"
           +"<div style=\"font-size:10px;color:#FF385C;font-weight:500;margin-bottom:4px;\">Airbnb</div>"
           +"<div style=\"font-size:18px;font-weight:500;\">"+airPct+"%</div>"
           +"<div style=\"font-size:10px;color:var(--color-text-tertiary);\">"+monthRes.filter(function(r){return platClass(r.platform)==="airbnb";}).length+" r\u00e9s.</div>"
         +"</div>"
-        +"<div style=\"background:#EFF6FF;border:0.5px solid #BFDBFE;border-radius:8px;padding:10px;\">"
+        +"<div style=\"background:#EFF6FF;border:1.5px solid #BFDBFE;border-radius:8px;padding:10px;\">"
           +"<div style=\"font-size:10px;color:#003580;font-weight:500;margin-bottom:4px;\">Booking</div>"
           +"<div style=\"font-size:18px;font-weight:500;\">"+bkPct+"%</div>"
           +"<div style=\"font-size:10px;color:var(--color-text-tertiary);\">"+monthRes.filter(function(r){return platClass(r.platform)==="booking";}).length+" r\u00e9s.</div>"
         +"</div>"
       +"</div>"
     +"</div>"
-    +"<div style=\"background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:16px;\">"
+    +"<div style=\"background:var(--color-background-primary);border:1.5px solid var(--color-border-secondary);border-radius:var(--border-radius-lg);box-shadow:0 2px 8px rgba(0,0,0,.06);padding:16px;\">"
       +"<div style=\"font-size:13px;font-weight:500;margin-bottom:12px;\">Taux d&#8217;occ. "+MONTHS[calMonth]+"</div>"
       +"<div style=\"display:grid;grid-template-columns:1fr 1fr;gap:8px;\">"
       +S.props.map(function(p){
@@ -915,7 +915,7 @@ function renderDash(){
 
   // Prochaines arrivées
   var next5=upcoming.slice(0,6);
-  h+="<div style=\"background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:16px;\">"
+  h+="<div style=\"background:var(--color-background-primary);border:1.5px solid var(--color-border-secondary);border-radius:var(--border-radius-lg);box-shadow:0 2px 8px rgba(0,0,0,.06);padding:16px;\">"
     +"<div style=\"font-size:13px;font-weight:500;margin-bottom:12px;\">Prochaines arriv\u00e9es</div>";
   if(!next5.length){
     h+="<div style=\"text-align:center;padding:20px;color:var(--color-text-tertiary);font-size:12px;\">Aucune arriv\u00e9e \u00e0 venir</div>";
