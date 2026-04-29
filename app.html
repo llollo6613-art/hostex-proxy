@@ -665,7 +665,7 @@ function renderDash(){
 
   // KPIs
   var monthRes=past.filter(function(r){var d=new Date(r.check_in+"T00:00:00");return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();});
-  var monthRev=monthRes.reduce(function(s,r){return s+netRev(r)-cleanFee(r);},0);
+  var monthRev=monthRes.reduce(function(s,r){return s+netRev(r);},0);
   var yearRes=past.filter(function(r){var d=new Date(r.check_in+"T00:00:00");return d.getFullYear()===now.getFullYear()&&d<=now;});
   var yearRev=yearRes.reduce(function(s,r){return s+netRev(r);},0);
   if(!S._msgsOpened){try{S._msgsOpened=JSON.parse(localStorage.getItem("msgsOpened")||"{}");}catch(e){S._msgsOpened={};}}
@@ -713,7 +713,7 @@ function renderDash(){
   // --- 1. KPIs ---
   h+="<div style=\"display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px;\">";
   [
-    {l:"Revenus ce mois",v:Math.round(monthRev).toLocaleString("fr-FR")+" \u20ac",s:monthRes.length+" r\u00e9s. \u00b7 net charges",c:"#0F6E56"},
+    {l:"Revenus ce mois",v:Math.round(monthRev).toLocaleString("fr-FR")+" \u20ac",s:monthRes.length+" r\u00e9s. \u00b7 net com.",c:"#0F6E56"},
     {l:"Encaiss\u00e9 "+now.getFullYear(),v:Math.round(yearRev).toLocaleString("fr-FR")+" \u20ac",s:yearRes.length+" r\u00e9servations",c:""},
     {l:"Messages non lus",v:unread,s:unread>0?"A r\u00e9pondre":"Tout lu",c:unread>0?"#E24B4A":""},
     {l:"Arriv\u00e9es \u00e0 venir",v:upcoming.length,s:"prochaines",c:""}
