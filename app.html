@@ -647,73 +647,225 @@ function checkConflicts(){
   return c;
 }
 
+
 function renderDash(){
   var now=new Date();
-  var MONTHS=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
-  var past=S.reservations.filter(function(r){return r.check_in&&r.status!=='cancelled';});
-  var monthRes=past.filter(function(r){var d=new Date(r.check_in+'T00:00:00');return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();});
-  var rev=monthRes.reduce(function(s,r){var isB=r.platform==='booking.com'||r.platform==='booking';return s+(isB?r.amount-r.commission:r.amount);},0);
-  var cl=0;monthRes.forEach(function(r){var c=S.cleaning&&S.cleaning[r.prop_id]?S.cleaning[r.prop_id]:{base:20,extra:5};cl+=c.base;});
-  var yearRes=past.filter(function(r){var d=new Date(r.check_in+'T00:00:00');return d.getFullYear()===now.getFullYear()&&d<=now;});
-  var yearRev=yearRes.reduce(function(s,r){var isB=r.platform==='booking.com'||r.platform==='booking';return s+(isB?r.amount-r.commission:r.amount);},0);
-  var upcoming=S.reservations.filter(function(r){return r.check_in&&new Date(r.check_in+'T00:00:00')>=now&&r.status!=='cancelled';}).sort(function(a,b){return a.check_in.localeCompare(b.check_in);}).slice(0,5);
-  var conflicts=checkConflicts?checkConflicts():[];
-  if(!S._msgsOpened){try{S._msgsOpened=JSON.parse(localStorage.getItem('msgsOpened')||'{}');}catch(e){S._msgsOpened={};}}var unread=S.conversations.filter(function(c){return !S._msgsOpened[c.id];}).length;
-  var months12=[];
+  var MONTHS=["Jan","Fev","Mar","Avr","Mai","Jun","Jul","Aou","Sep","Oct","Nov","Dec"];
+  var MONTHS_FULL=["Janvier","Fevrier","Mars","Avril","Mai","Juin","Juillet","Aout","Septembre","Octobre","Novembre","Decembre"];
+  var past=S.reservations.filter(function(r){return r.check_in&&r.status!=="cancelled";});
+
+  function netRev(r){var isB=r.platform==="booking.com"||r.platform==="booking";return isB?r.amount-r.commission:r.amount;}
+  function cleanFee(r){var c=S.cleaning&&S.cleaning[r.prop_id]?S.cleaning[r.prop_id]:{base:20};return c.base;}
+
+  // KPIs
+  var monthRes=past.filter(function(r){var d=new Date(r.check_in+"T00:00:00");return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();});
+  var monthRev=monthRes.reduce(function(s,r){return s+netRev(r)-cleanFee(r);},0);
+  var yearRes=past.filter(function(r){var d=new Date(r.check_in+"T00:00:00");return d.getFullYear()===now.getFullYear()&&d<=now;});
+  var yearRev=yearRes.reduce(function(s,r){return s+netRev(r);},0);
+  if(!S._msgsOpened){try{S._msgsOpened=JSON.parse(localStorage.getItem("msgsOpened")||"{}");}catch(e){S._msgsOpened={};}}
+  var unread=S.conversations.filter(function(c){return !S._msgsOpened[c.id];}).length;
+  var upcoming=past.filter(function(r){var d=new Date(r.check_in+"T00:00:00");return d>=new Date(now.getFullYear(),now.getMonth(),now.getDate());}).sort(function(a,b){return a.check_in.localeCompare(b.check_in);});
+
+  // Arrivée imminente
+  var imminent=upcoming[0]||null;
+  var prop_imm=imminent?S.props.find(function(p){return p.id===imminent.prop_id;}):null;
+
+  // Histogramme 12 mois
+  var maxRev=0;
+  var monthData=[];
   for(var i=11;i>=0;i--){
     var d=new Date(now.getFullYear(),now.getMonth()-i,1);
-    var lbl=MONTHS[d.getMonth()].slice(0,3)+' '+String(d.getFullYear()).slice(2);
-    var res=past.filter(function(r){if(!r.check_in)return false;var rd=new Date(r.check_in+'T00:00:00');return rd.getMonth()===d.getMonth()&&rd.getFullYear()===d.getFullYear();});
-    var rv=res.reduce(function(s,r){var isB=r.platform==='booking.com'||r.platform==='booking';return s+(isB?r.amount-r.commission:r.amount);},0);
-    months12.push({lbl:lbl,rv:rv,count:res.length,month:d.getMonth(),year:d.getFullYear()});
+    var mr=past.filter(function(r){var rd=new Date(r.check_in+"T00:00:00");return rd.getMonth()===d.getMonth()&&rd.getFullYear()===d.getFullYear();});
+    var rev=mr.reduce(function(s,r){return s+netRev(r);},0);
+    if(rev>maxRev)maxRev=rev;
+    monthData.push({lbl:MONTHS[d.getMonth()],rev:rev,isCur:i===0,isFut:d>now});
   }
-  var platData=['airbnb','booking','direct'].map(function(pl){
-    var lst=past.filter(function(r){return platClass(r.platform)===pl;});
-    var rv=lst.reduce(function(s,r){return s+(pl==='booking'?r.amount-r.commission:r.amount);},0);
-    return{pl:pl,count:lst.length,rev:rv};
-  }).filter(function(d){return d.count>0;});
-  var totalCount=platData.reduce(function(s,d){return s+d.count;},0);
-  var occMonth=S.props.map(function(p){
-    var dim=new Date(now.getFullYear(),now.getMonth()+1,0).getDate();var occ=0;
-    for(var dd=1;dd<=dim;dd++){var date=new Date(now.getFullYear(),now.getMonth(),dd);if(past.some(function(r){return r.prop_id===p.id&&r.check_in&&r.check_out&&new Date(r.check_in+'T00:00:00')<=date&&new Date(r.check_out+'T00:00:00')>date;}))occ++;}
-    return{name:p.name,pct:Math.round(occ/dim*100),days:occ,total:dim};
+  var barsHtml=monthData.map(function(m){
+    var pct=maxRev>0?Math.round(m.rev/maxRev*100):0;
+    var bg=m.isCur?"#0F6E56":m.isFut?"var(--color-background-tertiary)":"#A8D5C2";
+    return "<div style=\"flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;\">"
+      +"<div style=\"width:100%;border-radius:2px 2px 0 0;background:"+bg+";height:"+(Math.max(pct,m.isFut?0:2))+"%;min-height:"+(m.isFut?0:2)+"px;\"></div>"
+      +"<div style=\"font-size:7px;color:"+(m.isCur?"#0F6E56":"var(--color-text-tertiary)")+";font-weight:"+(m.isCur?500:400)+";\">"+m.lbl+"</div>"
+    +"</div>";
+  }).join("");
+
+  // Mini calendrier
+  var calYear=now.getFullYear(),calMonth=now.getMonth();
+  var firstDay=(new Date(calYear,calMonth,1).getDay()+6)%7;
+  var daysInMonth=new Date(calYear,calMonth+1,0).getDate();
+  var calCells="";
+  ["L","M","M","J","V","S","D"].forEach(function(h){
+    calCells+="<div style=\"height:18px;display:flex;align-items:center;justify-content:center;font-size:8px;color:var(--color-text-tertiary);\">"+h+"</div>";
   });
-  document.getElementById('main-content').innerHTML=
-    (conflicts.length?'<div class="conflict-banner"><span style="font-size:13px;font-weight:500;color:#854F0B">&#9888; '+conflicts.length+' conflit(s)</span><button class="btn btn-red" style="font-size:11px" onclick="navigate(this.dataset.page)" data-page="reservations">Voir</button></div>':'')
-    +'<div class="grid4">'
-    +'<div class="stat"><div class="stat-l">Revenus ce mois</div><div class="stat-v">'+Math.round(rev).toLocaleString('fr-FR')+' €</div><div class="stat-s">'+MONTHS[now.getMonth()]+'</div>'+(cl>0?'<div style="font-size:10px;color:#888;margin-top:2px;">Net: <b style="color:#1D9E75;">'+Math.round(rev-cl).toLocaleString('fr-FR')+'€</b> <span style="color:#bbb;">(−'+Math.round(cl)+'€)</span></div>':'')+' </div>'
-    +'<div class="stat" onclick="_showYearDetail()" style="cursor:pointer"">'
-      +'<div class="stat-l">Encaissé '+now.getFullYear()+' <span style="font-size:10px;color:#1D9E75">▼ détails</span></div>'
-      +'<div class="stat-v">'+Math.round(yearRev).toLocaleString('fr-FR')+' €</div>'
-      +'<div class="stat-s">'+yearRes.length+' rés. — cliquer</div>'
-    +'</div>'
-    +'<div class="stat"><div class="stat-l">Messages non lus</div><div class="stat-v" style="color:'+(unread?'#E24B4A':'#1D9E75')+'">'+unread+'</div><div class="stat-s">'+(unread?'A répondre':'Tout lu')+'</div></div>'
-    +'<div class="stat"><div class="stat-l">Arrivées à venir</div><div class="stat-v">'+upcoming.length+'</div><div class="stat-s">Prochaines</div></div>'
-    +'</div>'
-    +'<div id="yd" style="display:none;background:#fff;border:1px solid #e5e4e0;border-radius:10px;padding:14px;margin-bottom:14px">'
-      +'<div style="font-size:12px;font-weight:600;margin-bottom:10px">Revenus nets — '+now.getFullYear()+'</div>'
-      +'<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(95px,1fr));gap:8px">'
-      +months12.map(function(m){var isCur=m.month===now.getMonth()&&m.year===now.getFullYear();return'<div onclick="_gm('+m.month+','+m.year+')" style="padding:8px;border-radius:8px;background:'+(isCur?'#E1F5EE':'#f9f9f9')+';border:1px solid '+(isCur?'#1D9E75':'#e5e4e0')+';cursor:pointer"><div style="font-size:10px;color:#888">'+MONTHS[m.month]+'</div><div style="font-size:13px;font-weight:700;color:'+(isCur?'#0F6E56':'#1a1a1a')+'">'+(m.rv>0?Math.round(m.rv).toLocaleString('fr-FR')+'€':'—')+'</div><div style="font-size:10px;color:#aaa">'+m.count+' rés.</div></div>';}).join('')
-      +'</div></div>'
-    +'<div style="display:grid;grid-template-columns:3fr 2fr;gap:14px;margin-bottom:14px">'
-      +'<div class="card" style="padding:14px;position:relative"><div style="font-size:12px;font-weight:600;margin-bottom:4px">Revenus nets par mois</div><canvas id="chart-rev" height="180" style="width:100%"></canvas></div>'
-      +'<div class="card" style="padding:14px;position:relative"><div style="font-size:12px;font-weight:600;margin-bottom:4px">Plateformes</div><canvas id="chart-plat" height="140" style="width:100%"></canvas><div id="pleg" style="margin-top:6px"></div></div>'
-    +'</div>'
-    +'<div class="card" style="padding:14px;margin-bottom:14px">'
-      +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px"><div style="font-size:12px;font-weight:600">Taux d&#8217;occupation — '+MONTHS[now.getMonth()]+' '+now.getFullYear()+'</div><button class="btn" style="font-size:10px" onclick="_showOccDetail()">Historique 12 mois ▼</button></div>'
-      +occMonth.map(function(o){var col=o.pct>70?'#1D9E75':o.pct>40?'#EF9F27':'#E24B4A';return'<div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="font-size:12px;color:#444;font-weight:500">'+o.name+'</span><span style="font-size:12px;font-weight:700;color:'+col+'">'+o.pct+'% <span style="font-size:10px;font-weight:400;color:#aaa">'+o.days+'/'+o.total+'j</span></span></div><div style="background:#f0efe9;border-radius:20px;height:10px;overflow:hidden"><div style="width:'+o.pct+'%;background:'+col+';height:100%;border-radius:20px"></div></div></div>';}).join('')
-    +'</div>'
-    +'<div class="section-h">Prochaines arrivées</div>'
-    +'<div class="card">'+(upcoming.length?upcoming.map(function(r){var prop=S.props.find(function(p){return p.id===r.prop_id;});return'<div class="res-row"><div><div class="res-guest">'+r.guest+'</div><div class="res-meta">'+(prop?prop.name:'—')+' • '+fmt(r.check_in)+' → '+fmt(r.check_out)+'</div></div><div class="res-right"><span class="badge b-'+platClass(r.platform)+'">'+platLabel(r.platform)+'</span><span style="font-size:13px;font-weight:600">'+Math.round(r.amount).toLocaleString('fr-FR')+' €</span></div></div>';}).join(''):'<div style="color:#888;font-size:13px;padding:14px">Aucune réservation à venir.</div>')+'</div>';
-  var _m12=months12,_pd=platData,_tc=totalCount;
-  function _tryDraw(){
-    var c=document.getElementById('chart-rev');
-    if(!c)return;
-    var w=c.getBoundingClientRect().width;
-    if(w>10){_drawDash(_m12,_pd,_tc);}
-    else{setTimeout(_tryDraw,100);}
+  for(var i=0;i<firstDay;i++)calCells+="<div></div>";
+  for(var day=1;day<=daysInMonth;day++){
+    var dateStr=calYear+"-"+(calMonth+1<10?"0":"")+(calMonth+1)+"-"+(day<10?"0":"")+day;
+    var airRes=past.filter(function(r){return r.check_in<=dateStr&&r.check_out>dateStr&&platClass(r.platform)==="airbnb";});
+    var bkRes=past.filter(function(r){return r.check_in<=dateStr&&r.check_out>dateStr&&platClass(r.platform)==="booking";});
+    var isToday=day===now.getDate();
+    var isPast=day<now.getDate();
+    var bg=isToday?"#0F6E56":airRes.length?"#FEE2E2":bkRes.length?"#DBEAFE":"transparent";
+    var color=isToday?"#fff":airRes.length?"#DC2626":bkRes.length?"#1D4ED8":"var(--color-text-"+(isPast?"tertiary":"secondary")+")";
+    calCells+="<div style=\"height:20px;border-radius:3px;background:"+bg+";display:flex;align-items:center;justify-content:center;font-size:8px;color:"+color+";font-weight:"+(isToday?500:400)+";opacity:"+(isPast&&!airRes.length&&!bkRes.length?.45:1)+";\">"+day+"</div>";
   }
-  setTimeout(_tryDraw,100);
+
+  // Plateformes
+  var airRevM=monthRes.filter(function(r){return platClass(r.platform)==="airbnb";}).reduce(function(s,r){return s+r.amount;},0);
+  var bkRevM=monthRes.filter(function(r){return platClass(r.platform)==="booking";}).reduce(function(s,r){return s+r.amount;},0);
+  var totalM=airRevM+bkRevM||1;
+  var airPct=Math.round(airRevM/totalM*100);
+  var bkPct=100-airPct;
+
+  // Taux occupation
+  var suite=S.props.find(function(p){return p.id==="12619011";});
+  var loft=S.props.find(function(p){return p.id==="12619012";});
+  var suiteRes=monthRes.filter(function(r){return r.prop_id==="12619011";});
+  var loftRes=monthRes.filter(function(r){return r.prop_id==="12619012";});
+  var suiteDays=suiteRes.reduce(function(s,r){return s+Math.round((new Date(r.check_out)-new Date(r.check_in))/86400000);},0);
+  var loftDays=loftRes.reduce(function(s,r){return s+Math.round((new Date(r.check_out)-new Date(r.check_in))/86400000);},0);
+  var daysInM=new Date(calYear,calMonth+1,0).getDate();
+  var suiteOcc=Math.round(suiteDays/daysInM*100);
+  var loftOcc=Math.round(loftDays/daysInM*100);
+
+  // HTML
+  var COLORS=["#FF385C","#003580","#0F6E56","#EF9F27","#6366F1","#E24B4A","#1D9E75"];
+  var h="";
+
+  // KPIs
+  h+="<div style=\"display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:10px;\">"
+    +"<div style=\"background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:11px 13px;\">"
+      +"<div style=\"font-size:10px;color:var(--color-text-tertiary);margin-bottom:3px;\">Revenus ce mois</div>"
+      +"<div style=\"font-size:20px;font-weight:500;color:#0F6E56;line-height:1;\">"+Math.round(monthRev).toLocaleString("fr-FR")+" \u20ac</div>"
+      +"<div style=\"font-size:10px;color:var(--color-text-tertiary);margin-top:2px;\">"+monthRes.length+" r\u00e9s. ce mois</div>"
+    +"</div>"
+    +"<div style=\"background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:11px 13px;\">"
+      +"<div style=\"font-size:10px;color:var(--color-text-tertiary);margin-bottom:3px;\">Encaiss\u00e9 "+now.getFullYear()+"</div>"
+      +"<div style=\"font-size:20px;font-weight:500;line-height:1;\">"+Math.round(yearRev).toLocaleString("fr-FR")+" \u20ac</div>"
+      +"<div style=\"font-size:10px;color:var(--color-text-tertiary);margin-top:2px;\">"+yearRes.length+" r\u00e9servations</div>"
+    +"</div>"
+    +"<div style=\"background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:11px 13px;\">"
+      +"<div style=\"font-size:10px;color:var(--color-text-tertiary);margin-bottom:3px;\">Messages non lus</div>"
+      +"<div style=\"font-size:20px;font-weight:500;color:"+(unread>0?"#E24B4A":"var(--color-text-primary)")+";line-height:1;\">"+unread+"</div>"
+      +"<div style=\"font-size:10px;color:var(--color-text-tertiary);margin-top:2px;\">"+(unread>0?"A repondre":"Tout lu")+"</div>"
+    +"</div>"
+    +"<div style=\"background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:11px 13px;\">"
+      +"<div style=\"font-size:10px;color:var(--color-text-tertiary);margin-bottom:3px;\">Arriv\u00e9es \u00e0 venir</div>"
+      +"<div style=\"font-size:20px;font-weight:500;line-height:1;\">"+upcoming.length+"</div>"
+      +"<div style=\"font-size:10px;color:var(--color-text-tertiary);margin-top:2px;\">prochaines</div>"
+    +"</div>"
+  +"</div>";
+
+  // Arrivée imminente
+  if(imminent){
+    var ini=(imminent.guest||"?").charAt(0).toUpperCase();
+    var avatarColor=COLORS[ini.charCodeAt(0)%COLORS.length];
+    var pl=platClass(imminent.platform);
+    var plColor=pl==="airbnb"?"#FF385C":"#003580";
+    var plLabel=pl==="airbnb"?"Airbnb":"Booking";
+    h+="<div style=\"background:linear-gradient(135deg,#E1F5EE,#f0fdf8);border:1px solid #1D9E75;border-radius:var(--border-radius-md);padding:10px 14px;margin-bottom:10px;\">"
+      +"<div style=\"display:flex;align-items:center;gap:6px;margin-bottom:8px;\">"
+        +"<div style=\"width:7px;height:7px;border-radius:50%;background:#1D9E75;\"></div>"
+        +"<div style=\"font-size:10px;font-weight:500;color:#0F6E56;\">Arriv\u00e9e imminente</div>"
+        +"<div style=\"font-size:10px;color:#1D9E75;margin-left:auto;font-weight:500;\">Aujourd'hui 15:00</div>"
+      +"</div>"
+      +"<div style=\"display:flex;align-items:center;gap:10px;\">"
+        +"<div style=\"width:34px;height:34px;border-radius:50%;background:"+avatarColor+";display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:500;color:#fff;flex-shrink:0;\">"+ini+"</div>"
+        +"<div style=\"flex:1;\">"
+          +"<div style=\"font-size:13px;font-weight:500;\">"+imminent.guest+"</div>"
+          +"<div style=\"font-size:10px;color:#1D9E75;\">"+(prop_imm?prop_imm.name:"")+" \u00b7 "+imminent.check_in+" \u2192 "+imminent.check_out+" \u00b7 "+plLabel+"</div>"
+        +"</div>"
+        +"<button onclick=\"navigate('messages')\" style=\"font-size:10px;padding:5px 12px;border-radius:8px;border:none;background:linear-gradient(135deg,#6366F1,#8B5CF6);color:#fff;cursor:pointer;font-weight:500;display:flex;align-items:center;gap:5px;\">"
+          +"<span style=\"font-size:11px;\">\u2726</span> Message IA"
+        +"</button>"
+      +"</div>"
+    +"</div>";
+  }
+
+  // Ligne: histogramme + mini-cal + plateformes+occ
+  h+="<div style=\"display:grid;grid-template-columns:2fr 1.2fr 1fr;gap:10px;margin-bottom:10px;\">"
+    // Histogramme
+    +"<div style=\"background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:12px;\">"
+      +"<div style=\"display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;\">"
+        +"<div style=\"font-size:11px;font-weight:500;color:var(--color-text-secondary);\">Revenus nets \u2014 12 mois</div>"
+        +"<div style=\"font-size:11px;color:var(--color-text-tertiary);\">"+Math.round(yearRev).toLocaleString("fr-FR")+" \u20ac</div>"
+      +"</div>"
+      +"<div style=\"display:flex;align-items:flex-end;gap:3px;height:60px;\">"+barsHtml+"</div>"
+    +"</div>"
+    // Mini calendrier
+    +"<div style=\"background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:12px;\">"
+      +"<div style=\"display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;\">"
+        +"<div style=\"font-size:11px;font-weight:500;color:var(--color-text-secondary);\">"+MONTHS_FULL[calMonth]+" "+calYear+"</div>"
+      +"</div>"
+      +"<div style=\"display:grid;grid-template-columns:repeat(7,1fr);gap:2px;\">"+calCells+"</div>"
+      +"<div style=\"display:flex;gap:8px;margin-top:6px;\">"
+        +"<div style=\"display:flex;align-items:center;gap:3px;\"><div style=\"width:7px;height:7px;border-radius:2px;background:#FEE2E2;\"></div><span style=\"font-size:8px;color:var(--color-text-tertiary);\">Airbnb</span></div>"
+        +"<div style=\"display:flex;align-items:center;gap:3px;\"><div style=\"width:7px;height:7px;border-radius:2px;background:#DBEAFE;\"></div><span style=\"font-size:8px;color:var(--color-text-tertiary);\">Booking</span></div>"
+      +"</div>"
+    +"</div>"
+    // Plateformes + occupation
+    +"<div style=\"background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:12px;display:flex;flex-direction:column;gap:10px;\">"
+      +"<div>"
+        +"<div style=\"font-size:11px;font-weight:500;color:var(--color-text-secondary);margin-bottom:8px;\">Plateformes</div>"
+        +"<div style=\"display:flex;align-items:center;gap:6px;margin-bottom:5px;\">"
+          +"<div style=\"width:7px;height:7px;border-radius:50%;background:#FF385C;flex-shrink:0;\"></div>"
+          +"<div style=\"font-size:11px;color:var(--color-text-secondary);width:44px;\">Airbnb</div>"
+          +"<div style=\"flex:1;height:5px;background:var(--color-background-secondary);border-radius:3px;overflow:hidden;\"><div style=\"height:100%;background:#FF385C;border-radius:3px;width:"+airPct+"%;\" ></div></div>"
+          +"<div style=\"font-size:11px;font-weight:500;width:28px;text-align:right;\">"+airPct+"%</div>"
+        +"</div>"
+        +"<div style=\"display:flex;align-items:center;gap:6px;\">"
+          +"<div style=\"width:7px;height:7px;border-radius:50%;background:#003580;flex-shrink:0;\"></div>"
+          +"<div style=\"font-size:11px;color:var(--color-text-secondary);width:44px;\">Booking</div>"
+          +"<div style=\"flex:1;height:5px;background:var(--color-background-secondary);border-radius:3px;overflow:hidden;\"><div style=\"height:100%;background:#003580;border-radius:3px;width:"+bkPct+"%;\" ></div></div>"
+          +"<div style=\"font-size:11px;font-weight:500;width:28px;text-align:right;\">"+bkPct+"%</div>"
+        +"</div>"
+      +"</div>"
+      +"<div style=\"height:0.5px;background:var(--color-border-tertiary);\"></div>"
+      +"<div>"
+        +"<div style=\"font-size:11px;font-weight:500;color:var(--color-text-secondary);margin-bottom:6px;\">Taux d&#8217;occ. "+MONTHS[calMonth]+"</div>"
+        +"<div style=\"display:grid;grid-template-columns:1fr 1fr;gap:5px;\">"
+          +"<div style=\"background:var(--color-background-secondary);border-radius:6px;padding:5px 7px;text-align:center;\">"
+            +"<div style=\"font-size:9px;color:var(--color-text-tertiary);\">Suite</div>"
+            +"<div style=\"font-size:15px;font-weight:500;color:#0F6E56;\">"+suiteOcc+"%</div>"
+          +"</div>"
+          +"<div style=\"background:var(--color-background-secondary);border-radius:6px;padding:5px 7px;text-align:center;\">"
+            +"<div style=\"font-size:9px;color:var(--color-text-tertiary);\">Loft</div>"
+            +"<div style=\"font-size:15px;font-weight:500;color:#0F6E56;\">"+loftOcc+"%</div>"
+          +"</div>"
+        +"</div>"
+      +"</div>"
+    +"</div>"
+  +"</div>";
+
+  // Prochaines arrivées
+  h+="<div style=\"background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:12px;\">"
+    +"<div style=\"font-size:11px;font-weight:500;color:var(--color-text-secondary);margin-bottom:10px;\">Prochaines arriv\u00e9es</div>";
+  var next=upcoming.slice(0,5);
+  if(!next.length){
+    h+="<div style=\"font-size:12px;color:var(--color-text-tertiary);text-align:center;padding:10px;\">Aucune arriv\u00e9e \u00e0 venir</div>";
+  } else {
+    next.forEach(function(r,i){
+      var ini2=(r.guest||"?").charAt(0).toUpperCase();
+      var av2=COLORS[ini2.charCodeAt(0)%COLORS.length];
+      var pl2=platClass(r.platform);
+      var plColor2=pl2==="airbnb"?"#FF385C":"#003580";
+      var plLabel2=pl2==="airbnb"?"AIR":"BK";
+      var prop2=S.props.find(function(p){return p.id===r.prop_id;});
+      var n2=r.check_in&&r.check_out?Math.round((new Date(r.check_out)-new Date(r.check_in))/86400000):0;
+      var isLast=i===next.length-1;
+      h+="<div style=\"display:flex;align-items:center;gap:10px;padding:7px 0;"+(isLast?"":"border-bottom:0.5px solid var(--color-border-tertiary);")+";cursor:pointer;\" onclick=\"openResDetail('"+r.id+"')\">"
+        +"<div style=\"width:30px;height:30px;border-radius:50%;background:"+av2+";display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;color:#fff;flex-shrink:0;\">"+ini2+"</div>"
+        +"<div style=\"flex:1;min-width:0;\">"
+          +"<div style=\"font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;\">"+r.guest+"</div>"
+          +"<div style=\"font-size:10px;color:var(--color-text-tertiary);\">"+(prop2?prop2.name.split(" ")[0]:"")+" \u00b7 "+fmt(r.check_in)+" \u00b7 "+n2+" nuit"+(n2>1?"s":"")+"</div>"
+        +"</div>"
+        +"<span style=\"font-size:9px;font-weight:500;background:"+plColor2+";color:#fff;border-radius:3px;padding:1px 5px;flex-shrink:0;\">"+plLabel2+"</span>"
+        +"<div style=\"font-size:12px;font-weight:500;color:#0F6E56;text-align:right;min-width:50px;\">"+Math.round(netRev(r))+" \u20ac</div>"
+      +"</div>";
+    });
+  }
+  h+="</div>";
+
+  document.getElementById("main-content").innerHTML=h;
 }
 function renderRates(){
   if(!S.ratesPrices)S.ratesPrices={};if(!S.ratesMinStay)S.ratesMinStay={};if(!S.ratesSelected)S.ratesSelected={};if(!S.ratesMonth)S.ratesMonth=new Date();if(!S.cleaning)S.cleaning={};
