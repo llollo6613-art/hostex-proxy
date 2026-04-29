@@ -214,7 +214,7 @@ async function loadAll(){
     // Charger les nouvelles réservations depuis Hostex en arrière-plan
     syncLive();
     api('/conversations?limit=50&offset=0').then(cd=>{
-      S.conversations=(cd.data?.conversations||cd.data||[]).map(c=>({id:String(c.id),guest:(c.guest&&c.guest.name)||c.guest_name||'Voyageur',platform:c.channel_type||c.channel||'direct',preview:c.last_message||'',unread:false,prop_id:String(c.property?.id||c.property_id||'')}));
+      S.conversations=(cd.data?.conversations||cd.data||[]).map(c=>({id:String(c.id),guest:(c.guest&&c.guest.name)||c.guest_name||'Voyageur',platform:c.channel_type||c.channel||'direct',channel_type:c.channel_type||'',preview:c.last_message||'',unread:false,prop_id:String(c.property?.id||c.property_id||''),last_message_at:c.last_message_at||'',property_title:c.property_title||''}));
       if(S.page==='messages'||S.page==='dashboard')render();
     }).catch(()=>{S.conversations=[];});
   },100);
@@ -787,8 +787,8 @@ function renderDash(){
   // --- 3. Messages en attente ---
   var unreadConvs=S.conversations.filter(function(c){return !S._msgsOpened[c.id];});
   unreadConvs.sort(function(a,b){return (b.last_message_at||"").localeCompare(a.last_message_at||"");});
-  var unreadShow=unreadConvs.slice(0,4);
-  var unreadExtra=unreadConvs.length-unreadShow.length;
+  var unreadShow=unreadConvs.slice(0,5);
+  var unreadExtra=Math.max(0,unreadConvs.length-5);
   h+="<div style=\"background:var(--color-background-primary);border:1.5px solid var(--color-border-secondary);border-radius:var(--border-radius-lg);box-shadow:0 2px 8px rgba(0,0,0,.06);padding:16px;margin-bottom:16px;\">"
     +"<div style=\"display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;\">"
       +"<div style=\"display:flex;align-items:center;gap:8px;\">"
