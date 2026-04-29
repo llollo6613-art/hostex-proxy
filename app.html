@@ -582,6 +582,57 @@ async function _downloadBilanPDF(propId){
   showToast('\u2713 Bilan t\u00e9l\u00e9charg\u00e9 (ouvrir dans le navigateur pour imprimer en PDF)');
 }
 
+function openResDetail(idOrDate){
+  // Chercher par ID ou par date check_in
+  var res=S.reservations.find(function(r){return r.id===idOrDate||r.check_in===idOrDate;});
+  if(!res){
+    // Chercher par date dans le calendrier
+    var matching=S.reservations.filter(function(r){return r.check_in<=idOrDate&&r.check_out>idOrDate&&r.status!=="cancelled";});
+    if(matching.length)res=matching[0];
+  }
+  if(!res){showToast("Aucune reservation trouvee");return;}
+  var prop=S.props.find(function(p){return p.id===res.prop_id;});
+  var pl=platClass(res.platform);
+  var plColor=pl==="airbnb"?"#FF385C":"#003580";
+  var plLabel=platLabel(res.platform);
+  var n=res.check_in&&res.check_out?Math.round((new Date(res.check_out)-new Date(res.check_in))/86400000):0;
+  var isB=pl==="booking";
+  var net=isB?res.amount-res.commission:res.amount;
+  var cl=S.cleaning&&S.cleaning[res.prop_id]?S.cleaning[res.prop_id].base:20;
+  var netCleaning=net-cl;
+  var avgNight=n>0?Math.round(res.amount/n):0;
+  showModal(
+    "<div style=\"display:flex;align-items:center;gap:10px;margin-bottom:14px;\">"
+      +"<div style=\"width:40px;height:40px;border-radius:50%;background:"+plColor+";display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:500;color:#fff;\">"+res.guest.charAt(0)+"</div>"
+      +"<div><div style=\"font-size:15px;font-weight:500;\">"+res.guest+"</div>"
+        +"<div style=\"display:flex;gap:6px;align-items:center;margin-top:3px;\">"
+          +"<span style=\"font-size:10px;font-weight:500;background:"+plColor+";color:#fff;border-radius:3px;padding:1px 6px;\">"+plLabel+"</span>"
+          +"<span style=\"font-size:11px;color:var(--color-text-tertiary);\">"+((prop)?prop.name:"")+"</span>"
+        +"</div>"
+      +"</div>"
+    +"</div>"
+    +"<div style=\"display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;\">"
+      +"<div style=\"background:var(--color-background-secondary);border-radius:8px;padding:10px;\">"
+        +"<div style=\"font-size:10px;color:var(--color-text-tertiary);margin-bottom:3px;\">Arriv\u00e9e</div>"
+        +"<div style=\"font-size:13px;font-weight:500;\">"+fmt(res.check_in)+"</div>"
+      +"</div>"
+      +"<div style=\"background:var(--color-background-secondary);border-radius:8px;padding:10px;\">"
+        +"<div style=\"font-size:10px;color:var(--color-text-tertiary);margin-bottom:3px;\">D\u00e9part</div>"
+        +"<div style=\"font-size:13px;font-weight:500;\">"+fmt(res.check_out)+"</div>"
+      +"</div>"
+    +"</div>"
+    +"<div style=\"background:var(--color-background-secondary);border-radius:10px;padding:12px;margin-bottom:12px;\">"
+      +"<div style=\"font-size:11px;font-weight:500;color:var(--color-text-secondary);margin-bottom:10px;border-bottom:0.5px solid var(--color-border-tertiary);padding-bottom:6px;\">Tarification</div>"
+      +"<div style=\"display:flex;justify-content:space-between;padding:5px 0;font-size:12px;\"><span style=\"color:var(--color-text-secondary);\">"+n+" nuit(s) \u00d7 "+avgNight+"\u20ac</span><span style=\"font-weight:500;\">"+Math.round(res.amount)+"\u00a0\u20ac</span></div>"
+      +(isB?"<div style=\"display:flex;justify-content:space-between;padding:5px 0;font-size:12px;\"><span style=\"color:var(--color-text-secondary);\">Commission Booking</span><span style=\"color:#E24B4A;\">\u2212"+Math.round(res.commission)+"\u00a0\u20ac</span></div>":"")
+      +"<div style=\"display:flex;justify-content:space-between;padding:5px 0;font-size:12px;\"><span style=\"color:var(--color-text-secondary);\">M\u00e9nage</span><span style=\"color:#E24B4A;\">\u2212"+cl+"\u00a0\u20ac</span></div>"
+      +"<div style=\"display:flex;justify-content:space-between;padding:8px 0 0;font-size:13px;font-weight:500;border-top:0.5px solid var(--color-border-tertiary);margin-top:4px;\"><span>Net encaiss\u00e9</span><span style=\"color:#0F6E56;\">"+Math.round(netCleaning)+"\u00a0\u20ac</span></div>"
+    +"</div>"
+    +(res.phone?"<div style=\"font-size:12px;color:var(--color-text-secondary);margin-bottom:10px;\">\u260e "+res.phone+"</div>":"")
+    +"<div class=\"modal-actions\"><button class=\"btn\" onclick=\"closeModal()\">Fermer</button></div>"
+  );
+}
+
 function showToast(msg,dur){var t=document.getElementById('toast');if(!t){t=document.createElement('div');t.id='toast';t.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;padding:10px 20px;border-radius:8px;font-size:13px;z-index:9999;transition:opacity .3s;pointer-events:none;';document.body.appendChild(t);}t.textContent=msg;t.style.opacity='1';clearTimeout(t._t);t._t=setTimeout(function(){t.style.opacity='0';},dur||2500);}
 function showModal(h){var m=document.getElementById('modal');var mb=document.getElementById('modal-body');if(!m){m=document.createElement('div');m.id='modal';m.style.cssText='display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.4);z-index:1000;align-items:center;justify-content:center;';var inner=document.createElement('div');inner.style.cssText='background:#fff;border-radius:12px;padding:20px;max-width:500px;width:90%;max-height:85vh;overflow-y:auto;position:relative;';mb=document.createElement('div');mb.id='modal-body';inner.appendChild(mb);var cl=document.createElement('button');cl.textContent='×';cl.style.cssText='position:absolute;top:10px;right:14px;background:none;border:none;font-size:20px;cursor:pointer;color:#888;';cl.onclick=closeModal;inner.appendChild(cl);m.appendChild(inner);m.onclick=function(e){if(e.target===m)closeModal();};document.body.appendChild(m);}mb.innerHTML=h;m.style.display='flex';}
 function closeModal(){var m=document.getElementById('modal');if(m)m.style.display='none';}
