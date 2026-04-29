@@ -650,6 +650,7 @@ function checkConflicts(){
 
 
 function renderDash(){
+  if(!S._msgsOpened){try{S._msgsOpened=JSON.parse(localStorage.getItem("msgsOpened")||"{}");}catch(e){S._msgsOpened={};}}
   var now=new Date();
   var today=new Date(now.getFullYear(),now.getMonth(),now.getDate());
   var MONTHS=["Jan","Fev","Mar","Avr","Mai","Jun","Jul","Aou","Sep","Oct","Nov","Dec"];
@@ -668,7 +669,7 @@ function renderDash(){
   var monthRev=monthRes.reduce(function(s,r){return s+netRev(r);},0);
   var yearRes=past.filter(function(r){var d=new Date(r.check_in+"T00:00:00");return d.getFullYear()===now.getFullYear()&&d<=now;});
   var yearRev=yearRes.reduce(function(s,r){return s+netRev(r);},0);
-  if(!S._msgsOpened){try{S._msgsOpened=JSON.parse(localStorage.getItem("msgsOpened")||"{}");}catch(e){S._msgsOpened={};}}
+
   var unread=S.conversations.filter(function(c){return !S._msgsOpened[c.id];}).length;
   var upcoming=past.filter(function(r){var d=new Date(r.check_in+"T00:00:00");return d>=today;}).sort(function(a,b){return a.check_in.localeCompare(b.check_in);});
 
@@ -785,7 +786,7 @@ function renderDash(){
   h+="</div>";
 
   // --- 3. Messages en attente ---
-  if(!S._msgsOpened){try{S._msgsOpened=JSON.parse(localStorage.getItem("msgsOpened")||"{}");}catch(e){S._msgsOpened={};}}
+
   var unreadConvs=S.conversations.filter(function(c){return !S._msgsOpened[c.id];});
   unreadConvs.sort(function(a,b){return (b.last_message_at||"").localeCompare(a.last_message_at||"");});
   var unreadShow=unreadConvs.slice(0,5);
