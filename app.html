@@ -787,8 +787,8 @@ function renderDash(){
 
   // --- 3. Messages en attente ---
 
-  var unreadConvs=S.conversations.filter(function(c){return !S._msgsOpened[c.id];});
-  unreadConvs.sort(function(a,b){return (b.last_message_at||"").localeCompare(a.last_message_at||"");});
+  var allConvsSorted=S.conversations.slice().sort(function(a,b){return (b.last_message_at||"").localeCompare(a.last_message_at||"");});
+  var unreadConvs=allConvsSorted.filter(function(c){return !S._msgsOpened[c.id];});
   var unreadShow=unreadConvs.slice(0,5);
   var unreadExtra=Math.max(0,unreadConvs.length-5);
   h+="<div style=\"background:var(--color-background-primary);border:1.5px solid var(--color-border-secondary);border-radius:var(--border-radius-lg);box-shadow:0 2px 8px rgba(0,0,0,.06);padding:16px;margin-bottom:16px;\">"
