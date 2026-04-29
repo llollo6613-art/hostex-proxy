@@ -785,7 +785,10 @@ function renderDash(){
   h+="</div>";
 
   // --- 3. Messages en attente ---
-  var unreadConvs=S.conversations.filter(function(c){return !S._msgsOpened[c.id];}).slice(0,4);
+  var unreadConvs=S.conversations.filter(function(c){return !S._msgsOpened[c.id];});
+  unreadConvs.sort(function(a,b){return (b.last_message_at||"").localeCompare(a.last_message_at||"");});
+  var unreadShow=unreadConvs.slice(0,4);
+  var unreadExtra=unreadConvs.length-unreadShow.length;
   h+="<div style=\"background:var(--color-background-primary);border:1.5px solid var(--color-border-secondary);border-radius:var(--border-radius-lg);box-shadow:0 2px 8px rgba(0,0,0,.06);padding:16px;margin-bottom:16px;\">"
     +"<div style=\"display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;\">"
       +"<div style=\"display:flex;align-items:center;gap:8px;\">"
