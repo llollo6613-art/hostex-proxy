@@ -665,6 +665,8 @@ function _renderRevContent(data){
   var tab=S._revTab||"pending";
   var reviewed=data.reviewed||[];
   var pending=data.pending||[];
+  var todayStr=new Date().toISOString().split("T")[0];
+  pending=pending.filter(function(r){return r.check_out_date<=todayStr;});
   var COLORS=["#FF385C","#003580","#0F6E56","#EF9F27","#6366F1","#E24B4A","#1D9E75"];
 
   // Tabs
