@@ -634,152 +634,272 @@ function openResDetail(idOrDate){
 }
 
 function renderReviews(){
+  if(!S._revTab)S._revTab="pending";
   var mc=document.getElementById("main-content");
   mc.innerHTML="<div style=\"display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;\">"
     +"<div style=\"font-size:15px;font-weight:500;\">Avis voyageurs</div>"
-    +"<button onclick=\"renderReviews()\" style=\"border:none;background:none;cursor:pointer;color:var(--color-text-tertiary);font-size:16px;\">\u21bb</button>"
+    +"<button onclick=\"S._revLoaded=false;renderReviews()\" style=\"border:none;background:none;cursor:pointer;color:var(--color-text-tertiary);font-size:16px;\">\u21bb</button>"
     +"</div>"
-    +"<div id=\"reviews-list\"><div style=\"text-align:center;padding:40px;color:var(--color-text-tertiary);\">Chargement...</div></div>";
+    +"<div id=\"rev-tabs\" style=\"display:flex;gap:8px;margin-bottom:16px;\"></div>"
+    +"<div id=\"rev-kpis\" style=\"margin-bottom:16px;\"></div>"
+    +"<div id=\"rev-list\"><div style=\"text-align:center;padding:40px;color:var(--color-text-tertiary);\">Chargement...</div></div>";
 
-  api("/reviews?limit=50&offset=0").then(function(d){
-    var reviews=(d&&d.data&&d.data.reviews)||[];
-    if(!reviews.length){
-      document.getElementById("reviews-list").innerHTML="<div style=\"text-align:center;padding:40px;color:var(--color-text-tertiary);\">Aucun avis.</div>";
-      return;
-    }
-    // Stats
-    var withGuest=reviews.filter(function(r){return r.guest_review;});
-    var avgScore=withGuest.length?Math.round(withGuest.reduce(function(s,r){return s+r.guest_review.score;},0)/withGuest.length*10)/10:0;
-    var pending=reviews.filter(function(r){return r.guest_review&&!r.host_reply;}).length;
-    var h="";
-    // KPIs
-    h+="<div style=\"display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px;\">"
-      +"<div style=\"background:#F0FAF5;border:1.5px solid #86EFAC;border-radius:var(--border-radius-lg);padding:14px;text-align:center;\">"
+  if(S._revLoaded&&S._revData){_renderRevContent(S._revData);return;}
+  Promise.all([
+    api("/reviews?limit=50&offset=0&review_status=reviewed"),
+    api("/reviews?limit=50&offset=0&review_status=pending_host_review")
+  ]).then(function(res){
+    S._revData={
+      reviewed:(res[0]&&res[0].data&&res[0].data.reviews)||[],
+      pending:(res[1]&&res[1].data&&res[1].data.reviews)||[]
+    };
+    S._revLoaded=true;
+    _renderRevContent(S._revData);
+  }).catch(function(e){
+    var l=document.getElementById("rev-list");
+    if(l)l.innerHTML="<div style=\"padding:20px;color:var(--color-text-danger);\">Erreur: "+e.message+"</div>";
+  });
+}
+
+function _renderRevContent(data){
+  var tab=S._revTab||"pending";
+  var reviewed=data.reviewed||[];
+  var pending=data.pending||[];
+  var COLORS=["#FF385C","#003580","#0F6E56","#EF9F27","#6366F1","#E24B4A","#1D9E75"];
+
+  // Tabs
+  var tabs=document.getElementById("rev-tabs");
+  if(tabs){
+    tabs.innerHTML=["pending","received"].map(function(t){
+      var active=tab===t;
+      var label=t==="pending"?"A noter":"Avis re\u00e7us";
+      var count=t==="pending"?pending.length:reviewed.filter(function(r){return r.guest_review&&!r.host_reply;}).length;
+      return "<div onclick=\"S._revTab='"+t+"';_renderRevContent(S._revData)\" style=\"padding:7px 16px;border-radius:20px;border:1px solid "+(active?"#0F6E56":"var(--color-border-secondary)")+";background:"+(active?"#0F6E56":"var(--color-background-primary)")+";color:"+(active?"#fff":"var(--color-text-secondary)")+";font-size:12px;cursor:pointer;font-weight:"+(active?500:400)+";display:flex;align-items:center;gap:6px;\">"+label+(count>0?"<span style=\"background:"+(active?"rgba(255,255,255,.25)":"#E24B4A")+";color:#fff;border-radius:10px;padding:1px 7px;font-size:10px;\">"+count+"</span>":"")+"</div>";
+    }).join("");
+  }
+
+  // KPIs
+  var withGuest=reviewed.filter(function(r){return r.guest_review;});
+  var avgScore=withGuest.length?Math.round(withGuest.reduce(function(s,r){return s+r.guest_review.score;},0)/withGuest.length*10)/10:0;
+  var noReply=reviewed.filter(function(r){return r.guest_review&&!r.host_reply;}).length;
+  var five=withGuest.filter(function(r){return r.guest_review.score===5;}).length;
+  var kpis=document.getElementById("rev-kpis");
+  if(kpis){
+    kpis.innerHTML="<div style=\"display:grid;grid-template-columns:repeat(4,1fr);gap:10px;\">"
+      +"<div style=\"background:#F0FAF5;border:1.5px solid #86EFAC;border-radius:10px;padding:14px;text-align:center;\">"
         +"<div style=\"font-size:11px;color:var(--color-text-tertiary);margin-bottom:4px;\">Note moyenne</div>"
-        +"<div style=\"font-size:28px;font-weight:500;color:#0F6E56;\">\u2605 "+avgScore+"</div>"
+        +"<div style=\"font-size:26px;font-weight:500;color:#0F6E56;\">\u2605 "+avgScore+"</div>"
         +"<div style=\"font-size:11px;color:var(--color-text-tertiary);\">"+withGuest.length+" avis</div>"
       +"</div>"
-      +"<div style=\"background:"+(pending>0?"#FEF3C7":"#F0FAF5")+";border:1.5px solid "+(pending>0?"#FCD34D":"#86EFAC")+";border-radius:var(--border-radius-lg);padding:14px;text-align:center;\">"
-        +"<div style=\"font-size:11px;color:var(--color-text-tertiary);margin-bottom:4px;\">Sans r\u00e9ponse</div>"
-        +"<div style=\"font-size:28px;font-weight:500;color:"+(pending>0?"#D97706":"#0F6E56")+"\">"+pending+"</div>"
-        +"<div style=\"font-size:11px;color:var(--color-text-tertiary);\">A r\u00e9pondre</div>"
+      +"<div style=\"background:#F0FAF5;border:1.5px solid #86EFAC;border-radius:10px;padding:14px;text-align:center;\">"
+        +"<div style=\"font-size:11px;color:var(--color-text-tertiary);margin-bottom:4px;\">\u2605 5 \u00e9toiles</div>"
+        +"<div style=\"font-size:26px;font-weight:500;color:#0F6E56;\">"+Math.round(five/Math.max(withGuest.length,1)*100)+"%</div>"
+        +"<div style=\"font-size:11px;color:var(--color-text-tertiary);\">"+five+"/"+withGuest.length+"</div>"
       +"</div>"
-      +"<div style=\"background:#F0FAF5;border:1.5px solid #86EFAC;border-radius:var(--border-radius-lg);padding:14px;text-align:center;\">"
-        +"<div style=\"font-size:11px;color:var(--color-text-tertiary);margin-bottom:4px;\">5 \u00e9toiles</div>"
-        +"<div style=\"font-size:28px;font-weight:500;color:#0F6E56;\">"+withGuest.filter(function(r){return r.guest_review.score===5;}).length+"</div>"
-        +"<div style=\"font-size:11px;color:var(--color-text-tertiary);\">"+Math.round(withGuest.filter(function(r){return r.guest_review.score===5;}).length/Math.max(withGuest.length,1)*100)+"%</div>"
+      +"<div style=\"background:"+(noReply>0?"#FFFBEB":"#F0FAF5")+";border:1.5px solid "+(noReply>0?"#FCD34D":"#86EFAC")+";border-radius:10px;padding:14px;text-align:center;\">"
+        +"<div style=\"font-size:11px;color:var(--color-text-tertiary);margin-bottom:4px;\">Sans r\u00e9ponse</div>"
+        +"<div style=\"font-size:26px;font-weight:500;color:"+(noReply>0?"#D97706":"#0F6E56")+"\">"+noReply+"</div>"
+      +"</div>"
+      +"<div style=\"background:"+(pending.length>0?"#FFFBEB":"#F0FAF5")+";border:1.5px solid "+(pending.length>0?"#FCD34D":"#86EFAC")+";border-radius:10px;padding:14px;text-align:center;\">"
+        +"<div style=\"font-size:11px;color:var(--color-text-tertiary);margin-bottom:4px;\">A noter</div>"
+        +"<div style=\"font-size:26px;font-weight:500;color:"+(pending.length>0?"#D97706":"#0F6E56")+"\">"+pending.length+"</div>"
       +"</div>"
     +"</div>";
+  }
 
-    // Liste avis
-    h+="<div style=\"display:flex;flex-direction:column;gap:12px;\">";
-    reviews.forEach(function(rev){
-      if(!rev.guest_review)return;
+  var list=document.getElementById("rev-list");
+  if(!list)return;
+
+  if(tab==="pending"){
+    if(!pending.length){
+      list.innerHTML="<div style=\"text-align:center;padding:40px;color:var(--color-text-tertiary);\"><div style=\"font-size:32px;margin-bottom:8px;\">\u2713</div>Aucun voyageur \u00e0 noter.</div>";
+      return;
+    }
+    var h2="<div style=\"display:flex;flex-direction:column;gap:12px;\">";
+    pending.forEach(function(rev){
       var res=S.reservations.find(function(r){return r.id===rev.reservation_code;});
-      var gname=res?res.guest:(rev.reservation_code||"Voyageur");
+      var gname=res?res.guest:"Voyageur";
+      var prop=S.props.find(function(p){return String(p.id)===String(rev.property_id);});
+      var ini=(gname||"?").charAt(0).toUpperCase();
+      var avColor=COLORS[ini.charCodeAt(0)%COLORS.length];
+      var code=rev.reservation_code;
+      if(!window._ratings)window._ratings={};
+      if(!window._ratings[code])window._ratings[code]={cleanliness:5,communication:5,respect_house_rules:5,overall:5};
+      h2+="<div style=\"background:#FFFBEB;border:1.5px solid #FCD34D;border-radius:10px;padding:16px;\">"
+        +"<div style=\"display:flex;align-items:center;gap:10px;margin-bottom:14px;\">"
+          +"<div style=\"width:38px;height:38px;border-radius:50%;background:"+avColor+";display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:500;color:#fff;\">"+ini+"</div>"
+          +"<div style=\"flex:1;\">"
+            +"<div style=\"font-size:14px;font-weight:500;\">"+gname+"</div>"
+            +"<div style=\"font-size:11px;color:var(--color-text-tertiary);\">"+(prop?prop.name:"")+" \u00b7 "+rev.check_in_date+" \u2192 "+rev.check_out_date+"</div>"
+          +"</div>"
+          +"<span style=\"font-size:10px;background:#FCD34D;color:#92400E;border-radius:10px;padding:2px 10px;font-weight:500;\">\u23f3 A noter</span>"
+        +"</div>"
+        // Note globale
+        +"<div style=\"margin-bottom:12px;\">"
+          +"<div style=\"font-size:11px;font-weight:500;color:var(--color-text-secondary);margin-bottom:6px;\">Note globale</div>"
+          +"<div style=\"display:flex;gap:6px;\">"
+          +[1,2,3,4,5].map(function(n){
+            var active=n<=window._ratings[code].overall;
+            return "<div onclick=\"_setOverallRating('"+code+"',"+n+")\" id=\"overall-"+code+"-"+n+"\" style=\"width:34px;height:34px;border-radius:8px;border:1.5px solid "+(active?"#0F6E56":"var(--color-border-secondary)")+";cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;background:"+(active?"#0F6E56":"var(--color-background-secondary)")+";color:"+(active?"#fff":"var(--color-text-secondary)")+"\">"+n+"</div>";
+          }).join("")
+          +"</div>"
+        +"</div>"
+        // Sous-scores
+        +"<div style=\"display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;\">"
+        +[["cleanliness","Propret\u00e9"],["communication","Communication"],["respect_house_rules","R\u00e8gles"]].map(function(cat){
+          var key=cat[0],lbl=cat[1];
+          return "<div style=\"background:var(--color-background-secondary);border:0.5px solid var(--color-border-secondary);border-radius:8px;padding:10px;text-align:center;\">"
+            +"<div style=\"font-size:10px;color:var(--color-text-tertiary);margin-bottom:6px;\">"+lbl+"</div>"
+            +"<div style=\"display:flex;justify-content:center;gap:2px;\">"
+            +[1,2,3,4,5].map(function(n){
+              return "<div onclick=\"_setStarRating('"+code+"','"+key+"',"+n+")\" id=\"star-"+code+"-"+key+"-"+n+"\" style=\"cursor:pointer;font-size:18px;color:"+(n<=window._ratings[code][key]?"#EF9F27":"#D1D5DB")+"\">\u2605</div>";
+            }).join("")
+            +"</div>"
+          +"</div>";
+        }).join("")
+        +"</div>"
+        // Commentaire
+        +"<div style=\"margin-bottom:10px;\">"
+          +"<div style=\"font-size:11px;font-weight:500;color:var(--color-text-secondary);margin-bottom:4px;\">Commentaire public</div>"
+          +"<textarea id=\"content-"+code+"\" placeholder=\"Commentaire public...\" style=\"width:100%;border:1px solid var(--color-border-secondary);border-radius:8px;padding:8px;font-size:12px;resize:none;height:65px;font-family:var(--font-sans,system-ui);background:var(--color-background-secondary);color:var(--color-text-primary);\"></textarea>"
+        +"</div>"
+        +"<div style=\"margin-bottom:12px;\">"
+          +"<div style=\"font-size:11px;font-weight:500;color:var(--color-text-secondary);margin-bottom:4px;\">Message priv\u00e9</div>"
+          +"<textarea id=\"private-"+code+"\" placeholder=\"Optionnel...\" style=\"width:100%;border:1px solid var(--color-border-secondary);border-radius:8px;padding:8px;font-size:12px;resize:none;height:45px;font-family:var(--font-sans,system-ui);background:var(--color-background-secondary);color:var(--color-text-primary);\"></textarea>"
+        +"</div>"
+        +"<div style=\"display:flex;gap:8px;\">"
+          +"<button onclick=\"_generateGuestReview('"+code+"','"+gname.split(' ')[0]+"')\" style=\"display:flex;align-items:center;gap:6px;padding:8px 14px;border-radius:8px;border:none;background:linear-gradient(135deg,#6366F1,#8B5CF6);color:#fff;font-size:11px;font-weight:500;cursor:pointer;\">\u2726 Suggestion IA</button>"
+          +"<button onclick=\"_submitReview('"+code+"')\" style=\"flex:1;padding:8px;border-radius:8px;border:none;background:#0F6E56;color:#fff;font-size:12px;font-weight:500;cursor:pointer;\">Envoyer la note \u2192</button>"
+        +"</div>"
+      +"</div>";
+    });
+    h2+="</div>";
+    list.innerHTML=h2;
+  } else {
+    var withG=reviewed.filter(function(r){return r.guest_review;});
+    if(!withG.length){
+      list.innerHTML="<div style=\"text-align:center;padding:40px;color:var(--color-text-tertiary);\">Aucun avis re\u00e7u.</div>";
+      return;
+    }
+    var h3="<div style=\"display:flex;flex-direction:column;gap:12px;\">";
+    withG.forEach(function(rev){
+      var res=S.reservations.find(function(r){return r.id===rev.reservation_code;});
+      var gname=res?res.guest:"Voyageur";
       var prop=S.props.find(function(p){return String(p.id)===String(rev.property_id);});
       var pl=rev.channel_type==="airbnb"?"airbnb":"booking";
       var plColor=pl==="airbnb"?"#FF385C":"#003580";
-      var plLabel=pl==="airbnb"?"Airbnb":"Booking";
       var score=rev.guest_review.score||0;
       var stars="\u2605".repeat(score)+"\u2606".repeat(5-score);
       var hasReply=!!rev.host_reply;
       var dt=rev.guest_review.created_at?new Date(rev.guest_review.created_at).toLocaleDateString("fr-FR",{day:"numeric",month:"short",year:"numeric"}):"";
       var ini=(gname||"?").charAt(0).toUpperCase();
-      var COLORS=["#FF385C","#003580","#0F6E56","#EF9F27","#6366F1","#E24B4A","#1D9E75"];
       var avColor=COLORS[ini.charCodeAt(0)%COLORS.length];
-
-      h+="<div style=\"background:#FAFDF9;border:1.5px solid "+(hasReply?"#86EFAC":"#FCD34D")+";border-radius:var(--border-radius-lg);padding:16px;\">"
-        // Header
+      var code=rev.reservation_code;
+      h3+="<div style=\"background:#FAFDF9;border:1.5px solid "+(hasReply?"#86EFAC":"#FCD34D")+";border-radius:10px;padding:16px;\">"
         +"<div style=\"display:flex;align-items:center;gap:10px;margin-bottom:12px;\">"
-          +"<div style=\"width:38px;height:38px;border-radius:50%;background:"+avColor+";display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:500;color:#fff;flex-shrink:0;\">"+ini+"</div>"
+          +"<div style=\"width:36px;height:36px;border-radius:50%;background:"+avColor+";display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:500;color:#fff;\">"+ini+"</div>"
           +"<div style=\"flex:1;\">"
             +"<div style=\"font-size:13px;font-weight:500;\">"+gname+"</div>"
             +"<div style=\"font-size:11px;color:var(--color-text-tertiary);\">"+(prop?prop.name:"")+" \u00b7 "+rev.check_in_date+" \u00b7 "+dt+"</div>"
           +"</div>"
-          +"<span style=\"font-size:9px;font-weight:500;background:"+plColor+";color:#fff;border-radius:3px;padding:2px 7px;\">"+plLabel+"</span>"
-          +"<div style=\"font-size:16px;color:#EF9F27;letter-spacing:1px;\">"+stars+"</div>"
-          +(hasReply?"<span style=\"font-size:10px;background:#E1F5EE;color:#0F6E56;border-radius:10px;padding:2px 8px;font-weight:500;\">\u2713 R\u00e9pondu</span>":"<span style=\"font-size:10px;background:#FEF3C7;color:#D97706;border-radius:10px;padding:2px 8px;font-weight:500;\">\u23f3 En attente</span>")
+          +"<span style=\"font-size:9px;font-weight:500;background:"+plColor+";color:#fff;border-radius:3px;padding:2px 7px;\">"+(pl==="airbnb"?"AIR":"BK")+"</span>"
+          +"<div style=\"font-size:16px;color:#EF9F27;\">"+stars+"</div>"
+          +(hasReply?"<span style=\"font-size:10px;background:#E1F5EE;color:#0F6E56;border-radius:10px;padding:2px 8px;font-weight:500;\">\u2713 R\u00e9pondu</span>":"<span style=\"font-size:10px;background:#FEF3C7;color:#D97706;border-radius:10px;padding:2px 8px;font-weight:500;\">\u23f3 Sans r\u00e9ponse</span>")
         +"</div>"
-        // Commentaire voyageur
-        +"<div style=\"background:var(--color-background-secondary);border-radius:8px;padding:12px;margin-bottom:10px;font-size:12px;color:var(--color-text-primary);line-height:1.6;border-left:3px solid "+plColor+";\">"+rev.guest_review.content.replace(/\n/g,"<br>")+"</div>"
-        // Réponse existante ou bouton IA
+        +"<div style=\"background:var(--color-background-secondary);border-radius:8px;padding:12px;margin-bottom:10px;font-size:12px;line-height:1.6;border-left:3px solid "+plColor+";\">"+rev.guest_review.content.replace(/\n/g,"<br>")+"</div>"
         +(hasReply
-          ?"<div style=\"background:#E1F5EE;border-radius:8px;padding:12px;font-size:12px;color:var(--color-text-primary);line-height:1.6;border-left:3px solid #0F6E56;\">"
+          ?"<div style=\"background:#E1F5EE;border-radius:8px;padding:12px;font-size:12px;line-height:1.6;border-left:3px solid #0F6E56;\">"
             +"<div style=\"font-size:10px;font-weight:500;color:#0F6E56;margin-bottom:4px;\">Votre r\u00e9ponse</div>"
             +rev.host_reply
           +"</div>"
-          :"<div id=\"reply-box-"+rev.reservation_code+"\">"
-            +"<div style=\"display:flex;gap:8px;align-items:center;\">"
-              +"<button onclick=\"_generateReviewReply('"+rev.reservation_code+"','"+rev.guest_review.content.replace(/'/g," ").replace(/\n/g," ").slice(0,100)+"','"+plLabel+"')\" style=\"display:flex;align-items:center;gap:6px;padding:8px 14px;border-radius:8px;border:none;background:linear-gradient(135deg,#6366F1,#8B5CF6);color:#fff;font-size:11px;font-weight:500;cursor:pointer;\">"
-                +"<span>\u2726</span> G\u00e9n\u00e9rer r\u00e9ponse IA"
-              +"</button>"
-              +"<div style=\"font-size:11px;color:var(--color-text-tertiary);\">La r\u00e9ponse sera \u00e0 copier dans "+plLabel+"</div>"
-            +"</div>"
-          +"</div>"
+          :"<div id=\"reply-box-"+code+"\"><button onclick=\"_generateReviewReply('"+code+"','"+rev.guest_review.content.replace(/'/g," ").replace(/\n/g," ").slice(0,80)+"','"+(pl==="airbnb"?"Airbnb":"Booking")+"')\" style=\"display:flex;align-items:center;gap:6px;padding:8px 14px;border-radius:8px;border:none;background:linear-gradient(135deg,#6366F1,#8B5CF6);color:#fff;font-size:11px;font-weight:500;cursor:pointer;\">\u2726 G\u00e9n\u00e9rer r\u00e9ponse IA</button></div>"
         )
       +"</div>";
     });
-    h+="</div>";
-    document.getElementById("reviews-list").innerHTML=h;
-  }).catch(function(e){
-    document.getElementById("reviews-list").innerHTML="<div style=\"padding:20px;color:var(--color-text-danger);\">Erreur: "+e.message+"</div>";
-  });
-}
-
-async function _generateReviewReply(resCode,guestComment,platform){
-  var box=document.getElementById("reply-box-"+resCode);
-  if(!box)return;
-  box.innerHTML="<div style=\"padding:10px;font-size:12px;color:var(--color-text-tertiary);\">G\u00e9n\u00e9ration en cours...</div>";
-  try{
-    var res=S.reservations.find(function(r){return r.id===resCode;});
-    var gname=res?res.guest.split(" ")[0]:"";
-    var prop=res?S.props.find(function(p){return p.id===res.prop_id;}):null;
-    var system="Tu es un hote Airbnb/Booking professionnel. Tu reponds aux avis des voyageurs de facon chaleureuse, authentique et concise en francais. Mentionne le prenom du voyageur. Remercie specifiquement pour leur commentaire. 3-4 phrases max. Invite a revenir.";
-    var resp=await fetch("/api-claude",{
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({
-        model:"claude-sonnet-4-5",
-        max_tokens:300,
-        system:system,
-        messages:[{role:"user",content:"Voyageur: "+gname+". Plateforme: "+platform+". Logement: "+(prop?prop.name:"")+". Commentaire: "+guestComment}]
-      })
-    });
-    var data=await resp.json();
-    var reply=(data.content&&data.content[0]&&data.content[0].text)||"";
-    if(!reply){box.innerHTML="<div style=\"color:var(--color-text-danger);\">Erreur IA</div>";return;}
-    window["_reply_"+resCode]=reply;
-    box.innerHTML="<div style=\"background:#F5F3FF;border:1px solid #C4B5FD;border-radius:8px;padding:12px;margin-top:4px;\">"
-      +"<div style=\"display:flex;align-items:center;gap:6px;margin-bottom:8px;\">"
-        +"<div style=\"width:18px;height:18px;border-radius:50%;background:linear-gradient(135deg,#6366F1,#8B5CF6);display:flex;align-items:center;justify-content:center;font-size:9px;color:#fff;\">\u2726</div>"
-        +"<div style=\"font-size:11px;font-weight:500;color:#4338CA;\">R\u00e9ponse sugg\u00e9r\u00e9e par IA</div>"
-      +"</div>"
-      +"<div id=\"reply-text-"+resCode+"\" contenteditable=\"true\" style=\"font-size:12px;color:var(--color-text-primary);line-height:1.6;padding:8px;background:var(--color-background-primary);border-radius:6px;border:0.5px solid #C4B5FD;min-height:60px;\">"+reply+"</div>"
-      +"<div style=\"display:flex;gap:8px;margin-top:10px;\">"
-        +"<button onclick=\"_copyReply('"+resCode+"')\" style=\"flex:1;padding:8px;border-radius:8px;border:none;background:#0F6E56;color:#fff;font-size:11px;font-weight:500;cursor:pointer;\">\u29c9 Copier la r\u00e9ponse</button>"
-        +"<button onclick=\"_regenerateReply('"+resCode+"','"+guestComment+"','"+platform+"')\" style=\"padding:8px 12px;border-radius:8px;border:0.5px solid var(--color-border-secondary);background:var(--color-background-secondary);color:var(--color-text-secondary);font-size:11px;cursor:pointer;\">\u21bb</button>"
-      +"</div>"
-    +"</div>";
-  }catch(e){
-    box.innerHTML="<div style=\"padding:10px;font-size:11px;color:var(--color-text-danger);\">Erreur: "+e.message+"</div>";
+    h3+="</div>";
+    list.innerHTML=h3;
   }
 }
 
-function _copyReply(resCode){
-  var el=document.getElementById("reply-text-"+resCode);
-  if(!el)return;
-  var text=el.innerText||el.textContent;
-  navigator.clipboard.writeText(text).then(function(){
-    showToast("\u2713 R\u00e9ponse copi\u00e9e ! Collez-la sur "+( resCode.startsWith("9-")?"Booking":"Airbnb"));
-  }).catch(function(){
-    showToast("S\u00e9lectionnez et copiez le texte manuellement");
-  });
+function _setStarRating(code,cat,n){
+  if(!window._ratings)window._ratings={};
+  if(!window._ratings[code])window._ratings[code]={cleanliness:5,communication:5,respect_house_rules:5,overall:5};
+  window._ratings[code][cat]=n;
+  for(var i=1;i<=5;i++){
+    var el=document.getElementById("star-"+code+"-"+cat+"-"+i);
+    if(el)el.style.color=i<=n?"#EF9F27":"#D1D5DB";
+  }
 }
 
-function _regenerateReply(resCode,comment,platform){
-  _generateReviewReply(resCode,comment,platform);
+function _setOverallRating(code,n){
+  if(!window._ratings)window._ratings={};
+  if(!window._ratings[code])window._ratings[code]={cleanliness:5,communication:5,respect_house_rules:5,overall:5};
+  window._ratings[code].overall=n;
+  for(var i=1;i<=5;i++){
+    var el=document.getElementById("overall-"+code+"-"+i);
+    if(el){
+      el.style.background=i<=n?"#0F6E56":"var(--color-background-secondary)";
+      el.style.color=i<=n?"#fff":"var(--color-text-secondary)";
+      el.style.borderColor=i<=n?"#0F6E56":"var(--color-border-secondary)";
+    }
+  }
 }
+
+async function _generateGuestReview(code,gname){
+  var el=document.getElementById("content-"+code);
+  if(!el)return;
+  el.value="Generation...";
+  try{
+    var r=await fetch("/api-claude",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-5",max_tokens:200,system:"Tu es un hote Airbnb. Ecris un commentaire public positif et authentique en 2-3 phrases pour un voyageur. Mentionne son prenom. Commence directement sans formule.",messages:[{role:"user",content:"Voyageur: "+gname+". Sejour 5 etoiles."}]})});
+    var d=await r.json();
+    el.value=(d.content&&d.content[0]&&d.content[0].text)||"";
+    var pv=document.getElementById("private-"+code);
+    if(pv&&!pv.value)pv.value="Sejour parfait, je recommande "+gname+" sans hesitation.";
+  }catch(e){el.value="";showToast("Erreur IA");}
+}
+
+async function _submitReview(code){
+  var el=document.getElementById("content-"+code);
+  var pv=document.getElementById("private-"+code);
+  var rt=window._ratings&&window._ratings[code];
+  if(!el||!el.value.trim()){showToast("Ajoutez un commentaire");return;}
+  var body={score:rt?rt.overall:5,content:el.value.trim(),private_feedback:(pv&&pv.value.trim())||"",sub_score:[{category:"cleanliness",rating:rt?rt.cleanliness:5,review_category_tags:[]},{category:"communication",rating:rt?rt.communication:5,review_category_tags:[]},{category:"respect_house_rules",rating:rt?rt.respect_house_rules:5,review_category_tags:[]}]};
+  try{
+    var d=await api("/reviews/"+code,"POST",body);
+    if(d.error_code===200){showToast("\u2713 Note envoyee !");S._revLoaded=false;renderReviews();}
+    else showToast("Erreur: "+(d.error_msg||"Format invalide"));
+  }catch(e){showToast("Erreur: "+e.message);}
+}
+
+async function _generateReviewReply(code,comment,platform){
+  var box=document.getElementById("reply-box-"+code);
+  if(!box)return;
+  box.innerHTML="<div style=\"padding:10px;font-size:12px;color:var(--color-text-tertiary);\">Generation...</div>";
+  try{
+    var r=await fetch("/api-claude",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-5",max_tokens:200,system:"Tu es un hote Airbnb/Booking. Reponds aux avis voyageurs en francais, chaleureux et concis. 2-3 phrases max. Remercie pour le commentaire specifique. Invite a revenir.",messages:[{role:"user",content:"Plateforme: "+platform+". Commentaire: "+comment}]})});
+    var d=await r.json();
+    var reply=(d.content&&d.content[0]&&d.content[0].text)||"";
+    window["_reply_"+code]=reply;
+    box.innerHTML="<div style=\"background:#F5F3FF;border:1px solid #C4B5FD;border-radius:8px;padding:12px;\">"
+      +"<div style=\"font-size:10px;font-weight:500;color:#4338CA;margin-bottom:6px;\">\u2726 Suggestion IA</div>"
+      +"<div id=\"reply-text-"+code+"\" contenteditable=\"true\" style=\"font-size:12px;line-height:1.6;padding:6px;background:var(--color-background-primary);border-radius:6px;border:0.5px solid #C4B5FD;min-height:50px;\">"+reply+"</div>"
+      +"<div style=\"display:flex;gap:6px;margin-top:8px;\">"
+        +"<button onclick=\"_copyReply('"+code+"')\" style=\"flex:1;padding:7px;border-radius:7px;border:none;background:#0F6E56;color:#fff;font-size:11px;font-weight:500;cursor:pointer;\">\u29c9 Copier</button>"
+        +"<button onclick=\"_generateReviewReply('"+code+"','"+comment+"','"+platform+"')\" style=\"padding:7px 10px;border-radius:7px;border:0.5px solid var(--color-border-secondary);background:var(--color-background-secondary);font-size:11px;cursor:pointer;\">\u21bb</button>"
+      +"</div>"
+    +"</div>";
+  }catch(e){box.innerHTML="<div style=\"padding:10px;color:var(--color-text-danger);\">Erreur IA</div>";}
+}
+
+function _copyReply(code){
+  var el=document.getElementById("reply-text-"+code);
+  if(!el)return;
+  navigator.clipboard.writeText(el.innerText||el.textContent).then(function(){
+    showToast("\u2713 Copie ! Collez sur Airbnb/Booking");
+  }).catch(function(){showToast("Selectionnez et copiez manuellement");});
+}
+
+function _regenerateReply(code,comment,platform){_generateReviewReply(code,comment,platform);}
 
 function showToast(msg,dur){var t=document.getElementById('toast');if(!t){t=document.createElement('div');t.id='toast';t.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;padding:10px 20px;border-radius:8px;font-size:13px;z-index:9999;transition:opacity .3s;pointer-events:none;';document.body.appendChild(t);}t.textContent=msg;t.style.opacity='1';clearTimeout(t._t);t._t=setTimeout(function(){t.style.opacity='0';},dur||2500);}
 function showModal(h){var m=document.getElementById('modal');var mb=document.getElementById('modal-body');if(!m){m=document.createElement('div');m.id='modal';m.style.cssText='display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.4);z-index:1000;align-items:center;justify-content:center;';var inner=document.createElement('div');inner.style.cssText='background:#fff;border-radius:12px;padding:20px;max-width:500px;width:90%;max-height:85vh;overflow-y:auto;position:relative;';mb=document.createElement('div');mb.id='modal-body';inner.appendChild(mb);var cl=document.createElement('button');cl.textContent='×';cl.style.cssText='position:absolute;top:10px;right:14px;background:none;border:none;font-size:20px;cursor:pointer;color:#888;';cl.onclick=closeModal;inner.appendChild(cl);m.appendChild(inner);m.onclick=function(e){if(e.target===m)closeModal();};document.body.appendChild(m);}mb.innerHTML=h;m.style.display='flex';}
