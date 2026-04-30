@@ -903,6 +903,41 @@ function _copyReply(code){
 
 function _regenerateReply(code,comment,platform){_generateReviewReply(code,comment,platform);}
 
+function _renderPendingRevDash(){
+  var box=document.getElementById("dash-pending-reviews");
+  if(!box)return;
+  var revs=S._pendingReviews||[];
+  if(!revs.length){box.innerHTML="";return;}
+  var COLORS=["#FF385C","#003580","#0F6E56","#EF9F27","#6366F1","#E24B4A","#1D9E75"];
+  var h="<div style=\"background:#FFFBEB;border:1.5px solid #FCD34D;border-radius:var(--border-radius-lg);padding:14px;margin-bottom:12px;\">"
+    +"<div style=\"display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;\">"
+      +"<div style=\"display:flex;align-items:center;gap:8px;\">"
+        +"<div style=\"font-size:13px;font-weight:500;\">Avis \u00e0 d\u00e9poser</div>"
+        +"<span style=\"background:#F59E0B;color:#fff;border-radius:10px;padding:2px 8px;font-size:10px;font-weight:500;\">"+revs.length+"</span>"
+      +"</div>"
+      +"<button onclick=\"navigate('reviews')\" style=\"font-size:11px;padding:5px 12px;border-radius:8px;border:0.5px solid #FCD34D;background:rgba(245,158,11,.1);cursor:pointer;color:#D97706;font-weight:500;\">Noter \u2192</button>"
+    +"</div>"
+    +"<div style=\"display:flex;flex-direction:column;gap:8px;\">";
+  revs.forEach(function(rev){
+    var res=S.reservations.find(function(r){return r.id===rev.reservation_code;});
+    var gname=res?res.guest:"Voyageur";
+    var prop=S.props.find(function(p){return String(p.id)===String(rev.property_id);});
+    var ini=(gname||"?").charAt(0).toUpperCase();
+    var avColor=COLORS[ini.charCodeAt(0)%COLORS.length];
+    var nights=Math.round((new Date(rev.check_out_date)-new Date(rev.check_in_date))/86400000);
+    h+="<div style=\"display:flex;align-items:center;gap:10px;padding:8px;background:rgba(255,255,255,.7);border-radius:var(--border-radius-md);border:0.5px solid #FCD34D;cursor:pointer;\" onclick=\"navigate('reviews')\">"
+      +"<div style=\"width:38px;height:38px;border-radius:50%;background:linear-gradient(145deg,"+avColor+","+avColor+"99);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:#fff;flex-shrink:0;box-shadow:0 2px 6px rgba(0,0,0,.15);\">"+ini+"</div>"
+      +"<div style=\"flex:1;min-width:0;\">"
+        +"<div style=\"font-size:13px;font-weight:500;color:var(--color-text-primary);\">"+gname+"</div>"
+        +"<div style=\"font-size:11px;color:var(--color-text-tertiary);\">"+(prop?prop.name.split(" ")[0]:"")+" \u00b7 "+rev.check_in_date+" \u2192 "+rev.check_out_date+" \u00b7 "+nights+" nuit"+(nights>1?"s":"")+"</div>"
+      +"</div>"
+      +"<div style=\"font-size:10px;font-weight:500;background:#F59E0B;color:#fff;border-radius:6px;padding:3px 10px;\">\u2605 A noter</div>"
+    +"</div>";
+  });
+  h+="</div></div>";
+  box.innerHTML=h;
+}
+
 function showToast(msg,dur){var t=document.getElementById('toast');if(!t){t=document.createElement('div');t.id='toast';t.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;padding:10px 20px;border-radius:8px;font-size:13px;z-index:9999;transition:opacity .3s;pointer-events:none;';document.body.appendChild(t);}t.textContent=msg;t.style.opacity='1';clearTimeout(t._t);t._t=setTimeout(function(){t.style.opacity='0';},dur||2500);}
 function showModal(h){var m=document.getElementById('modal');var mb=document.getElementById('modal-body');if(!m){m=document.createElement('div');m.id='modal';m.style.cssText='display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.4);z-index:1000;align-items:center;justify-content:center;';var inner=document.createElement('div');inner.style.cssText='background:#fff;border-radius:12px;padding:20px;max-width:500px;width:90%;max-height:85vh;overflow-y:auto;position:relative;';mb=document.createElement('div');mb.id='modal-body';inner.appendChild(mb);var cl=document.createElement('button');cl.textContent='×';cl.style.cssText='position:absolute;top:10px;right:14px;background:none;border:none;font-size:20px;cursor:pointer;color:#888;';cl.onclick=closeModal;inner.appendChild(cl);m.appendChild(inner);m.onclick=function(e){if(e.target===m)closeModal();};document.body.appendChild(m);}mb.innerHTML=h;m.style.display='flex';}
 function closeModal(){var m=document.getElementById('modal');if(m)m.style.display='none';}
@@ -1187,6 +1222,19 @@ function renderDash(){
       +"</div>"
     +"</div>"
   +"</div>";
+
+
+  // --- Avis à noter ---
+  if(!S._pendingReviews){
+    api("/reviews?limit=20&offset=0&review_status=pending_host_review").then(function(d){
+      var revs=(d&&d.data&&d.data.reviews)||[];
+      var todayS=new Date().toISOString().split("T")[0];
+      S._pendingReviews=revs.filter(function(r){return r.check_out_date<=todayS;});
+      _renderPendingRevDash();
+    }).catch(function(){S._pendingReviews=[];});
+  } else {
+    _renderPendingRevDash();
+  }
 
   // Prochaines arrivées
   var next5=upcoming.slice(0,6);
