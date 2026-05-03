@@ -1053,26 +1053,23 @@ function renderDash(){
 
   // --- 2. KPIs cliquables ---
   h+="<div style=\"display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px;\">";
-  var kpis=[
-    {l:"Revenus ce mois",v:Math.round(monthRev).toLocaleString("fr-FR")+" \u20ac",s:monthRes.length+" r\u00e9s. \u00b7 net com.",c:"#0F6E56",
-     onclick:"_showMonthDetail('month')"},
-    {l:"Encaiss\u00e9 "+now.getFullYear(),v:Math.round(yearRev).toLocaleString("fr-FR")+" \u20ac",s:yearRes.length+" r\u00e9s.",c:"",
-     onclick:"_showMonthDetail('year')"},
-    {l:"Messages non lus",v:unread,s:unread>0?"Cliquer pour r\u00e9pondre":"Tout lu",c:unread>0?"#E24B4A":"",
-     onclick:"navigate('messages')"},
-    {l:"Arriv\u00e9es \u00e0 venir",v:upcoming.length,s:"prochaines",c:"",
-     onclick:"_showMonthDetail('upcoming')"}
+  var kpiDefs=[
+    {l:"Revenus ce mois",v:Math.round(monthRev).toLocaleString("fr-FR")+" \u20ac",s:monthRes.length+" r\u00e9s. net com.",
+     bg:"#F0F4FF",bd:"#C7D7FE",lc:"#3730A3",vc:"#312E81",sc:"#6366F1",onclick:"_showMonthDetail('month')"},
+    {l:"Encaiss\u00e9 "+now.getFullYear(),v:Math.round(yearRev).toLocaleString("fr-FR")+" \u20ac",s:yearRes.length+" r\u00e9s.",
+     bg:"#FFF7ED",bd:"#FED7AA",lc:"#9A3412",vc:"#7C2D12",sc:"#EA580C",onclick:"_showMonthDetail('year')"},
+    {l:"Messages non lus",v:unread,s:unread>0?"Cliquer pour r\u00e9pondre":"Tout lu",
+     bg:"#FFF1F2",bd:"#FECDD3",lc:"#9F1239",vc:"#881337",sc:"#E11D48",onclick:"navigate('messages')"},
+    {l:"Arriv\u00e9es \u00e0 venir",v:upcoming.length,s:"prochaines",
+     bg:"#F0FDF4",bd:"#BBF7D0",lc:"#14532D",vc:"#052E16",sc:"#16A34A",onclick:"_showMonthDetail('upcoming')"}
   ];
-  kpis.forEach(function(k){
-    h+="<div onclick=\""+k.onclick+"\" style=\"background:#F0FAF5;border:1.5px solid #86EFAC;border-radius:var(--border-radius-lg);padding:16px 18px;cursor:pointer;transition:box-shadow .15s;box-shadow:0 2px 8px rgba(15,110,86,.06);\" onmouseover=\"this.style.boxShadow='0 4px 16px rgba(15,110,86,.14)'\" onmouseout=\"this.style.boxShadow='0 2px 8px rgba(15,110,86,.06)'\">"
-      +"<div style=\"font-size:11px;color:var(--color-text-tertiary);margin-bottom:6px;\">"+k.l+"</div>"
-      +"<div style=\"font-size:26px;font-weight:500;color:"+(k.c||"var(--color-text-primary)")+";line-height:1;margin-bottom:4px;\">"+k.v+"</div>"
-      +"<div style=\"font-size:11px;color:var(--color-text-tertiary);\">"+k.s+"</div>"
+  kpiDefs.forEach(function(k){
+    h+="<div onclick=\""+k.onclick+"\" style=\"background:"+k.bg+";border:1.5px solid "+k.bd+";border-radius:var(--border-radius-lg);padding:16px 18px;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.04);transition:transform .15s,box-shadow .15s;\" onmouseover=\"this.style.transform='translateY(-2px)';this.style.boxShadow='0 6px 16px rgba(0,0,0,.1)'\" onmouseout=\"this.style.transform='';this.style.boxShadow='0 2px 6px rgba(0,0,0,.04)'\">"
+      +"<div style=\"font-size:11px;color:"+k.lc+";margin-bottom:6px;\">"+k.l+"</div>"
+      +"<div style=\"font-size:26px;font-weight:500;color:"+k.vc+";line-height:1;margin-bottom:4px;\">"+k.v+"</div>"
+      +"<div style=\"font-size:11px;color:"+k.sc+";\">" +k.s+ " &#8599;</div>"
     +"</div>";
   });
-  h+="</div>";
-
-  // Zone détail KPI (cachée par défaut)
   h+="<div id=\"kpi-detail\" style=\"display:none;margin-bottom:14px;\"></div>";
 
   // --- 3. Arrivée/départ par logement ---
