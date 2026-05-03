@@ -973,6 +973,24 @@ function _showRevPct(rev,m,past2,now2,netRev4fn){
   return Math.round(rev/mx*100);
 }
 
+function _showRevPct(rev,m,past2,now2,netRev4fn){
+  var mx=1;
+  for(var mm3=0;mm3<12;mm3++){
+    var v=past2.filter(function(r){var d=new Date(r.check_in+"T00:00:00");return d.getMonth()===mm3&&d.getFullYear()===now2.getFullYear();}).reduce(function(s,r){return s+netRev4fn(r);},0);
+    if(v>mx)mx=v;
+  }
+  return Math.round(rev/mx*100);
+}
+
+function _showRevPct(rev,m,past2,now2,netRev4fn){
+  var mx=1;
+  for(var mm3=0;mm3<12;mm3++){
+    var v=past2.filter(function(r){var d=new Date(r.check_in+"T00:00:00");return d.getMonth()===mm3&&d.getFullYear()===now2.getFullYear();}).reduce(function(s,r){return s+netRev4fn(r);},0);
+    if(v>mx)mx=v;
+  }
+  return Math.round(rev/mx*100);
+}
+
 function renderDash(){
   if(!S._msgsOpened){try{S._msgsOpened=JSON.parse(localStorage.getItem("msgsOpened")||"{}");}catch(e){S._msgsOpened={};}}
   var now=new Date();
