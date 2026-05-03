@@ -1024,47 +1024,6 @@ function renderDash(){
 
   var h="";
 
-  // --- 1. Avis à noter (si disponibles) ---
-  if(S._pendingReviews&&S._pendingReviews.length){
-    h+="<div style=\"background:#FFFBEB;border:1.5px solid #FCD34D;border-radius:var(--border-radius-lg);padding:14px;margin-bottom:14px;\">"
-      +"<div style=\"display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;\">"
-        +"<div style=\"display:flex;align-items:center;gap:8px;\">"
-          +"<span style=\"font-size:16px;\">&#9733;</span>"
-          +"<div style=\"font-size:13px;font-weight:500;\">Avis \u00e0 d\u00e9poser</div>"
-          +"<span style=\"background:#F59E0B;color:#fff;border-radius:10px;padding:2px 8px;font-size:10px;font-weight:500;\">"+S._pendingReviews.length+"</span>"
-        +"</div>"
-        +"<button onclick=\"navigate('reviews')\" style=\"font-size:11px;padding:5px 12px;border-radius:8px;border:0.5px solid #FCD34D;background:rgba(245,158,11,.15);cursor:pointer;color:#D97706;font-weight:500;\">Voir et noter \u2192</button>"
-      +"</div>"
-      +"<div style=\"display:flex;flex-direction:column;gap:6px;\">";
-    S._pendingReviews.forEach(function(rev){
-      var res=S.reservations.find(function(r){return r.id===rev.reservation_code;});
-      var gname=res?res.guest:"Voyageur";
-      var prop=S.props.find(function(p){return String(p.id)===String(rev.property_id);});
-      var a=av(gname);
-      var nights=Math.round((new Date(rev.check_out_date)-new Date(rev.check_in_date))/86400000);
-      h+="<div onclick=\"navigate('reviews')\" style=\"display:flex;align-items:center;gap:10px;padding:8px 10px;background:rgba(255,255,255,.7);border-radius:8px;border:0.5px solid #FCD34D;cursor:pointer;\">"
-        +"<div style=\"width:36px;height:36px;border-radius:50%;background:linear-gradient(145deg,"+a.color+","+a.color+"99);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:500;color:#fff;flex-shrink:0;\">"+a.ini+"</div>"
-        +"<div style=\"flex:1;min-width:0;\">"
-          +"<div style=\"font-size:13px;font-weight:500;\">"+gname+"</div>"
-          +"<div style=\"font-size:11px;color:var(--color-text-tertiary);\">"+(prop?prop.name.split(" ")[0]:"")+" \u00b7 "+dFmt(rev.check_in_date)+" \u2192 "+dFmt(rev.check_out_date)+" \u00b7 "+nights+" nuit"+(nights>1?"s":"")+"</div>"
-        +"</div>"
-        +"<span style=\"font-size:10px;background:#F59E0B;color:#fff;border-radius:6px;padding:3px 10px;font-weight:500;flex-shrink:0;\">\u2605 \u00c0 noter</span>"
-      +"</div>";
-    });
-    h+="</div></div>";
-  } else {
-    // Charger les avis en arrière-plan
-    if(!S._revChecked){
-      S._revChecked=true;
-      api("/reviews?limit=20&offset=0&review_status=pending_host_review").then(function(d){
-        var revs=(d&&d.data&&d.data.reviews)||[];
-        var ts=new Date().toISOString().split("T")[0];
-        S._pendingReviews=revs.filter(function(r){return r.check_out_date<=ts;});
-        if(S._pendingReviews.length)renderDash();
-      }).catch(function(){S._pendingReviews=[];});
-    }
-  }
-
   // --- 2. KPIs cliquables ---
   h+="<div style=\"display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px;\">";
   var kpis=[
@@ -1230,6 +1189,49 @@ function renderDash(){
     });
   }
   h+="</div>";
+
+  // --- 6b. Avis à noter ---
+  // --- 1. Avis à noter (si disponibles) ---
+  if(S._pendingReviews&&S._pendingReviews.length){
+    h+="<div style=\"background:#FFFBEB;border:1.5px solid #FCD34D;border-radius:var(--border-radius-lg);padding:14px;margin-bottom:14px;\">"
+      +"<div style=\"display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;\">"
+        +"<div style=\"display:flex;align-items:center;gap:8px;\">"
+          +"<span style=\"font-size:16px;\">&#9733;</span>"
+          +"<div style=\"font-size:13px;font-weight:500;\">Avis \u00e0 d\u00e9poser</div>"
+          +"<span style=\"background:#F59E0B;color:#fff;border-radius:10px;padding:2px 8px;font-size:10px;font-weight:500;\">"+S._pendingReviews.length+"</span>"
+        +"</div>"
+        +"<button onclick=\"navigate('reviews')\" style=\"font-size:11px;padding:5px 12px;border-radius:8px;border:0.5px solid #FCD34D;background:rgba(245,158,11,.15);cursor:pointer;color:#D97706;font-weight:500;\">Voir et noter \u2192</button>"
+      +"</div>"
+      +"<div style=\"display:flex;flex-direction:column;gap:6px;\">";
+    S._pendingReviews.forEach(function(rev){
+      var res=S.reservations.find(function(r){return r.id===rev.reservation_code;});
+      var gname=res?res.guest:"Voyageur";
+      var prop=S.props.find(function(p){return String(p.id)===String(rev.property_id);});
+      var a=av(gname);
+      var nights=Math.round((new Date(rev.check_out_date)-new Date(rev.check_in_date))/86400000);
+      h+="<div onclick=\"navigate('reviews')\" style=\"display:flex;align-items:center;gap:10px;padding:8px 10px;background:rgba(255,255,255,.7);border-radius:8px;border:0.5px solid #FCD34D;cursor:pointer;\">"
+        +"<div style=\"width:36px;height:36px;border-radius:50%;background:linear-gradient(145deg,"+a.color+","+a.color+"99);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:500;color:#fff;flex-shrink:0;\">"+a.ini+"</div>"
+        +"<div style=\"flex:1;min-width:0;\">"
+          +"<div style=\"font-size:13px;font-weight:500;\">"+gname+"</div>"
+          +"<div style=\"font-size:11px;color:var(--color-text-tertiary);\">"+(prop?prop.name.split(" ")[0]:"")+" \u00b7 "+dFmt(rev.check_in_date)+" \u2192 "+dFmt(rev.check_out_date)+" \u00b7 "+nights+" nuit"+(nights>1?"s":"")+"</div>"
+        +"</div>"
+        +"<span style=\"font-size:10px;background:#F59E0B;color:#fff;border-radius:6px;padding:3px 10px;font-weight:500;flex-shrink:0;\">\u2605 \u00c0 noter</span>"
+      +"</div>";
+    });
+    h+="</div></div>";
+  } else {
+    // Charger les avis en arrière-plan
+    if(!S._revChecked){
+      S._revChecked=true;
+      api("/reviews?limit=20&offset=0&review_status=pending_host_review").then(function(d){
+        var revs=(d&&d.data&&d.data.reviews)||[];
+        var ts=new Date().toISOString().split("T")[0];
+        S._pendingReviews=revs.filter(function(r){return r.check_out_date<=ts;});
+        if(S._pendingReviews.length)renderDash();
+      }).catch(function(){S._pendingReviews=[];});
+    }
+  }
+
 
   // --- 7. Messages en bas ---
   var allConvsSorted=S.conversations.slice().sort(function(a,b){return(b.last_message_at||"").localeCompare(a.last_message_at||"");});
