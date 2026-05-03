@@ -1335,7 +1335,7 @@ function _showMonthDetail(type){
       var isCur=m===now.getMonth();
       rows+="<div style=\"display:grid;grid-template-columns:80px 1fr 80px 60px;gap:8px;align-items:center;padding:7px 12px;border-bottom:0.5px solid var(--color-border-tertiary);background:"+(isCur?"#E1F5EE":"var(--color-background-primary)")+";\">"
         +"<div style=\"font-size:12px;font-weight:"+(isCur?500:400)+";color:"+(isCur?"#0F6E56":"var(--color-text-secondary)")+";\">"+MONTHS_F[m]+"</div>"
-        +"<div style=\"height:6px;background:var(--color-background-secondary);border-radius:3px;overflow:hidden;\"><div style=\"height:100%;background:"+(isCur?"#0F6E56":"#A8D5C2")+";width:"+Math.round(rev/Math.max(...([...Array(12)].map((_,mm)=>past.filter(r=>{var d=new Date(r.check_in+"T00:00:00");return d.getMonth()===mm&&d.getFullYear()===yr2;}).reduce((s,r)=>s+netRev4(r),0))),1))*100)+"%;\"></div></div>"
+        +"<div style=\"height:6px;background:var(--color-background-secondary);border-radius:3px;overflow:hidden;\"><div style=\"height:100%;background:"+(isCur?"#0F6E56":"#A8D5C2")+";width:"+Math.round(rev/function(){var _mx=1;for(var _mm=0;_mm<12;_mm++){var _v=past.filter(function(r){var d=new Date(r.check_in+"T00:00:00");return d.getMonth()===_mm&&d.getFullYear()===now.getFullYear();}).reduce(function(s,r){return s+netRev4(r);},0);if(_v>_mx)_mx=_v;}return _mx;}())*100)+"%;\"></div></div>"
         +"<div style=\"text-align:right;font-size:12px;font-weight:500;color:"+(isCur?"#0F6E56":"var(--color-text-primary)")+";\">"+(rev>0?Math.round(rev).toLocaleString("fr-FR")+"\u20ac":"\u2014")+"</div>"
         +"<div style=\"text-align:right;font-size:11px;color:var(--color-text-tertiary);\">"+mr.length+" r\u00e9s.</div>"
       +"</div>";
