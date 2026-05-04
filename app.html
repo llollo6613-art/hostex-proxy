@@ -865,12 +865,33 @@ async function _submitReview(code){
   var pv=document.getElementById("private-"+code);
   var rt=window._ratings&&window._ratings[code];
   if(!el||!el.value.trim()){showToast("Ajoutez un commentaire");return;}
-  var body={score:rt?rt.overall:5,content:el.value.trim(),private_feedback:(pv&&pv.value.trim())||"",sub_score:[{category:"cleanliness",rating:rt?rt.cleanliness:5,review_category_tags:[]},{category:"communication",rating:rt?rt.communication:5,review_category_tags:[]},{category:"respect_house_rules",rating:rt?rt.respect_house_rules:5,review_category_tags:[]}]};
+  var content=el.value.trim();
+  // Essayer via API Hostex
+  var body={score:rt?rt.overall:5,content:content,private_feedback:(pv&&pv.value.trim())||"",sub_score:[{category:"cleanliness",rating:rt?rt.cleanliness:5,review_category_tags:rt&&rt.cleanliness===5?["HOST_REVIEW_GUEST_POSITIVE_NEAT_AND_TIDY"]:[]},{category:"communication",rating:rt?rt.communication:5,review_category_tags:rt&&rt.communication===5?["HOST_REVIEW_GUEST_POSITIVE_HELPFUL_MESSAGES"]:[]},{category:"respect_house_rules",rating:rt?rt.respect_house_rules:5,review_category_tags:[]}]};
   try{
     var d=await api("/reviews/"+code,"POST",body);
-    if(d.error_code===200){showToast("\u2713 Note envoyee !");S._revLoaded=false;renderReviews();}
-    else showToast("Erreur: "+(d.error_msg||"Format invalide"));
-  }catch(e){showToast("Erreur: "+e.message);}
+    if(d.error_code===200){
+      showToast("\u2713 Note publiee sur Airbnb !");
+      S._revLoaded=false;
+      S._pendingReviews=null;
+      renderReviews();
+      return;
+    }
+  }catch(e){}
+  // Fallback: copier + ouvrir Airbnb
+  navigator.clipboard.writeText(content).then(function(){}).catch(function(){});
+  showModal(
+    "<div style=\"text-align:center;padding:10px;\">"
+      +"<div style=\"font-size:32px;margin-bottom:10px;\">\u2708\ufe0f</div>"
+      +"<div style=\"font-size:14px;font-weight:500;margin-bottom:8px;\">Note copiee !</div>"
+      +"<div style=\"font-size:12px;color:var(--color-text-secondary);margin-bottom:16px;\">L'API Airbnb ne permet pas l'envoi direct.<br>Votre note a ete <b>copiee dans le presse-papier</b>.<br>Collez-la directement sur Airbnb.</div>"
+      +"<div style=\"background:var(--color-background-secondary);border-radius:10px;padding:12px;margin-bottom:16px;font-size:12px;text-align:left;border:1px solid var(--color-border-secondary);\">"+content+"</div>"
+      +"<div style=\"display:flex;gap:8px;justify-content:center;\">"
+        +"<a href=\"https://www.airbnb.com/hosting/reviews\" target=\"_blank\" style=\"padding:8px 16px;border-radius:20px;background:#FF385C;color:#fff;font-size:12px;font-weight:500;text-decoration:none;\">Ouvrir Airbnb \u2197</a>"
+        +"<button onclick=\"closeModal()\" style=\"padding:8px 16px;border-radius:20px;border:1px solid var(--color-border-secondary);background:var(--color-background-secondary);font-size:12px;cursor:pointer;\">Fermer</button>"
+      +"</div>"
+    +"</div>"
+  );
 }
 
 async function _generateReviewReply(code,comment,platform){
