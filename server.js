@@ -44,25 +44,26 @@ async function hostexGet(p) {
 
 async function doSync() {
   const db = loadDB();
-  const now = new Date();
   let added = 0;
-  for (let o = -36; o <= 24; o++) {
-    const s = new Date(now.getFullYear(), now.getMonth() + o, 1);
-    const e = new Date(now.getFullYear(), now.getMonth() + o + 1, 0);
-    const from = s.toISOString().slice(0, 10);
-    const to   = e.toISOString().slice(0, 10);
+  // Charger toutes les pages
+  let page = 1;
+  let hasMore = true;
+  while (hasMore) {
     try {
-      const d = await hostexGet('/reservations?check_in_date_min=' + from + '&check_in_date_max=' + to + '&page_size=50');
+      const d = await hostexGet('/reservations?page_size=50&page=' + page);
       const list = (d && d.data && d.data.reservations) ? d.data.reservations : [];
+      if (list.length === 0) { hasMore = false; break; }
       for (const r of list) {
         const k = r.reservation_code || r.id;
         if (!db.reservations[k]) added++;
         db.reservations[k] = r;
       }
-    } catch (e2) {}
-    await new Promise(function(res) { setTimeout(res, 120); });
+      if (list.length < 50) { hasMore = false; }
+      page++;
+    } catch (e2) { hasMore = false; }
+    await new Promise(function(res) { setTimeout(res, 200); });
   }
-  db.last_sync = now.toISOString();
+  db.last_sync = new Date().toISOString();
   db.total = Object.keys(db.reservations).length;
   saveDB(db);
   return db;
