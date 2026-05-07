@@ -87,7 +87,12 @@ app.get('/all-reservations', async function(req, res) {
     let liveRes = [];
     try {
       const live = await hostexGet('/reservations?page_size=200&sort=check_in_date&sort_order=desc');
-      liveRes = (live && live.data && live.data.reservations) ? live.data.reservations : [];
+      const liveFuture = await hostexGet('/reservations?page_size=200&sort=check_in_date&sort_order=asc&check_in_date_min='+new Date().toISOString().split("T")[0]);
+      const allLive = [...((live&&live.data&&live.data.reservations)||[]), ...((liveFuture&&liveFuture.data&&liveFuture.data.reservations)||[])];
+      // dedup
+      const liveMap = {}; allLive.forEach(r => liveMap[r.reservation_code||r.id]=r);
+      liveRes = Object.values(liveMap);
+      // liveRes set above
     } catch (e) {}
     const map = {};
     for (const r of stored) map[r.reservation_code || r.id] = r;
