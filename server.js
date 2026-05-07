@@ -86,11 +86,23 @@ app.get('/all-reservations', async function(req, res) {
     const stored = Object.values(db.reservations);
     let liveRes = [];
     try {
-      const live = await hostexGet('/reservations?page_size=200&sort=check_in_date&sort_order=desc');
-      const liveFuture = await hostexGet('/reservations?page_size=200&sort=check_in_date&sort_order=asc&check_in_date_min='+new Date().toISOString().split("T")[0]);
-      const allLive = [...((live&&live.data&&live.data.reservations)||[]), ...((liveFuture&&liveFuture.data&&liveFuture.data.reservations)||[])];
-      // dedup
-      const liveMap = {}; allLive.forEach(r => liveMap[r.reservation_code||r.id]=r);
+      // Charger par tranches: passées (6 mois) + futures (12 mois)
+      const now = new Date();
+      const past6 = new Date(now); past6.setMonth(past6.getMonth()-6);
+      const fut12 = new Date(now); fut12.setMonth(fut12.getMonth()+12);
+      const dateFrom = past6.toISOString().split('T')[0];
+      const dateTo = fut12.toISOString().split('T')[0];
+      const [r1,r2,r3] = await Promise.all([
+        hostexGet('/reservations?page_size=200&check_in_date_min='+dateFrom+'&check_in_date_max='+now.toISOString().split('T')[0]),
+        hostexGet('/reservations?page_size=200&check_in_date_min='+now.toISOString().split('T')[0]+'&check_in_date_max='+dateTo),
+        hostexGet('/reservations?page_size=200&sort=check_in_date&sort_order=desc')
+      ]);
+      const allRes = [
+        ...((r1&&r1.data&&r1.data.reservations)||[]),
+        ...((r2&&r2.data&&r2.data.reservations)||[]),
+        ...((r3&&r3.data&&r3.data.reservations)||[])
+      ];
+      const liveMap = {}; allRes.forEach(r => liveMap[r.reservation_code||r.id]=r);
       liveRes = Object.values(liveMap);
       // liveRes set above
     } catch (e) {}
