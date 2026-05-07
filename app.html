@@ -162,13 +162,10 @@ async function syncLive(){
     if(!liveRes.length)return;
     const map={};
     for(const r of S.reservations)map[r.id]=r;
-    // Ajouter/remplacer avec les données API (sans écraser accepted par cancelled)
+    // API a toujours priorité sur CSV
     for(const r of liveRes){
       const key=r.reservation_code||r.id;
-      const mapped=mapRes(r);
-      const existing=map[key];
-      if(existing&&existing.status==='accepted'&&mapped.status==='cancelled')continue;
-      map[key]=mapped;
+      map[key]=mapRes(r);
     }
     // Dedup par guest+check_in+prop_id - toujours garder accepted sur cancelled
     const seen2={};const final2={};
