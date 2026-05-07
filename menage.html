@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Illiberis — Espace Ménage</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#F8F9FA;color:#1a1a1a;min-height:100vh;}
+
+/* LOGIN */
+#login-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:20px;background:linear-gradient(135deg,#0F6E56,#1D9E75);}
+.login-card{background:#fff;border-radius:20px;padding:32px;width:100%;max-width:340px;box-shadow:0 20px 60px rgba(0,0,0,.2);}
+.login-logo{text-align:center;margin-bottom:24px;}
+.login-logo .icon{font-size:48px;margin-bottom:8px;}
+.login-logo h1{font-size:20px;font-weight:600;color:#0F6E56;}
+.login-logo p{font-size:13px;color:#888;margin-top:4px;}
+.login-card input{width:100%;border:1.5px solid #e5e4e0;border-radius:12px;padding:12px 16px;font-size:16px;margin-bottom:12px;outline:none;transition:border .2s;}
+.login-card input:focus{border-color:#0F6E56;}
+.login-card button{width:100%;border:none;background:#0F6E56;color:#fff;border-radius:12px;padding:14px;font-size:15px;font-weight:600;cursor:pointer;transition:background .2s;}
+.login-card button:hover{background:#0A5A47;}
+.login-error{color:#E24B4A;font-size:12px;text-align:center;margin-top:8px;display:none;}
+
+/* APP */
+#app-screen{display:none;}
+.header{background:#0F6E56;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+.header h1{font-size:16px;font-weight:600;color:#fff;}
+.header-sub{font-size:11px;color:rgba(255,255,255,.7);margin-top:2px;}
+.logout-btn{background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:20px;padding:6px 14px;font-size:12px;cursor:pointer;}
+.content{padding:16px;max-width:600px;margin:0 auto;}
+
+/* TABS */
+.tabs{display:flex;gap:6px;margin-bottom:16px;background:#fff;border-radius:14px;padding:6px;border:1px solid #e5e4e0;}
+.tab{flex:1;padding:8px;border-radius:10px;border:none;background:transparent;font-size:13px;font-weight:500;cursor:pointer;color:#888;transition:all .2s;}
+.tab.active{background:#0F6E56;color:#fff;}
+
+/* TODAY BANNER */
+.today-banner{background:linear-gradient(135deg,#E1F5EE,#f0fdf8);border:1.5px solid #1D9E75;border-radius:16px;padding:16px;margin-bottom:16px;}
+.today-banner h2{font-size:14px;font-weight:600;color:#0F6E56;margin-bottom:12px;display:flex;align-items:center;gap:6px;}
+.menage-item{background:#fff;border-radius:12px;padding:12px;margin-bottom:8px;border:1px solid #e5e4e0;display:flex;align-items:center;gap:12px;}
+.menage-item.done{opacity:.5;background:#f5f5f5;}
+.menage-item.done .check-btn{background:#ccc;}
+.apt-badge{font-size:10px;font-weight:600;padding:3px 8px;border-radius:6px;color:#fff;flex-shrink:0;}
+.menage-info{flex:1;min-width:0;}
+.menage-info .guest{font-size:13px;font-weight:500;}
+.menage-info .details{font-size:11px;color:#888;margin-top:2px;}
+.check-btn{width:36px;height:36px;border-radius:50%;border:none;background:#0F6E56;color:#fff;font-size:18px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+
+/* CALENDAR */
+.cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.cal-header h3{font-size:15px;font-weight:600;}
+.cal-nav{background:#fff;border:1px solid #e5e4e0;border-radius:8px;padding:6px 12px;font-size:13px;cursor:pointer;}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;background:#fff;border-radius:16px;padding:14px;border:1px solid #e5e4e0;}
+.cal-day-hdr{text-align:center;font-size:11px;color:#888;font-weight:500;padding:4px 0;}
+.cal-day{min-height:56px;border-radius:10px;padding:4px;cursor:pointer;position:relative;transition:background .15s;}
+.cal-day:hover{background:#f5f5f5;}
+.cal-day.today{background:#E1F5EE;border:1.5px solid #1D9E75;}
+.cal-day.other-month{opacity:.3;}
+.cal-day .day-num{font-size:11px;font-weight:500;color:#444;}
+.cal-day.today .day-num{color:#0F6E56;font-weight:700;}
+.cal-day .res-bar{font-size:8px;border-radius:4px;padding:2px 4px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500;}
+.cal-day .res-bar.air{background:#FEE2E2;color:#DC2626;}
+.cal-day .res-bar.bk{background:#DBEAFE;color:#1D4ED8;}
+.cal-day .menage-icon{position:absolute;bottom:3px;right:3px;font-size:14px;}
+
+/* DETAIL MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:flex;align-items:flex-end;justify-content:center;}
+.modal-sheet{background:#fff;border-radius:20px 20px 0 0;padding:24px 20px;width:100%;max-width:480px;max-height:85vh;overflow-y:auto;}
+.modal-sheet h3{font-size:16px;font-weight:600;margin-bottom:16px;}
+.info-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:0.5px solid #f0efe9;}
+.info-row:last-child{border:none;}
+.info-icon{font-size:18px;width:28px;text-align:center;flex-shrink:0;}
+.info-label{font-size:11px;color:#888;margin-bottom:2px;}
+.info-val{font-size:13px;font-weight:500;}
+.close-btn{width:100%;padding:14px;border:none;background:#f5f5f5;border-radius:12px;font-size:14px;font-weight:500;cursor:pointer;margin-top:16px;}
+
+/* NOTES */
+.notes-card{background:#fff;border-radius:16px;padding:16px;border:1px solid #e5e4e0;margin-bottom:12px;}
+.notes-card h3{font-size:14px;font-weight:600;margin-bottom:10px;color:#0F6E56;}
+.note-item{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:0.5px solid #f0efe9;}
+.note-item:last-child{border:none;}
+.note-apt{font-size:10px;font-weight:600;padding:2px 7px;border-radius:6px;color:#fff;flex-shrink:0;margin-top:2px;}
+.note-text{font-size:12px;color:#444;line-height:1.5;flex:1;}
+.note-date{font-size:10px;color:#aaa;margin-top:2px;}
+
+/* CHECKLIST */
+.checklist-card{background:#fff;border-radius:16px;padding:16px;border:1px solid #e5e4e0;margin-bottom:12px;}
+.checklist-card h3{font-size:14px;font-weight:600;margin-bottom:12px;}
+.check-item{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:0.5px solid #f0efe9;cursor:pointer;}
+.check-item:last-child{border:none;}
+.check-box{width:22px;height:22px;border-radius:6px;border:1.5px solid #ccc;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;transition:all .2s;}
+.check-box.checked{background:#0F6E56;border-color:#0F6E56;color:#fff;}
+.check-label{font-size:13px;flex:1;}
+.check-label.checked{text-decoration:line-through;color:#aaa;}
+
+/* EMPTY */
+.empty{text-align:center;padding:32px;color:#aaa;}
+.empty .emoji{font-size:40px;margin-bottom:8px;}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="icon">🧹</div>
+      <h1>Illiberis Ménage</h1>
+      <p>Espace équipe de ménage</p>
+    </div>
+    <input type="password" id="pwd-input" placeholder="Mot de passe" onkeydown="if(event.key==='Enter')doLogin()">
+    <button onclick="doLogin()">Se connecter</button>
+    <div class="login-error" id="login-error">Mot de passe incorrect</div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app-screen">
+  <div class="header">
+    <div>
+      <h1>🧹 Espace Ménage</h1>
+      <div class="header-sub" id="header-date"></div>
+    </div>
+    <button class="logout-btn" onclick="doLogout()">Déconnexion</button>
+  </div>
+  <div class="content">
+    <div class="tabs">
+      <button class="tab active" onclick="showTab('today')">Aujourd'hui</button>
+      <button class="tab" onclick="showTab('calendar')">Calendrier</button>
+      <button class="tab" onclick="showTab('checklist')">Check-list</button>
+      <button class="tab" onclick="showTab('notes')">Notes</button>
+    </div>
+    <div id="tab-today"></div>
+    <div id="tab-calendar" style="display:none;"></div>
+    <div id="tab-checklist" style="display:none;"></div>
+    <div id="tab-notes" style="display:none;"></div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal" style="display:none;" onclick="closeModal()">
+  <div class="modal-sheet" onclick="event.stopPropagation()">
+    <div id="modal-content"></div>
+    <button class="close-btn" onclick="closeModal()">Fermer</button>
+  </div>
+</div>
+
+<script>
+const PASSWORD = "menageelne";
+const PROXY = "";
+const PROPS = {
+  "12619011": {name:"Suite Illiberis", color:"#0F6E56", short:"Suite"},
+  "12619012": {name:"Loft Cinema Illiberis", color:"#6366F1", short:"Loft"}
+};
+var STATE = {
+  reservations: [],
+  calMonth: new Date(),
+  done: {},
+  notes: [],
+  checks: {}
+};
+var DEFAULT_CHECKS = [
+  "Changer les draps et taies",
+  "Nettoyer la salle de bain",
+  "Nettoyer les toilettes",
+  "Passer l'aspirateur",
+  "Laver le sol",
+  "Nettoyer la cuisine",
+  "Vider les poubelles",
+  "Réapprovisionner serviettes",
+  "Réapprovisionner papier toilette",
+  "Vérifier la vaisselle",
+  "Aérer l'appartement",
+  "Vérifier les fenêtres",
+  "Nettoyer le micro-ondes",
+  "Contrôle final"
+];
+
+function doLogin(){
+  var pwd = document.getElementById("pwd-input").value;
+  if(pwd === PASSWORD){
+    document.getElementById("login-screen").style.display = "none";
+    document.getElementById("app-screen").style.display = "block";
+    try{localStorage.setItem("menage_auth","1");}catch(e){}
+    initApp();
+  } else {
+    document.getElementById("login-error").style.display = "block";
+  }
+}
+
+function doLogout(){
+  try{localStorage.removeItem("menage_auth");}catch(e){}
+  document.getElementById("login-screen").style.display = "flex";
+  document.getElementById("app-screen").style.display = "none";
+  document.getElementById("pwd-input").value = "";
+}
+
+function initApp(){
+  var now = new Date();
+  var days = ["Dimanche","Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi"];
+  var months = ["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"];
+  document.getElementById("header-date").textContent = days[now.getDay()]+" "+now.getDate()+" "+months[now.getMonth()]+" "+now.getFullYear();
+  // Charger done depuis localStorage
+  try{STATE.done = JSON.parse(localStorage.getItem("menage_done")||"{}");}catch(e){STATE.done={};}
+  try{STATE.notes = JSON.parse(localStorage.getItem("menage_notes")||"[]");}catch(e){STATE.notes=[];}
+  try{STATE.checks = JSON.parse(localStorage.getItem("menage_checks")||"{}");}catch(e){STATE.checks={};}
+  // Charger réservations
+  fetch(PROXY+"/all-reservations")
+    .then(function(r){return r.json();})
+    .then(function(d){
+      STATE.reservations = (d.data && d.data.reservations) ? d.data.reservations.map(mapRes) : [];
+      showTab("today");
+    })
+    .catch(function(){showTab("today");});
+}
+
+function mapRes(r){
+  return {
+    id: String(r.reservation_code||r.id||""),
+    guest: r.guest_name||r.g||"Voyageur",
+    platform: r.channel_type||r.pl||"direct",
+    check_in: r.check_in_date||r.ci||"",
+    check_out: r.check_out_date||r.co||"",
+    guests: r.number_of_guests||r.n||1,
+    prop_id: String(r.property_id||r.pi||""),
+    status: r.status||r.st||"confirmed"
+  };
+}
+
+function platClass(pl){return (pl==="airbnb"||pl==="Airbnb")?"air":"bk";}
+
+function dFmt(ds){
+  if(!ds)return"";
+  var p=ds.split("-");
+  return p[2]+"/"+p[1];
+}
+
+function showTab(tab){
+  ["today","calendar","checklist","notes"].forEach(function(t){
+    document.getElementById("tab-"+t).style.display = t===tab?"block":"none";
+  });
+  document.querySelectorAll(".tab").forEach(function(b,i){
+    b.classList.toggle("active", ["today","calendar","checklist","notes"][i]===tab);
+  });
+  if(tab==="today") renderToday();
+  else if(tab==="calendar") renderCalendar();
+  else if(tab==="checklist") renderChecklist();
+  else if(tab==="notes") renderNotes();
+}
+
+function renderToday(){
+  var now = new Date();
+  var todayStr = now.toISOString().split("T")[0];
+  var past = STATE.reservations.filter(function(r){return r.status!=="cancelled";});
+  // Ménages du jour = checkouts aujourd'hui
+  var menages = past.filter(function(r){return r.check_out===todayStr;});
+  // Arrivées du jour
+  var arrivals = past.filter(function(r){return r.check_in===todayStr;});
+  var h = "";
+
+  if(menages.length){
+    h += "<div class=\"today-banner\">";
+    h += "<h2>🧹 Ménages à effectuer aujourd'hui ("+menages.length+")</h2>";
+    menages.forEach(function(r){
+      var prop = PROPS[r.prop_id]||{name:"Appartement",color:"#888",short:"Apt"};
+      var isDone = STATE.done[todayStr+"_"+r.id];
+      h += "<div class=\"menage-item"+(isDone?" done":"")+"\">";
+      h += "<span class=\"apt-badge\" style=\"background:"+prop.color+"\">"+prop.short+"</span>";
+      h += "<div class=\"menage-info\">";
+      h += "<div class=\"guest\">"+r.guest+"</div>";
+      h += "<div class=\"details\">"+r.guests+" pers. · Check-out "+dFmt(r.check_out)+"</div>";
+      h += "</div>";
+      h += "<button class=\"check-btn\" onclick=\"toggleDone('"+todayStr+"_"+r.id+"')\">"+(isDone?"✓":"🧹")+"</button>";
+      h += "</div>";
+    });
+    h += "</div>";
+  } else {
+    h += "<div class=\"today-banner\"><h2>✅ Aucun ménage aujourd'hui</h2><div style=\"font-size:13px;color:#0F6E56;\">Bonne journée !</div></div>";
+  }
+
+  // Prochains ménages (3 jours)
+  var upcoming = [];
+  for(var i=1;i<=7;i++){
+    var d = new Date(now);
+    d.setDate(d.getDate()+i);
+    var ds = d.toISOString().split("T")[0];
+    var m = past.filter(function(r){return r.check_out===ds;});
+    m.forEach(function(r){upcoming.push({r:r,date:ds,d:d});});
+  }
+  if(upcoming.length){
+    h += "<div class=\"notes-card\">";
+    h += "<h3>📅 Prochains ménages</h3>";
+    var DAYS = ["Dim","Lun","Mar","Mer","Jeu","Ven","Sam"];
+    upcoming.slice(0,5).forEach(function(item){
+      var prop = PROPS[item.r.prop_id]||{name:"Appartement",color:"#888",short:"Apt"};
+      h += "<div class=\"note-item\">";
+      h += "<span class=\"note-apt\" style=\"background:"+prop.color+"\">"+prop.short+"</span>";
+      h += "<div class=\"note-text\"><b>"+DAYS[item.d.getDay()]+" "+dFmt(item.date)+"</b> · "+item.r.guest+" · "+item.r.guests+" pers.</div>";
+      h += "</div>";
+    });
+    h += "</div>";
+  }
+
+  // Arrivées du jour
+  if(arrivals.length){
+    h += "<div class=\"notes-card\">";
+    h += "<h3>🏠 Arrivées aujourd'hui</h3>";
+    arrivals.forEach(function(r){
+      var prop = PROPS[r.prop_id]||{name:"Appartement",color:"#888",short:"Apt"};
+      h += "<div class=\"note-item\">";
+      h += "<span class=\"note-apt\" style=\"background:"+prop.color+"\">"+prop.short+"</span>";
+      h += "<div class=\"note-text\">"+r.guest+" · "+r.guests+" pers. · Check-in aujourd'hui</div>";
+      h += "</div>";
+    });
+    h += "</div>";
+  }
+
+  document.getElementById("tab-today").innerHTML = h;
+}
+
+function toggleDone(key){
+  STATE.done[key] = !STATE.done[key];
+  try{localStorage.setItem("menage_done",JSON.stringify(STATE.done));}catch(e){}
+  renderToday();
+}
+
+function renderCalendar(){
+  var now = new Date();
+  var y = STATE.calMonth.getFullYear();
+  var m = STATE.calMonth.getMonth();
+  var MONTHS_FR = ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
+  var DAYS_FR = ["L","M","M","J","V","S","D"];
+  var firstDay = (new Date(y,m,1).getDay()+6)%7;
+  var daysInMonth = new Date(y,m+1,0).getDate();
+  var past = STATE.reservations.filter(function(r){return r.status!=="cancelled";});
+  var todayStr = now.toISOString().split("T")[0];
+
+  var h = "<div class=\"cal-header\">";
+  h += "<button class=\"cal-nav\" onclick=\"calPrev()\">‹ Prev</button>";
+  h += "<h3>"+MONTHS_FR[m]+" "+y+"</h3>";
+  h += "<button class=\"cal-nav\" onclick=\"calNext()\">Suiv ›</button>";
+  h += "</div>";
+  h += "<div class=\"cal-grid\">";
+  DAYS_FR.forEach(function(d){h += "<div class=\"cal-day-hdr\">"+d+"</div>";});
+  for(var e=0;e<firstDay;e++) h += "<div class=\"cal-day other-month\"></div>";
+  for(var day=1;day<=daysInMonth;day++){
+    var ds = y+"-"+(m+1<10?"0":"")+(m+1)+"-"+(day<10?"0":"")+day;
+    var isToday = ds===todayStr;
+    var dayRes = past.filter(function(r){return r.check_in<=ds&&r.check_out>ds;});
+    var hasMenage = past.some(function(r){return r.check_out===ds;});
+    h += "<div class=\"cal-day"+(isToday?" today":"")+"\" onclick=\"showDayDetail('"+ds+"')\">";
+    h += "<div class=\"day-num\">"+day+"</div>";
+    dayRes.slice(0,2).forEach(function(r){
+      var prop = PROPS[r.prop_id]||{short:"Apt"};
+      var pc = platClass(r.platform);
+      h += "<div class=\"res-bar "+pc+"\">"+prop.short+"</div>";
+    });
+    if(hasMenage) h += "<div class=\"menage-icon\">🧹</div>";
+    h += "</div>";
+  }
+  h += "</div>";
+  h += "<div style=\"display:flex;gap:12px;margin-top:10px;padding:10px;background:#fff;border-radius:10px;border:1px solid #e5e4e0;\">";
+  h += "<div style=\"display:flex;align-items:center;gap:4px;font-size:11px;color:#888;\"><div style=\"width:10px;height:10px;background:#FEE2E2;border-radius:3px;\"></div>Airbnb</div>";
+  h += "<div style=\"display:flex;align-items:center;gap:4px;font-size:11px;color:#888;\"><div style=\"width:10px;height:10px;background:#DBEAFE;border-radius:3px;\"></div>Booking</div>";
+  h += "<div style=\"display:flex;align-items:center;gap:4px;font-size:11px;color:#888;\">🧹 Ménage à faire</div>";
+  h += "</div>";
+
+  document.getElementById("tab-calendar").innerHTML = h;
+}
+
+function calPrev(){
+  STATE.calMonth = new Date(STATE.calMonth.getFullYear(), STATE.calMonth.getMonth()-1, 1);
+  renderCalendar();
+}
+function calNext(){
+  STATE.calMonth = new Date(STATE.calMonth.getFullYear(), STATE.calMonth.getMonth()+1, 1);
+  renderCalendar();
+}
+
+function showDayDetail(ds){
+  var past = STATE.reservations.filter(function(r){return r.status!=="cancelled";});
+  var checkouts = past.filter(function(r){return r.check_out===ds;});
+  var checkins = past.filter(function(r){return r.check_in===ds;});
+  var staying = past.filter(function(r){return r.check_in<ds&&r.check_out>ds;});
+  var p = ds.split("-");
+  var dateLabel = p[2]+"/"+p[1]+"/"+p[0];
+  var h = "<h3>"+dateLabel+"</h3>";
+  if(checkouts.length){
+    h += "<div style=\"font-size:12px;font-weight:600;color:#E24B4A;margin:12px 0 8px;\">🧹 Ménages à effectuer</div>";
+    checkouts.forEach(function(r){
+      var prop = PROPS[r.prop_id]||{name:"Appartement",color:"#888"};
+      h += "<div class=\"info-row\">";
+      h += "<div class=\"info-icon\">🏠</div>";
+      h += "<div><div class=\"info-label\">Logement</div><div class=\"info-val\">"+prop.name+"</div></div></div>";
+      h += "<div class=\"info-row\"><div class=\"info-icon\">👤</div><div><div class=\"info-label\">Voyageur partant</div><div class=\"info-val\">"+r.guest+" ("+r.guests+" pers.)</div></div></div>";
+      h += "<div class=\"info-row\"><div class=\"info-icon\">📅</div><div><div class=\"info-label\">Séjour</div><div class=\"info-val\">"+dFmt(r.check_in)+" → "+dFmt(r.check_out)+"</div></div></div>";
+    });
+  }
+  if(checkins.length){
+    h += "<div style=\"font-size:12px;font-weight:600;color:#0F6E56;margin:12px 0 8px;\">🏠 Arrivées</div>";
+    checkins.forEach(function(r){
+      var prop = PROPS[r.prop_id]||{name:"Appartement",color:"#888"};
+      h += "<div class=\"info-row\"><div class=\"info-icon\">🏠</div><div><div class=\"info-label\">Logement</div><div class=\"info-val\">"+prop.name+"</div></div></div>";
+      h += "<div class=\"info-row\"><div class=\"info-icon\">👤</div><div><div class=\"info-label\">Voyageur arrivant</div><div class=\"info-val\">"+r.guest+" ("+r.guests+" pers.)</div></div></div>";
+    });
+  }
+  if(staying.length){
+    h += "<div style=\"font-size:12px;font-weight:600;color:#6366F1;margin:12px 0 8px;\">🛏 En séjour</div>";
+    staying.forEach(function(r){
+      var prop = PROPS[r.prop_id]||{name:"Appartement",color:"#888"};
+      h += "<div class=\"info-row\"><div class=\"info-icon\">🏠</div><div><div class=\"info-label\">"+prop.name+"</div><div class=\"info-val\">"+r.guest+" · départ le "+dFmt(r.check_out)+"</div></div></div>";
+    });
+  }
+  if(!checkouts.length&&!checkins.length&&!staying.length){
+    h += "<div class=\"empty\"><div class=\"emoji\">📅</div><div>Aucune réservation ce jour</div></div>";
+  }
+  document.getElementById("modal-content").innerHTML = h;
+  document.getElementById("modal").style.display = "flex";
+}
+
+function closeModal(){
+  document.getElementById("modal").style.display = "none";
+}
+
+function renderChecklist(){
+  var h = "";
+  // Sélection du logement
+  h += "<div style=\"display:flex;gap:8px;margin-bottom:12px;\">";
+  ["12619011","12619012"].forEach(function(pid){
+    var prop = PROPS[pid];
+    var active = (STATE.checkProp||"12619011")===pid;
+    h += "<button onclick=\"STATE.checkProp='"+pid+"';renderChecklist()\" style=\"flex:1;padding:10px;border-radius:12px;border:1.5px solid "+(active?prop.color:"#e5e4e0")+";background:"+(active?prop.color+"22":"#fff")+";font-size:12px;font-weight:500;cursor:pointer;color:"+(active?prop.color:"#888")+"\">"+prop.short+"</button>";
+  });
+  h += "</div>";
+  var prop = STATE.checkProp||"12619011";
+  var today = new Date().toISOString().split("T")[0];
+  var key = prop+"_"+today;
+  if(!STATE.checks[key]) STATE.checks[key] = {};
+  h += "<div class=\"checklist-card\">";
+  h += "<h3>✅ Check-list ménage — "+(PROPS[prop]||{short:"Apt"}).short+"</h3>";
+  h += "<div style=\"font-size:11px;color:#888;margin-bottom:10px;\">"+today.split("-").reverse().join("/")+"</div>";
+  var checked = Object.values(STATE.checks[key]).filter(Boolean).length;
+  h += "<div style=\"background:#E1F5EE;border-radius:8px;padding:8px 12px;margin-bottom:12px;font-size:12px;color:#0F6E56;font-weight:500;\">"+checked+" / "+DEFAULT_CHECKS.length+" tâches effectuées</div>";
+  DEFAULT_CHECKS.forEach(function(task,i){
+    var done = STATE.checks[key][i];
+    h += "<div class=\"check-item\" onclick=\"toggleCheck('"+key+"',"+i+")\">";
+    h += "<div class=\"check-box"+(done?" checked":"")+"\">"+(done?"✓":"")+"</div>";
+    h += "<div class=\"check-label"+(done?" checked":"")+"\">"+task+"</div>";
+    h += "</div>";
+  });
+  h += "</div>";
+  h += "<button onclick=\"resetChecklist('"+key+"')\" style=\"width:100%;padding:12px;border-radius:12px;border:1px solid #e5e4e0;background:#fff;font-size:13px;cursor:pointer;color:#888;\">Réinitialiser la liste</button>";
+  document.getElementById("tab-checklist").innerHTML = h;
+}
+
+function toggleCheck(key,i){
+  if(!STATE.checks[key]) STATE.checks[key]={};
+  STATE.checks[key][i] = !STATE.checks[key][i];
+  try{localStorage.setItem("menage_checks",JSON.stringify(STATE.checks));}catch(e){}
+  renderChecklist();
+}
+
+function resetChecklist(key){
+  STATE.checks[key]={};
+  try{localStorage.setItem("menage_checks",JSON.stringify(STATE.checks));}catch(e){}
+  renderChecklist();
+}
+
+function renderNotes(){
+  var h = "";
+  h += "<div class=\"notes-card\">";
+  h += "<h3>📝 Ajouter une note</h3>";
+  h += "<select id=\"note-prop\" style=\"width:100%;padding:10px;border:1px solid #e5e4e0;border-radius:8px;margin-bottom:8px;font-size:13px;\">";
+  h += "<option value=\"12619011\">Suite Illiberis</option>";
+  h += "<option value=\"12619012\">Loft Cinéma</option>";
+  h += "</select>";
+  h += "<textarea id=\"note-text\" placeholder=\"Ex: Ampoule à changer dans la salle de bain...\" style=\"width:100%;border:1px solid #e5e4e0;border-radius:8px;padding:10px;font-size:13px;resize:none;height:80px;font-family:inherit;\"></textarea>";
+  h += "<button onclick=\"addNote()\" style=\"width:100%;margin-top:8px;padding:12px;border:none;background:#0F6E56;color:#fff;border-radius:10px;font-size:13px;font-weight:500;cursor:pointer;\">Ajouter la note</button>";
+  h += "</div>";
+  if(STATE.notes.length){
+    h += "<div class=\"notes-card\">";
+    h += "<h3>📋 Notes enregistrées</h3>";
+    STATE.notes.slice().reverse().forEach(function(n,i){
+      var prop = PROPS[n.prop]||{short:"Apt",color:"#888"};
+      h += "<div class=\"note-item\">";
+      h += "<span class=\"note-apt\" style=\"background:"+prop.color+"\">"+prop.short+"</span>";
+      h += "<div style=\"flex:1;\"><div class=\"note-text\">"+n.text+"</div><div class=\"note-date\">"+n.date+"</div></div>";
+      h += "<button onclick=\"deleteNote("+( STATE.notes.length-1-i)+")\" style=\"border:none;background:none;color:#ccc;cursor:pointer;font-size:16px;\">×</button>";
+      h += "</div>";
+    });
+    h += "</div>";
+  } else {
+    h += "<div class=\"empty\"><div class=\"emoji\">📝</div><div>Aucune note pour le moment</div></div>";
+  }
+  document.getElementById("tab-notes").innerHTML = h;
+}
+
+function addNote(){
+  var prop = document.getElementById("note-prop").value;
+  var text = document.getElementById("note-text").value.trim();
+  if(!text)return;
+  var now = new Date();
+  STATE.notes.push({prop:prop,text:text,date:now.toLocaleDateString("fr-FR")});
+  try{localStorage.setItem("menage_notes",JSON.stringify(STATE.notes));}catch(e){}
+  renderNotes();
+}
+
+function deleteNote(i){
+  STATE.notes.splice(i,1);
+  try{localStorage.setItem("menage_notes",JSON.stringify(STATE.notes));}catch(e){}
+  renderNotes();
+}
+
+// Auto-login si déjà connecté
+try{
+  if(localStorage.getItem("menage_auth")==="1"){
+    document.getElementById("login-screen").style.display="none";
+    document.getElementById("app-screen").style.display="block";
+    initApp();
+  }
+}catch(e){}
+</script>
+</body>
+</html>

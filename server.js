@@ -136,6 +136,18 @@ app.post('/api-claude', async function(req, res) {
   } catch(e) { res.status(500).json({error: e.message}); }
 });
 
+app.get('/menage', function(req, res) {
+  const path2 = require('path');
+  const fs2 = require('fs');
+  const p = path2.join(__dirname, 'menage.html');
+  if(fs2.existsSync(p)){
+    res.setHeader('Content-Type','text/html; charset=utf-8');
+    res.sendFile(p);
+  } else {
+    res.status(404).send('menage.html manquant');
+  }
+});
+
 app.get('/health', function(req, res) {
   const db = loadDB();
   res.json({ status: 'ok', token_set: !!HOSTEX_TOKEN, reservations_stored: db.total || 0, last_sync: db.last_sync, timestamp: new Date().toISOString() });
