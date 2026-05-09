@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Illiberis — Bookmarklet Sync</title>
+<style>
+body{font-family:system-ui;max-width:600px;margin:40px auto;padding:20px;color:#1a1a1a;}
+h1{color:#0F6E56;margin-bottom:8px;}
+.subtitle{color:#888;margin-bottom:32px;font-size:14px;}
+.bookmarklet{display:inline-block;background:#0F6E56;color:#fff;padding:14px 24px;border-radius:12px;text-decoration:none;font-size:15px;font-weight:600;cursor:grab;margin:16px 0;border:3px dashed rgba(255,255,255,.3);}
+.bookmarklet:hover{background:#0A5A47;}
+.steps{background:#F0FAF5;border-radius:12px;padding:20px;margin:24px 0;}
+.step{display:flex;gap:12px;margin-bottom:12px;align-items:flex-start;}
+.step-num{background:#0F6E56;color:#fff;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex-shrink:0;}
+.step-text{font-size:13px;line-height:1.5;}
+.warning{background:#FFF7ED;border:1px solid #FED7AA;border-radius:8px;padding:12px;font-size:12px;color:#9A3412;margin-top:16px;}
+</style>
+</head>
+<body>
+<h1>🔄 Illiberis Sync Bookmarklet</h1>
+<p class="subtitle">Synchronisez toutes vos réservations Hostex en 1 clic</p>
+
+<div class="steps">
+  <div class="step">
+    <div class="step-num">1</div>
+    <div class="step-text"><b>Glissez</b> ce bouton dans votre barre de favoris Safari/Chrome :</div>
+  </div>
+  <center>
+    <a class="bookmarklet" href="javascript:(function(){
+var PROXY='https://hostex-proxy-production.up.railway.app';
+var all={};
+var now=new Date();
+var done=0;
+var total=21;
+var div=document.createElement('div');
+div.style.cssText='position:fixed;top:20px;right:20px;z-index:999999;background:#0F6E56;color:#fff;padding:16px 20px;border-radius:14px;font-family:system-ui;font-size:14px;box-shadow:0 4px 20px rgba(0,0,0,.3);min-width:240px;';
+div.innerHTML='<b>Illiberis Sync</b><br><span id="ilsync-status">Démarrage...</span><br><div style="background:rgba(255,255,255,.3);border-radius:4px;height:6px;margin-top:8px;"><div id="ilsync-bar" style="background:#fff;height:100%;border-radius:4px;width:0%;transition:width .3s;"></div></div>';
+document.body.appendChild(div);
+function setS(msg,pct){document.getElementById('ilsync-status').textContent=msg;if(pct!==undefined)document.getElementById('ilsync-bar').style.width=pct+'%';}
+(async function(){
+  var months=[];
+  for(var m=-6;m<=14;m++){var d=new Date(now.getFullYear(),now.getMonth()+m,1);months.push(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'));}
+  for(var month of months){
+    setS('Chargement '+month+'...',Math.round(done/total*80));
+    try{
+      var r=await fetch('/api/reservation/today_reservation?opid=160776&opclient=Web-Mac-Chrome&month='+month,{credentials:'include'});
+      var data=await r.json();
+      var list=data.data&&data.data.list||[];
+      list.forEach(function(res){
+        if(!res.code)return;
+        var ch='direct';
+        if(res.channel_name){var cn=res.channel_name.toLowerCase();ch=cn.includes('airbnb')?'airbnb':cn.includes('booking')?'booking.com':res.channel_name;}
+        else if(res.thirdparty_type===1)ch='airbnb';
+        else if(res.thirdparty_type===3)ch='booking.com';
+        var pid='';
+        if(res.house){var hn=(res.house.title_alias||res.house.name||'').toLowerCase();pid=hn.includes('loft')||hn.includes('cinema')?'12619012':hn.includes('suite')||hn.includes('illiberis')?'12619011':String(res.house.id||'');}
+        all[res.code]={reservation_code:res.code,guest_name:(res.thirdparty_customer&&res.thirdparty_customer.name)||(res.thirdparty_guest&&res.thirdparty_guest.name)||'Voyageur',check_in_date:res.check_in,check_out_date:res.check_out,channel_type:ch,property_id:pid,number_of_guests:res.number_of_guests||1,status:(res.out_status==='cancelled'||res.out_status==='cancel')?'cancelled':'accepted',total_price:res.house_fee||res.earning||0,commission:res.commission||0,currency:res.currency||'EUR'};
+      });
+    }catch(e){}
+    done++;
+    await new Promise(res=>setTimeout(res,200));
+  }
+  var reservations=Object.values(all);
+  setS('Envoi '+reservations.length+' réservations...',85);
+  try{
+    var resp=await fetch(PROXY+'/import-csv',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({reservations:reservations})});
+    var result=await resp.json();
+    if(result.ok){setS('✓ Sync OK ! '+reservations.length+' rés. | Total: '+result.total,100);setTimeout(()=>div.remove(),4000);}
+    else{setS('Erreur: '+(result.error||'inconnue'));}
+  }catch(e){setS('Erreur: '+e.message);}
+})();
+})();">🔄 Sync Illiberis</a>
+  </center>
+  <div class="step" style="margin-top:16px;">
+    <div class="step-num">2</div>
+    <div class="step-text">Allez sur <b>hostex.io</b> (connecté à votre compte)</div>
+  </div>
+  <div class="step">
+    <div class="step-num">3</div>
+    <div class="step-text">Cliquez sur le favori <b>🔄 Sync Illiberis</b> dans votre barre</div>
+  </div>
+  <div class="step">
+    <div class="step-num">4</div>
+    <div class="step-text">Un bandeau vert apparaît et toutes vos réservations se synchronisent en ~30 secondes</div>
+  </div>
+</div>
+
+<div class="warning">
+  ⚠️ Ce bookmarklet fonctionne uniquement quand vous êtes connecté à <b>hostex.io</b> dans le même navigateur.
+  À utiliser une fois par semaine ou après avoir créé de nouvelles réservations.
+</div>
+</body>
+</html>

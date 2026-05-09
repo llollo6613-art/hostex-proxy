@@ -215,6 +215,12 @@ app.get('/sync-hostex', function(req, res) {
   } else { res.status(404).send('sync-hostex.html manquant'); }
 });
 
+app.get('/bookmarklet', function(req, res) {
+  const p = require('path').join(__dirname, 'bookmarklet.html');
+  res.setHeader('Content-Type','text/html; charset=utf-8');
+  res.sendFile(p);
+});
+
 app.get('/health', function(req, res) {
   const db = loadDB();
   res.json({ status: 'ok', token_set: !!HOSTEX_TOKEN, reservations_stored: db.total || 0, last_sync: db.last_sync, timestamp: new Date().toISOString(), webhook_url: 'https://hostex-proxy-production.up.railway.app/webhook' });
