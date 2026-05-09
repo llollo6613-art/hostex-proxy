@@ -227,7 +227,7 @@ function render(){
   document.getElementById('page-title').textContent=titles[S.page]||'';
   const ta=document.getElementById('topbar-actions');
   ta.innerHTML='';
-  if(S.page==='reservations')ta.innerHTML=`<button class="btn btn-green" onclick="openAddRes()">+ Nouvelle réservation</button>`;
+  if(S.page==='reservations')ta.innerHTML=`<button class="btn btn-green" onclick="openAddRes()">+ Nouvelle réservation</button><button class="btn" onclick="_importCSVDialog()" style="margin-left:8px;">📥 Import CSV</button>`;
   if(S.page==='calendar')ta.innerHTML=`<button class="btn" onclick="openBlock()">Bloquer dates</button>`;
   if(S.page==='rates')ta.innerHTML=`<button class="btn btn-green" onclick="S.ratesLoaded={};_loadPricesFromAPI(S.ratesProp)">↻ Charger tarifs Hostex</button>`;
   const pages={dashboard:renderDash,reservations:renderRes,calendar:renderCal,rates:renderRates,properties:renderProps,messages:renderMsgs,bilan:renderBilan,reviews:renderReviews};
@@ -1077,6 +1077,60 @@ function _showMonthDetail(type){
       +"</div>"+rows3+"</div>";
   }
   detail.scrollIntoView({behavior:"smooth",block:"nearest"});
+}
+
+function _importCSVDialog(){
+  showModal(
+    "<div>"
+    +"<div style='font-size:14px;font-weight:500;margin-bottom:8px;'>📥 Importer réservations depuis Hostex</div>"
+    +"<div style='font-size:12px;color:var(--color-text-secondary);margin-bottom:12px;'>Exportez vos réservations depuis Hostex (Settings → Export), puis importez le fichier CSV ici.</div>"
+    +"<input type='file' id='csv-file' accept='.csv' style='width:100%;margin-bottom:12px;padding:8px;border:1px solid var(--color-border-secondary);border-radius:8px;font-size:12px;'>"
+    +"<button onclick='_processCSVImport()' style='width:100%;padding:10px;border:none;background:#0F6E56;color:#fff;border-radius:10px;font-size:13px;font-weight:500;cursor:pointer;'>Importer</button>"
+    +"<div id='import-status' style='margin-top:8px;font-size:12px;color:var(--color-text-tertiary);'></div>"
+    +"</div>"
+  );
+}
+
+async function _processCSVImport(){
+  var file = document.getElementById('csv-file') && document.getElementById('csv-file').files[0];
+  if(!file){showToast('Sélectionnez un fichier CSV');return;}
+  var status = document.getElementById('import-status');
+  if(status) status.textContent = 'Lecture du fichier...';
+  var text = await file.text();
+  var lines = text.split('\n').filter(function(l){return l.trim();});
+  var headers = lines[0].split(',').map(function(h){return h.trim().replace(/"/g,'');});
+  var reservations = [];
+  for(var i=1;i<lines.length;i++){
+    var vals = lines[i].split(',').map(function(v){return v.trim().replace(/"/g,'');});
+    var obj = {};
+    headers.forEach(function(h,j){obj[h]=vals[j]||'';});
+    // Mapper les champs Hostex
+    var r = {
+      reservation_code: obj.reservation_code||obj.code||obj.id||'',
+      guest_name: obj.guest_name||obj.guest||obj.name||'',
+      check_in_date: obj.check_in_date||obj.check_in||obj.checkin||'',
+      check_out_date: obj.check_out_date||obj.check_out||obj.checkout||'',
+      channel_type: obj.channel_type||obj.channel||obj.platform||'',
+      property_id: obj.property_id||obj.listing_id||'',
+      number_of_guests: obj.number_of_guests||obj.guests||1,
+      status: obj.status||'accepted',
+      total_price: obj.total_price||obj.amount||0
+    };
+    if(r.reservation_code) reservations.push(r);
+  }
+  if(!reservations.length){showToast('Aucune réservation trouvée dans le CSV');return;}
+  if(status) status.textContent = 'Envoi de '+reservations.length+' réservations...';
+  try{
+    var d = await fetch('/import-csv',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({reservations:reservations})}).then(function(r){return r.json();});
+    if(d.ok){
+      showToast('\u2713 '+d.added+' réservations importées ! Total: '+d.total);
+      closeModal();
+      S._loaded=false;
+      loadAll();
+    } else {
+      showToast('Erreur: '+(d.error||'Import échoué'));
+    }
+  }catch(e){showToast('Erreur: '+e.message);}
 }
 
 function showToast(msg,dur){var t=document.getElementById('toast');if(!t){t=document.createElement('div');t.id='toast';t.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;padding:10px 20px;border-radius:8px;font-size:13px;z-index:9999;transition:opacity .3s;pointer-events:none;';document.body.appendChild(t);}t.textContent=msg;t.style.opacity='1';clearTimeout(t._t);t._t=setTimeout(function(){t.style.opacity='0';},dur||2500);}
