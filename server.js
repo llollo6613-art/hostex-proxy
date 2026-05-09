@@ -10,23 +10,8 @@ const HOSTEX_BASE  = 'https://api.hostex.io/v3';
 const DB_FILE = path.join('/tmp', 'reservations.json');
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 
-// ─── Servir l'app HTML ───────────────────────────────────────────────
-app.get('/', function(req, res) {
-  const htmlPath = path.join(__dirname, 'app.html');
-  if (fs.existsSync(htmlPath)) {
-    res.setHeader('Content-Type', 'text/html; charset=utf-8');
-    res.set('Cache-Control','no-store, no-cache, must-revalidate');
-    res.set('Pragma','no-cache');
-    res.removeHeader('X-XSS-Protection');
-  res.sendFile(htmlPath);
-  } else {
-    res.send('<h2>app.html manquant</h2>');
-  }
-});
-
-// ─── Storage JSON ────────────────────────────────────────────────────
 function loadDB() {
   try { return JSON.parse(fs.readFileSync(DB_FILE, 'utf8')); }
   catch (e) { return { reservations: {}, last_sync: null, total: 0 }; }
@@ -42,26 +27,40 @@ async function hostexGet(p) {
   return r.json();
 }
 
+// Sync complet - toutes les pages
 async function doSync() {
   const db = loadDB();
-  let added = 0;
-  // Charger toutes les pages
   let page = 1;
-  let hasMore = true;
-  while (hasMore) {
+  let total = 0;
+  // Page par page jusqu'a epuisement
+  while (true) {
+    let hasNew = false;
     try {
       const d = await hostexGet('/reservations?page_size=50&page=' + page);
       const list = (d && d.data && d.data.reservations) ? d.data.reservations : [];
-      if (list.length === 0) { hasMore = false; break; }
+      if (list.length === 0) break;
       for (const r of list) {
         const k = r.reservation_code || r.id;
-        if (!db.reservations[k]) added++;
         db.reservations[k] = r;
+        hasNew = true;
       }
-      if (list.length < 50) { hasMore = false; }
+      total += list.length;
+      if (list.length < 50) break;
       page++;
-    } catch (e2) { hasMore = false; }
-    await new Promise(function(res) { setTimeout(res, 200); });
+    } catch (e) { break; }
+    await new Promise(res => setTimeout(res, 300));
+  }
+  // Aussi charger par check_in_date pour les futures
+  const now = new Date();
+  for (let m = 0; m <= 12; m++) {
+    const s = new Date(now.getFullYear(), now.getMonth() + m, 1);
+    const e = new Date(now.getFullYear(), now.getMonth() + m + 1, 0);
+    try {
+      const d = await hostexGet('/reservations?check_in_date_min=' + s.toISOString().slice(0,10) + '&check_in_date_max=' + e.toISOString().slice(0,10) + '&page_size=50');
+      const list = (d && d.data && d.data.reservations) ? d.data.reservations : [];
+      for (const r of list) { db.reservations[r.reservation_code || r.id] = r; }
+    } catch(e2) {}
+    await new Promise(res => setTimeout(res, 200));
   }
   db.last_sync = new Date().toISOString();
   db.total = Object.keys(db.reservations).length;
@@ -69,55 +68,100 @@ async function doSync() {
   return db;
 }
 
-app.post('/sync', async function(req, res) {
-  try { const db = await doSync(); res.json({ ok: true, total: db.total, last_sync: db.last_sync }); }
-  catch (e) { res.status(500).json({ error: e.message }); }
+// Servir app HTML
+app.get('/', function(req, res) {
+  const htmlPath = path.join(__dirname, 'app.html');
+  if (fs.existsSync(htmlPath)) {
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.set('Cache-Control','no-store, no-cache, must-revalidate');
+    res.sendFile(htmlPath);
+  } else {
+    res.send('<h2>app.html manquant</h2>');
+  }
 });
 
+// Servir menage HTML
+app.get('/menage', function(req, res) {
+  const p = path.join(__dirname, 'menage.html');
+  if (fs.existsSync(p)) {
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.sendFile(p);
+  } else { res.status(404).send('menage.html manquant'); }
+});
+
+// Sync manuel
+app.post('/sync', async function(req, res) {
+  try { const db = await doSync(); res.json({ ok: true, total: db.total, last_sync: db.last_sync }); }
+  catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// Cron sync
 app.get('/cron-sync', async function(req, res) {
   if (req.headers['x-cron-secret'] !== process.env.CRON_SECRET)
     return res.status(401).json({ error: 'Unauthorized' });
   try { const db = await doSync(); res.json({ ok: true, total: db.total }); }
-  catch (e) { res.status(500).json({ error: e.message }); }
+  catch(e) { res.status(500).json({ error: e.message }); }
 });
 
+// WEBHOOK Hostex - reception automatique des nouvelles reservations
+app.post('/webhook', async function(req, res) {
+  try {
+    const payload = req.body;
+    console.log('Webhook recu:', JSON.stringify(payload).slice(0, 200));
+    // Hostex envoie l'objet reservation dans payload.data ou directement
+    const r = payload.data || payload.reservation || payload;
+    if (r && (r.reservation_code || r.id)) {
+      const db = loadDB();
+      const k = r.reservation_code || r.id;
+      db.reservations[k] = r;
+      db.total = Object.keys(db.reservations).length;
+      db.last_sync = new Date().toISOString();
+      saveDB(db);
+      console.log('Reservation sauvegardee via webhook:', k);
+    }
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// Import CSV depuis Hostex
+app.post('/import-csv', function(req, res) {
+  try {
+    const { reservations } = req.body;
+    if (!Array.isArray(reservations)) return res.status(400).json({ error: 'Invalid data' });
+    const db = loadDB();
+    let added = 0;
+    for (const r of reservations) {
+      const k = r.reservation_code || r.id;
+      if (k) { db.reservations[k] = r; added++; }
+    }
+    db.total = Object.keys(db.reservations).length;
+    db.last_sync = new Date().toISOString();
+    saveDB(db);
+    res.json({ ok: true, added, total: db.total });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// All reservations
 app.get('/all-reservations', async function(req, res) {
   try {
     const db = loadDB();
     const stored = Object.values(db.reservations);
+    // Live: toutes les pages
     let liveRes = [];
     try {
-      // Charger par tranches: passées (6 mois) + futures (12 mois)
-      const now = new Date();
-      const past6 = new Date(now); past6.setMonth(past6.getMonth()-6);
-      const fut12 = new Date(now); fut12.setMonth(fut12.getMonth()+12);
-      const dateFrom = past6.toISOString().split('T')[0];
-      const dateTo = fut12.toISOString().split('T')[0];
-      const [r1,r2,r3] = await Promise.all([
-        hostexGet('/reservations?page_size=200&check_in_date_min='+dateFrom+'&check_in_date_max='+now.toISOString().split('T')[0]),
-        hostexGet('/reservations?page_size=200&check_in_date_min='+now.toISOString().split('T')[0]+'&check_in_date_max='+dateTo),
-        hostexGet('/reservations?page_size=200&sort=check_in_date&sort_order=desc')
-      ]);
-      const allRes = [
-        ...((r1&&r1.data&&r1.data.reservations)||[]),
-        ...((r2&&r2.data&&r2.data.reservations)||[]),
-        ...((r3&&r3.data&&r3.data.reservations)||[])
-      ];
-      const liveMap = {}; allRes.forEach(r => liveMap[r.reservation_code||r.id]=r);
-      liveRes = Object.values(liveMap);
-      // liveRes set above
-    } catch (e) {}
+      const live = await hostexGet('/reservations?page_size=50&sort=check_in_date&sort_order=desc');
+      liveRes = (live && live.data && live.data.reservations) ? live.data.reservations : [];
+    } catch(e) {}
+    // Merger stored + live, live a priorite
     const map = {};
     for (const r of stored) map[r.reservation_code || r.id] = r;
-    // API overrides CSV - same key or newer data
     for (const r of liveRes) map[r.reservation_code || r.id] = r;
-    const all = Object.values(map).sort(function(a, b) {
-      return (b.check_in_date || '').localeCompare(a.check_in_date || '');
-    });
+    const all = Object.values(map).sort((a,b) => (b.check_in_date||b.check_in||'').localeCompare(a.check_in_date||a.check_in||''));
     res.json({ error_code: 200, error_msg: 'Done.', data: { reservations: all, total: all.length, last_sync: db.last_sync } });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
+// Proxy API Hostex
 app.all('/api/*', async function(req, res) {
   const hp = req.path.replace(/^\/api/, '');
   const qs = new URLSearchParams(req.query).toString();
@@ -130,50 +174,35 @@ app.all('/api/*', async function(req, res) {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.get('/api/reviews', async function(req, res) {
-  try {
-    const params = new URLSearchParams(req.query).toString();
-    const d = await hostexGet('/reviews?' + params);
-    res.json(d);
-  } catch(e) { res.status(500).json({error: e.message}); }
-});
-
+// Proxy Claude API
 app.post('/api-claude', async function(req, res) {
   try {
     const r = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
         'x-api-key': process.env.ANTHROPIC_API_KEY || '',
-        'anthropic-version': '2023-06-01'
+        'anthropic-version': '2023-06-01',
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify(req.body)
     });
-    const data = await r.json();
-    res.json(data);
-  } catch(e) { res.status(500).json({error: e.message}); }
+    res.status(r.status).json(await r.json());
+  } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
-app.get('/menage', function(req, res) {
-  const path2 = require('path');
-  const fs2 = require('fs');
-  const p = path2.join(__dirname, 'menage.html');
-  if(fs2.existsSync(p)){
-    res.setHeader('Content-Type','text/html; charset=utf-8');
-    res.sendFile(p);
-  } else {
-    res.status(404).send('menage.html manquant');
-  }
-});
-
+// Health
 app.get('/health', function(req, res) {
   const db = loadDB();
-  res.json({ status: 'ok', token_set: !!HOSTEX_TOKEN, reservations_stored: db.total || 0, last_sync: db.last_sync, timestamp: new Date().toISOString() });
+  res.json({ status: 'ok', token_set: !!HOSTEX_TOKEN, reservations_stored: db.total || 0, last_sync: db.last_sync, timestamp: new Date().toISOString(), webhook_url: 'https://hostex-proxy-production.up.railway.app/webhook' });
 });
 
-app.listen(PORT, function() {
-  console.log('Proxy + App sur port ' + PORT);
-  const db = loadDB();
-  if (!db.last_sync) { console.log('First sync...'); doSync().catch(console.error); }
-});
-// v2
+app.listen(PORT, function() { console.log('Listening on', PORT); });
+
+// Sync au démarrage si pas de données récentes
+const db0 = loadDB();
+const lastSync = db0.last_sync ? new Date(db0.last_sync) : null;
+const needsSync = !lastSync || (Date.now() - lastSync.getTime() > 3600000); // 1h
+if (needsSync) { console.log('Auto-sync au démarrage...'); doSync().catch(console.error); }
+
+// Sync toutes les heures
+setInterval(() => { doSync().catch(console.error); }, 3600000);
