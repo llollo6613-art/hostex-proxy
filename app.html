@@ -1134,74 +1134,84 @@ async function _processCSVImport(){
 }
 
 async function _syncHostexDirect(){
-  // Ouvrir Hostex dans un popup pour récupérer les données
-  showToast("Sync en cours... Peut prendre 30 secondes");
+  // Ouvrir un onglet Hostex qui executera le sync et enverra les donnees
+  showToast("Ouverture Hostex pour sync... Attendez.");
+  var PROXY = window.location.origin;
+  var script = `
+(async function(){
   var all = {};
   var now = new Date();
-  var errors = 0;
-  var found = 0;
-
-  // Charger mois par mois via l'API interne Hostex
-  for(var m = -6; m <= 14; m++){
-    var d = new Date(now.getFullYear(), now.getMonth() + m, 1);
-    var year = d.getFullYear();
-    var month = String(d.getMonth()+1).padStart(2,'0');
-    try {
-      var r = await fetch('https://hostex.io/api/reservation/today_reservation?opid=160776&opclient=Web-Mac-Chrome&month='+year+'-'+month, {
-        credentials: 'include',
-        mode: 'cors'
-      });
-      var data = await r.json();
-      var list = data.data && data.data.list;
-      if(list && list.length) {
+  for(var m=-6;m<=14;m++){
+    var d=new Date(now.getFullYear(),now.getMonth()+m,1);
+    var year=d.getFullYear();
+    var month=String(d.getMonth()+1).padStart(2,'0');
+    try{
+      var r=await fetch('/api/reservation/today_reservation?opid=160776&opclient=Web-Mac-Chrome&month='+year+'-'+month,{credentials:'include'});
+      var data=await r.json();
+      var list=data.data&&data.data.list;
+      if(list&&list.length){
         list.forEach(function(res){
-          if(res.code) {
-            all[res.code] = {
-              reservation_code: res.code,
-              guest_name: (res.thirdparty_customer && res.thirdparty_customer.name) || (res.thirdparty_guest && res.thirdparty_guest.name) || '',
-              check_in_date: res.check_in,
-              check_out_date: res.check_out,
-              channel_type: res.thirdparty_type === 0 ? 'direct' : (res.channel_type || 'airbnb'),
-              property_id: res.house && res.house.id,
-              number_of_guests: res.number_of_guests || 1,
-              status: res.out_status === 'cancelled' ? 'cancelled' : 'accepted',
-              total_price: res.house_fee || res.earning || 0,
-              commission: 0,
-              currency: res.currency || 'EUR'
+          if(res.code){
+            all[res.code]={
+              reservation_code:res.code,
+              guest_name:(res.thirdparty_customer&&res.thirdparty_customer.name)||(res.thirdparty_guest&&res.thirdparty_guest.name)||'',
+              check_in_date:res.check_in,
+              check_out_date:res.check_out,
+              channel_type:res.channel_name||(res.thirdparty_type===1?'airbnb':res.thirdparty_type===3?'booking.com':'direct'),
+              property_id:res.house&&String(res.house.id),
+              number_of_guests:res.number_of_guests||1,
+              status:res.out_status==='cancelled'?'cancelled':'accepted',
+              total_price:res.house_fee||res.earning||0,
+              commission:0,
+              currency:res.currency||'EUR'
             };
-            found++;
           }
         });
       }
-    } catch(e) { errors++; }
-    await new Promise(function(res){setTimeout(res,150);});
+    }catch(e){}
+    await new Promise(res=>setTimeout(res,150));
   }
+  var reservations=Object.values(all);
+  // Envoyer a Railway
+  var resp=await fetch('${PROXY}/import-csv',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({reservations:reservations})
+  });
+  var result=await resp.json();
+  document.title='SYNC_DONE:'+reservations.length+':'+result.total;
+})();
+  `.trim();
 
-  var reservations = Object.values(all);
-  if(!reservations.length){
-    showToast("\u26a0 Impossible de contacter Hostex. Êtes-vous connecté à hostex.io ?");
-    return;
-  }
+  // Stocker le script dans localStorage pour que l'onglet Hostex l'execute
+  localStorage.setItem('hostex_sync_script', script);
+  localStorage.setItem('hostex_sync_proxy', PROXY);
+  localStorage.setItem('hostex_sync_pending', '1');
 
-  // Envoyer au serveur
-  try {
-    var resp = await fetch('/import-csv', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({reservations: reservations})
-    });
-    var result = await resp.json();
-    if(result.ok){
-      showToast("\u2713 Sync OK ! "+found+" réservations importées (total: "+result.total+")");
-      S._loaded = false;
+  // Ouvrir Hostex
+  var win = window.open('https://hostex.io/app/reservations', '_blank');
+
+  // Attendre le resultat via polling
+  showToast("Sync en cours dans Hostex... Attendez ~30 secondes");
+  var attempts = 0;
+  var interval = setInterval(async function(){
+    attempts++;
+    if(attempts > 60){ clearInterval(interval); showToast("\u26a0 Timeout - verifiez que vous etes connecte a Hostex"); return; }
+    var done = localStorage.getItem('hostex_sync_done');
+    if(done){
+      localStorage.removeItem('hostex_sync_done');
+      localStorage.removeItem('hostex_sync_pending');
+      var parts = done.split(':');
+      var found = parts[0];
+      var total = parts[1];
+      clearInterval(interval);
+      showToast("\u2713 Sync OK ! "+found+" réservations. Total: "+total);
+      S._loaded=false;
       await loadAll();
       render();
-    } else {
-      showToast("Erreur serveur: "+(result.error||'unknown'));
+      if(win) win.close();
     }
-  } catch(e) {
-    showToast("Erreur: "+e.message);
-  }
+  }, 1000);
 }
 
 function showToast(msg,dur){var t=document.getElementById('toast');if(!t){t=document.createElement('div');t.id='toast';t.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;padding:10px 20px;border-radius:8px;font-size:13px;z-index:9999;transition:opacity .3s;pointer-events:none;';document.body.appendChild(t);}t.textContent=msg;t.style.opacity='1';clearTimeout(t._t);t._t=setTimeout(function(){t.style.opacity='0';},dur||2500);}
