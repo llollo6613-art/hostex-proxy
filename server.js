@@ -50,9 +50,24 @@ async function doSync() {
     } catch (e) { break; }
     await new Promise(res => setTimeout(res, 300));
   }
-  // Aussi charger par check_in_date pour les futures
+  // Charger avec différents sorts pour maximiser la couverture
   const now = new Date();
-  for (let m = 0; m <= 12; m++) {
+  const sorts = [
+    '/reservations?page_size=50&sort=check_in_date&sort_order=asc',
+    '/reservations?page_size=50&sort=check_in_date&sort_order=desc',
+    '/reservations?page_size=50&sort=created_at&sort_order=desc',
+    '/reservations?page_size=50&sort=updated_at&sort_order=desc',
+  ];
+  for (const url of sorts) {
+    try {
+      const d = await hostexGet(url);
+      const list = (d && d.data && d.data.reservations) ? d.data.reservations : [];
+      for (const r of list) { db.reservations[r.reservation_code || r.id] = r; }
+    } catch(e2) {}
+    await new Promise(res => setTimeout(res, 300));
+  }
+  // Aussi par mois futur
+  for (let m = 0; m <= 14; m++) {
     const s = new Date(now.getFullYear(), now.getMonth() + m, 1);
     const e = new Date(now.getFullYear(), now.getMonth() + m + 1, 0);
     try {
