@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Sync Hostex → Illiberis</title>
+<style>
+body{font-family:system-ui;background:#0F6E56;color:#fff;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;}
+.card{background:rgba(255,255,255,.1);border-radius:20px;padding:32px;text-align:center;max-width:400px;width:90%;}
+h1{font-size:20px;margin-bottom:8px;}
+p{font-size:13px;opacity:.8;margin-bottom:24px;}
+.status{font-size:14px;margin:16px 0;min-height:24px;}
+.progress{background:rgba(255,255,255,.2);border-radius:10px;height:8px;margin:16px 0;overflow:hidden;}
+.bar{background:#fff;height:100%;border-radius:10px;width:0%;transition:width .3s;}
+.btn{background:#fff;color:#0F6E56;border:none;border-radius:12px;padding:12px 24px;font-size:14px;font-weight:600;cursor:pointer;margin-top:8px;}
+.success{background:#E1F5EE;color:#0F6E56;border-radius:12px;padding:16px;margin-top:16px;display:none;}
+.error{background:#FEE2E2;color:#DC2626;border-radius:12px;padding:16px;margin-top:16px;display:none;}
+</style>
+</head>
+<body>
+<div class="card">
+  <div style="font-size:48px;margin-bottom:12px;">🔄</div>
+  <h1>Sync Hostex → Illiberis</h1>
+  <p>Cette page extrait toutes vos réservations Hostex et les synchronise avec votre app Illiberis.</p>
+  <p style="font-size:11px;opacity:.6;">Vous devez être connecté à hostex.io dans ce navigateur.</p>
+  <button class="btn" onclick="startSync()">▶ Lancer la synchronisation</button>
+  <div class="progress" id="progress" style="display:none;"><div class="bar" id="bar"></div></div>
+  <div class="status" id="status"></div>
+  <div class="success" id="success"></div>
+  <div class="error" id="error"></div>
+</div>
+
+<script>
+var PROXY = window.location.origin;
+var OPID = '160776';
+
+function setStatus(msg, pct) {
+  document.getElementById('status').textContent = msg;
+  if(pct !== undefined) {
+    document.getElementById('progress').style.display = 'block';
+    document.getElementById('bar').style.width = pct + '%';
+  }
+}
+
+function showSuccess(msg) {
+  var el = document.getElementById('success');
+  el.textContent = msg;
+  el.style.display = 'block';
+  document.getElementById('error').style.display = 'none';
+}
+
+function showError(msg) {
+  var el = document.getElementById('error');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+async function startSync() {
+  document.querySelector('.btn').disabled = true;
+  document.querySelector('.btn').textContent = 'Sync en cours...';
+  document.getElementById('success').style.display = 'none';
+  document.getElementById('error').style.display = 'none';
+
+  var all = {};
+  var now = new Date();
+  var total_months = 21;
+  var done = 0;
+
+  setStatus('Connexion à Hostex...', 0);
+
+  // Test connexion
+  try {
+    var test = await fetch('https://hostex.io/api/reservation/today_reservation?opid='+OPID+'&opclient=Web-Mac-Chrome', {credentials:'include'});
+    var testData = await test.json();
+    if(testData.error_code !== 0) {
+      showError('Erreur connexion Hostex (code '+testData.error_code+'). Connectez-vous d\'abord sur hostex.io');
+      document.querySelector('.btn').disabled = false;
+      document.querySelector('.btn').textContent = '▶ Réessayer';
+      return;
+    }
+  } catch(e) {
+    showError('Impossible de contacter Hostex: ' + e.message);
+    document.querySelector('.btn').disabled = false;
+    document.querySelector('.btn').textContent = '▶ Réessayer';
+    return;
+  }
+
+  // Charger mois par mois
+  for(var m = -6; m <= 14; m++) {
+    var d = new Date(now.getFullYear(), now.getMonth() + m, 1);
+    var year = d.getFullYear();
+    var month = String(d.getMonth()+1).padStart(2,'0');
+    var label = ['Jan','Fev','Mar','Avr','Mai','Jun','Jul','Aou','Sep','Oct','Nov','Dec'][d.getMonth()] + ' ' + year;
+    setStatus('Chargement ' + label + '...', Math.round(done/total_months*80));
+
+    try {
+      var r = await fetch('https://hostex.io/api/reservation/today_reservation?opid='+OPID+'&opclient=Web-Mac-Chrome&month='+year+'-'+month, {credentials:'include'});
+      var data = await r.json();
+      var list = data.data && data.data.list;
+      if(list && list.length) {
+        list.forEach(function(res) {
+          if(!res.code) return;
+          // Detecter la plateforme
+          var channel = 'direct';
+          if(res.channel_name) {
+            var cn = res.channel_name.toLowerCase();
+            if(cn.includes('airbnb')) channel = 'airbnb';
+            else if(cn.includes('booking')) channel = 'booking.com';
+            else channel = res.channel_name;
+          } else if(res.thirdparty_type === 1) channel = 'airbnb';
+          else if(res.thirdparty_type === 3) channel = 'booking.com';
+          // Detecter propriete
+          var propId = '';
+          if(res.house) {
+            var houseName = (res.house.name || '').toLowerCase();
+            if(houseName.includes('loft') || houseName.includes('cinema')) propId = '12619012';
+            else if(houseName.includes('suite') || houseName.includes('illiberis')) propId = '12619011';
+            else propId = String(res.house.id || '');
+          }
+          all[res.code] = {
+            reservation_code: res.code,
+            guest_name: (res.thirdparty_customer && res.thirdparty_customer.name) || (res.thirdparty_guest && res.thirdparty_guest.name) || 'Voyageur',
+            check_in_date: res.check_in,
+            check_out_date: res.check_out,
+            channel_type: channel,
+            property_id: propId,
+            number_of_guests: res.number_of_guests || 1,
+            status: (res.out_status === 'cancelled' || res.out_status === 'cancel') ? 'cancelled' : 'accepted',
+            total_price: res.house_fee || res.earning || 0,
+            commission: res.commission || 0,
+            currency: res.currency || 'EUR'
+          };
+        });
+      }
+    } catch(e) {}
+    done++;
+    await new Promise(function(res){setTimeout(res,200);});
+  }
+
+  var reservations = Object.values(all);
+  setStatus('Envoi de ' + reservations.length + ' réservations à Illiberis...', 85);
+
+  if(!reservations.length) {
+    showError('Aucune réservation trouvée. Êtes-vous bien connecté à Hostex?');
+    document.querySelector('.btn').disabled = false;
+    document.querySelector('.btn').textContent = '▶ Réessayer';
+    return;
+  }
+
+  try {
+    var resp = await fetch(PROXY + '/import-csv', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({reservations: reservations})
+    });
+    var result = await resp.json();
+    setStatus('Terminé !', 100);
+    if(result.ok) {
+      showSuccess('✓ Synchronisation réussie ! ' + reservations.length + ' réservations importées. Total en base: ' + result.total);
+      document.querySelector('.btn').textContent = '✓ Sync terminé';
+      setTimeout(function(){ window.close(); }, 3000);
+    } else {
+      showError('Erreur serveur: ' + (result.error || 'inconnue'));
+      document.querySelector('.btn').disabled = false;
+      document.querySelector('.btn').textContent = '▶ Réessayer';
+    }
+  } catch(e) {
+    showError('Erreur envoi: ' + e.message);
+    document.querySelector('.btn').disabled = false;
+    document.querySelector('.btn').textContent = '▶ Réessayer';
+  }
+}
+</script>
+</body>
+</html>
