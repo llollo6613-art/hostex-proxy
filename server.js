@@ -37,7 +37,12 @@ async function syncFromICal() {
   ];
   for(const {url, prop, channel} of icalUrls) {
     try {
-      const r = await fetch(url);
+      const r = await fetch(url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; Calendar/1.0)',
+          'Accept': 'text/calendar,*/*'
+        }
+      });
       const text = await r.text();
       // Parser le iCal
       const events = text.split('BEGIN:VEVENT').slice(1);
