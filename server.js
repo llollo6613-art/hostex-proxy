@@ -262,6 +262,12 @@ app.get('/bookmarklet', function(req, res) {
   res.sendFile(p);
 });
 
+app.post('/reset-db', function(req, res) {
+  const db = {reservations:{}, last_sync:null, total:0};
+  saveDB(db);
+  res.json({ok:true, msg:'DB reset'});
+});
+
 app.get('/health', function(req, res) {
   const db = loadDB();
   res.json({ status: 'ok', token_set: !!HOSTEX_TOKEN, reservations_stored: db.total || 0, last_sync: db.last_sync, timestamp: new Date().toISOString(), webhook_url: 'https://hostex-proxy-production.up.railway.app/webhook' });
