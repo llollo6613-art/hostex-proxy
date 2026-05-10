@@ -33,6 +33,8 @@ async function syncFromICal() {
   const icalUrls = [
     {url: 'https://www.airbnb.fr/calendar/ical/1444758558715417027.ics?t=c42b72016c5748c18ee41cd64ae7e287', prop: '12619011', channel: 'airbnb'},
     {url: 'https://www.airbnb.fr/calendar/ical/1499112879728152781.ics?t=7dccb868b47241b9970e6d8caa1a5de8', prop: '12619012', channel: 'airbnb'},
+    {url: 'https://ical.booking.com/v1/export?hotel_id=14819141', prop: '12619011', channel: 'booking.com'},
+    {url: 'https://ical.booking.com/v1/export?hotel_id=15009394', prop: '12619012', channel: 'booking.com'},
   ];
   let added = 0;
   for(const {url, prop, channel} of icalUrls) {
