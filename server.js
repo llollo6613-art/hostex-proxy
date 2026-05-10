@@ -27,6 +27,52 @@ async function hostexGet(p) {
   return r.json();
 }
 
+// Sync via iCal Airbnb et Booking (contient TOUTES les réservations)
+async function syncFromICal() {
+  const db = loadDB();
+  // iCal URLs des 2 logements (Airbnb et Booking)
+  const icalUrls = [
+    {url: 'https://www.airbnb.com/calendar/ical/1444758558715417027.ics?s=a', prop: '12619011', channel: 'airbnb'},
+    {url: 'https://www.airbnb.com/calendar/ical/1499112879728152781.ics?s=a', prop: '12619012', channel: 'airbnb'},
+  ];
+  for(const {url, prop, channel} of icalUrls) {
+    try {
+      const r = await fetch(url);
+      const text = await r.text();
+      // Parser le iCal
+      const events = text.split('BEGIN:VEVENT').slice(1);
+      for(const ev of events) {
+        const dtstart = (ev.match(/DTSTART[^:]*:([\d]+)/) || [])[1];
+        const dtend = (ev.match(/DTEND[^:]*:([\d]+)/) || [])[1];
+        const uid = (ev.match(/UID:([^\r\n]+)/) || [])[1];
+        const summary = (ev.match(/SUMMARY:([^\r\n]+)/) || [])[1] || '';
+        if(!dtstart || !dtend || !uid) continue;
+        if(summary.includes('Not available') || summary.includes('Blocked') || summary.includes('Airbnb')) continue;
+        const ci = dtstart.slice(0,4)+'-'+dtstart.slice(4,6)+'-'+dtstart.slice(6,8);
+        const co = dtend.slice(0,4)+'-'+dtend.slice(4,6)+'-'+dtend.slice(6,8);
+        const key = uid.split('@')[0];
+        if(!db.reservations[key]) {
+          db.reservations[key] = {
+            reservation_code: key,
+            guest_name: summary || 'Voyageur',
+            check_in_date: ci,
+            check_out_date: co,
+            channel_type: channel,
+            property_id: prop,
+            number_of_guests: 1,
+            status: 'accepted',
+            total_price: 0,
+            currency: 'EUR'
+          };
+        }
+      }
+    } catch(e) { console.log('iCal error:', e.message); }
+  }
+  db.total = Object.keys(db.reservations).length;
+  saveDB(db);
+  return db;
+}
+
 // Sync complet - toutes les pages
 async function doSync() {
   const db = loadDB();
@@ -77,6 +123,8 @@ async function doSync() {
     } catch(e2) {}
     await new Promise(res => setTimeout(res, 200));
   }
+  // Aussi sync via iCal
+  try { await syncFromICal(); } catch(e) { console.log('iCal sync error:', e.message); }
   db.last_sync = new Date().toISOString();
   db.total = Object.keys(db.reservations).length;
   saveDB(db);
