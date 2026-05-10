@@ -117,7 +117,14 @@ async function doSync() {
     await new Promise(res => setTimeout(res, 200));
   }
   // Aussi sync via iCal
-  try { await syncFromICal(); } catch(e) { console.log('iCal sync error:', e.message); }
+  // Sync iCal et merger dans la DB courante
+  try {
+    const icalDb = await syncFromICal();
+    for(const k of Object.keys(icalDb.reservations)) {
+      if(!db.reservations[k]) db.reservations[k] = icalDb.reservations[k];
+    }
+    console.log('iCal merged, total after merge:', Object.keys(db.reservations).length);
+  } catch(e) { console.log('iCal sync error:', e.message); }
   db.last_sync = new Date().toISOString();
   db.total = Object.keys(db.reservations).length;
   saveDB(db);
