@@ -289,3 +289,15 @@ if (needsSync) { console.log('Auto-sync au démarrage...'); doSync().catch(conso
 
 // Sync toutes les heures
 setInterval(() => { doSync().catch(console.error); }, 3600000);
+
+app.get('/test-ical', async function(req, res) {
+  try {
+    const url = 'https://www.airbnb.fr/calendar/ical/1444758558715417027.ics?t=c42b72016c5748c18ee41cd64ae7e287';
+    const r = await fetch(url, {headers:{'User-Agent':'Mozilla/5.0'}});
+    const text = await r.text();
+    const lines = text.split('\n').length;
+    res.json({ok:true, status:r.status, lines, preview:text.slice(0,200)});
+  } catch(e) {
+    res.json({ok:false, error:e.message});
+  }
+});
