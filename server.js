@@ -54,7 +54,7 @@ async function syncFromICal() {
         const co = dtend.slice(0,4)+'-'+dtend.slice(4,6)+'-'+dtend.slice(6,8);
         const codeMatch = desc.match(/details\/([A-Z0-9]+)/);
         const key = codeMatch ? codeMatch[1] : uid.trim().replace(/@.*/, '');
-        if(!db.reservations[key]) {
+        if(true) { // toujours mettre a jour depuis iCal
           db.reservations[key] = {reservation_code:key, guest_name:summary==='Reserved'?'Voyageur Airbnb':(summary||'Voyageur'), check_in_date:ci, check_out_date:co, channel_type:channel, property_id:prop, number_of_guests:1, status:'accepted', total_price:0, currency:'EUR'};
           added++;
         }
