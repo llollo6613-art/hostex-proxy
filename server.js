@@ -32,8 +32,8 @@ async function syncFromICal() {
   const db = loadDB();
   // iCal URLs des 2 logements (Airbnb et Booking)
   const icalUrls = [
-    {url: 'https://www.airbnb.com/calendar/ical/1444758558715417027.ics?s=a', prop: '12619011', channel: 'airbnb'},
-    {url: 'https://www.airbnb.com/calendar/ical/1499112879728152781.ics?s=a', prop: '12619012', channel: 'airbnb'},
+    {url: 'https://www.airbnb.fr/calendar/ical/1444758558715417027.ics?t=c42b72016c5748c18ee41cd64ae7e287', prop: '12619011', channel: 'airbnb'},
+    {url: 'https://www.airbnb.fr/calendar/ical/1499112879728152781.ics?t=7dccb868b47241b9970e6d8caa1a5de8', prop: '12619012', channel: 'airbnb'},
   ];
   for(const {url, prop, channel} of icalUrls) {
     try {
