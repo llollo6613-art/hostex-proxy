@@ -49,7 +49,7 @@ async function syncFromICal() {
         const summary = ((ev.match(/SUMMARY:([^\n]+)/) || [])[1] || '').trim();
         const desc = ((ev.match(/DESCRIPTION:([^\n]+)/) || [])[1] || '').trim();
         if(!dtstart || !dtend || !uid) continue;
-        if(summary === 'Not available' || summary === 'Blocked' || summary === 'Airbnb (Not available)') continue;
+        if(summary === 'Not available' || summary === 'Blocked') continue;
         const ci = dtstart.slice(0,4)+'-'+dtstart.slice(4,6)+'-'+dtstart.slice(6,8);
         const co = dtend.slice(0,4)+'-'+dtend.slice(4,6)+'-'+dtend.slice(6,8);
         const codeMatch = desc.match(/details\/([A-Z0-9]+)/);
