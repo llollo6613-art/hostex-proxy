@@ -30,36 +30,36 @@ async function hostexGet(p) {
 // Sync via iCal Airbnb et Booking (contient TOUTES les réservations)
 async function syncFromICal() {
   const db = loadDB();
-  // iCal URLs des 2 logements (Airbnb et Booking)
   const icalUrls = [
     {url: 'https://www.airbnb.fr/calendar/ical/1444758558715417027.ics?t=c42b72016c5748c18ee41cd64ae7e287', prop: '12619011', channel: 'airbnb'},
     {url: 'https://www.airbnb.fr/calendar/ical/1499112879728152781.ics?t=7dccb868b47241b9970e6d8caa1a5de8', prop: '12619012', channel: 'airbnb'},
   ];
+  let added = 0;
   for(const {url, prop, channel} of icalUrls) {
     try {
-      const r = await fetch(url, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (compatible; Calendar/1.0)',
-          'Accept': 'text/calendar,*/*'
-        }
-      });
+      const r = await fetch(url, {headers:{'User-Agent':'Mozilla/5.0','Accept':'text/calendar,*/*'}});
       const text = await r.text();
-      // Parser le iCal
-      const events = text.split('BEGIN:VEVENT').slice(1);
+      // Normaliser les lignes pliées (RFC 5545)
+      const normalized = text.replace(/\r\n[ \t]/g, '').replace(/\r/g, '');
+      const events = normalized.split('BEGIN:VEVENT').slice(1);
       for(const ev of events) {
         const dtstart = (ev.match(/DTSTART[^:]*:([\d]+)/) || [])[1];
         const dtend = (ev.match(/DTEND[^:]*:([\d]+)/) || [])[1];
-        const uid = (ev.match(/UID:([^\r\n]+)/) || [])[1];
-        const summary = (ev.match(/SUMMARY:([^\r\n]+)/) || [])[1] || '';
+        const uid = (ev.match(/UID:([^\n]+)/) || [])[1];
+        const summary = ((ev.match(/SUMMARY:([^\n]+)/) || [])[1] || '').trim();
+        const desc = ((ev.match(/DESCRIPTION:([^\n]+)/) || [])[1] || '').trim();
         if(!dtstart || !dtend || !uid) continue;
-        if(summary.includes('Not available') || summary.includes('Blocked') || summary.includes('Airbnb')) continue;
+        // Ignorer les blocages non-réservations
+        if(summary === 'Airbnb (Not available)' || summary === 'Not available' || summary === 'Blocked') continue;
         const ci = dtstart.slice(0,4)+'-'+dtstart.slice(4,6)+'-'+dtstart.slice(6,8);
         const co = dtend.slice(0,4)+'-'+dtend.slice(4,6)+'-'+dtend.slice(6,8);
-        const key = uid.split('@')[0];
+        // Extraire le code de réservation depuis DESCRIPTION
+        const resCodeMatch = desc.match(/reservations\/details\/([A-Z0-9]+)/);
+        const key = resCodeMatch ? resCodeMatch[1] : uid.trim().split('@')[0];
         if(!db.reservations[key]) {
           db.reservations[key] = {
             reservation_code: key,
-            guest_name: summary || 'Voyageur',
+            guest_name: summary === 'Reserved' ? 'Voyageur Airbnb' : (summary || 'Voyageur'),
             check_in_date: ci,
             check_out_date: co,
             channel_type: channel,
@@ -69,12 +69,15 @@ async function syncFromICal() {
             total_price: 0,
             currency: 'EUR'
           };
+          added++;
         }
       }
+      console.log('iCal synced:', url.split('/').pop().split('?')[0], '- events:', events.length, 'added:', added);
     } catch(e) { console.log('iCal error:', e.message); }
   }
   db.total = Object.keys(db.reservations).length;
   saveDB(db);
+  console.log('iCal total reservations in DB:', db.total);
   return db;
 }
 
