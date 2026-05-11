@@ -110,7 +110,7 @@ async function doSync() {
     try {
       const d = await hostexGet(url);
       const list = (d && d.data && d.data.reservations) ? d.data.reservations : [];
-      for (const r of list) { const k = r.reservation_code || r.id; if(!db.reservations[k]) { r.total_price = r.rates && r.rates.total_rate ? r.rates.total_rate.amount : (r.total_price||0); r.currency = r.rates && r.rates.total_rate ? r.rates.total_rate.currency : (r.currency||'EUR'); } db.reservations[k] = r; }
+      for (const r of list) { const k = r.reservation_code || r.id; r.total_price = r.rates && r.rates.total_rate ? r.rates.total_rate.amount : (r.total_price||0); r.currency = r.rates && r.rates.total_rate ? r.rates.total_rate.currency : (r.currency||'EUR'); r.commission = r.rates && r.rates.total_commission ? r.rates.total_commission.amount : 0; db.reservations[k] = r; }
     } catch(e2) {}
     await new Promise(res => setTimeout(res, 300));
   }
@@ -121,7 +121,7 @@ async function doSync() {
     try {
       const d = await hostexGet('/reservations?check_in_date_min=' + s.toISOString().slice(0,10) + '&check_in_date_max=' + e.toISOString().slice(0,10) + '&page_size=50');
       const list = (d && d.data && d.data.reservations) ? d.data.reservations : [];
-      for (const r of list) { const k = r.reservation_code || r.id; if(!db.reservations[k]) { r.total_price = r.rates && r.rates.total_rate ? r.rates.total_rate.amount : (r.total_price||0); r.currency = r.rates && r.rates.total_rate ? r.rates.total_rate.currency : (r.currency||'EUR'); } db.reservations[k] = r; }
+      for (const r of list) { const k = r.reservation_code || r.id; r.total_price = r.rates && r.rates.total_rate ? r.rates.total_rate.amount : (r.total_price||0); r.currency = r.rates && r.rates.total_rate ? r.rates.total_rate.currency : (r.currency||'EUR'); r.commission = r.rates && r.rates.total_commission ? r.rates.total_commission.amount : 0; db.reservations[k] = r; }
     } catch(e2) {}
     await new Promise(res => setTimeout(res, 200));
   }
