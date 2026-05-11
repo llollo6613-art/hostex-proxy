@@ -1114,7 +1114,7 @@ async function _processCSVImport(){
       property_id: obj.property_id||obj.listing_id||'',
       number_of_guests: obj.number_of_guests||obj.guests||1,
       status: obj.status||'accepted',
-      total_price: obj.total_price||obj.amount||0
+      total_price: (obj.rates&&obj.rates.total_rate?obj.rates.total_rate.amount:(obj.total_price||obj.amount||0))
     };
     if(r.reservation_code) reservations.push(r);
   }
@@ -1161,7 +1161,7 @@ async function _syncHostexDirect(){
               property_id:res.house&&String(res.house.id),
               number_of_guests:res.number_of_guests||1,
               status:res.out_status==='cancelled'?'cancelled':'accepted',
-              total_price:res.house_fee||res.earning||0,
+              total_price:(res.rates&&res.rates.total_rate?res.rates.total_rate.amount:(res.house_fee||res.earning||res.total_price||0)),
               commission:0,
               currency:res.currency||'EUR'
             };
