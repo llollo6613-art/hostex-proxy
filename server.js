@@ -242,7 +242,16 @@ app.get('/all-reservations', async function(req, res) {
     // Merger stored + live, live a priorite
     const map = {};
     for (const r of stored) map[r.reservation_code || r.id] = r;
-    for (const r of liveRes) map[r.reservation_code || r.id] = r;
+    for (const r of liveRes) {
+      const k = r.reservation_code || r.id;
+      // Normaliser le prix depuis rates
+      if(r.rates && r.rates.total_rate) {
+        r.total_price = r.rates.total_rate.amount;
+        r.currency = r.rates.total_rate.currency;
+        r.commission = r.rates.total_commission ? r.rates.total_commission.amount : 0;
+      }
+      map[k] = r;
+    }
     const all = Object.values(map).sort((a,b) => (b.check_in_date||b.check_in||'').localeCompare(a.check_in_date||a.check_in||''));
     res.json({ error_code: 200, error_msg: 'Done.', data: { reservations: all, total: all.length, last_sync: db.last_sync } });
   } catch(e) { res.status(500).json({ error: e.message }); }
