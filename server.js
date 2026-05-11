@@ -292,3 +292,14 @@ if (needsSync) { console.log('Auto-sync au démarrage...'); doSync().catch(conso
 
 // Sync toutes les heures
 setInterval(() => { doSync().catch(console.error); }, 3600000);
+
+app.get('/test-booking-ical', async function(req, res) {
+  try {
+    const url = 'https://ical.booking.com/v1/export?t=939b4e7b-3790-4c7a-8062-4b58f61c6af2';
+    const r = await fetch(url, {headers:{'User-Agent':'Mozilla/5.0'}});
+    const text = await r.text();
+    res.json({ok:true, status:r.status, lines:text.split('\n').length, preview:text.slice(0,200)});
+  } catch(e) {
+    res.json({ok:false, error:e.message});
+  }
+});
