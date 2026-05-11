@@ -130,7 +130,7 @@ async function doSync() {
     const apiRes = Object.values(db.reservations).filter(r => r.guest_name && r.guest_name !== 'Voyageur Airbnb' && r.guest_name !== 'Voyageur Booking.com' && r.guest_name !== 'Airbnb (Not available)');
     const icalRes = Object.values(db.reservations).filter(r => r.guest_name === 'Voyageur Airbnb' || r.guest_name === 'Airbnb (Not available)');
     for(const ical of icalRes) {
-      const match = apiRes.find(a => a.check_in_date === ical.check_in_date && a.property_id === ical.property_id);
+      const match = apiRes.find(a => a.check_in_date === ical.check_in_date && String(a.property_id) === String(ical.property_id));
       if(match) {
         db.reservations[ical.reservation_code].guest_name = match.guest_name;
         db.reservations[ical.reservation_code].guest_phone = match.guest_phone;
