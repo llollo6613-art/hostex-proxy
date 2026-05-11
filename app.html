@@ -135,7 +135,7 @@ function mapRes(r){
   var amt=0;
   if(r.rates&&r.rates.total_rate&&r.rates.total_rate.amount)amt=parseFloat(r.rates.total_rate.amount);
   else if(r.rates&&r.rates.rate&&r.rates.rate.amount)amt=parseFloat(r.rates.rate.amount);
-  else if(r.a)amt=parseFloat(r.a);
+  else if(r.total_price)amt=parseFloat(r.total_price); else if(r.a)amt=parseFloat(r.a);
   var com=0;
   if(r.rates&&r.rates.total_commission&&r.rates.total_commission.amount)com=parseFloat(r.rates.total_commission.amount);
   else if(r.rates&&r.rates.commission&&r.rates.commission.amount)com=parseFloat(r.rates.commission.amount);
