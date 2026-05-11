@@ -126,6 +126,21 @@ async function doSync() {
       if(!db.reservations[k]) db.reservations[k] = icalDb.reservations[k];
     }
     console.log('iCal merged, total after merge:', Object.keys(db.reservations).length);
+    // Enrichir les reservations iCal avec les vraies donnees API
+    const apiRes = Object.values(db.reservations).filter(r => r.guest_name && r.guest_name !== 'Voyageur Airbnb' && r.guest_name !== 'Voyageur Booking.com' && r.guest_name !== 'Airbnb (Not available)');
+    const icalRes = Object.values(db.reservations).filter(r => r.guest_name === 'Voyageur Airbnb' || r.guest_name === 'Airbnb (Not available)');
+    for(const ical of icalRes) {
+      const match = apiRes.find(a => a.check_in_date === ical.check_in_date && a.property_id === ical.property_id);
+      if(match) {
+        db.reservations[ical.reservation_code].guest_name = match.guest_name;
+        db.reservations[ical.reservation_code].guest_phone = match.guest_phone;
+        db.reservations[ical.reservation_code].guest_email = match.guest_email;
+        db.reservations[ical.reservation_code].total_price = match.total_price || (match.rates && match.rates.total_rate ? match.rates.total_rate.amount : 0);
+        db.reservations[ical.reservation_code].currency = match.currency || 'EUR';
+        db.reservations[ical.reservation_code].number_of_guests = match.number_of_guests;
+        console.log('Enriched:', ical.check_in_date, '->', match.guest_name);
+      }
+    }
   } catch(e) { console.log('iCal sync error:', e.message); }
   db.last_sync = new Date().toISOString();
   db.total = Object.keys(db.reservations).length;
