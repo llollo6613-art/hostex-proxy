@@ -65,8 +65,10 @@ async function syncFromICal() {
   }
   db.total = Object.keys(db.reservations).length;
   // Reservations Booking manquantes de l'API (hardcoded)
+  // Reservations Booking manquantes de l'API (hardcoded depuis iCal Booking)
   const bookingMissing = [
     {reservation_code:'BK-61b7f250-suite',guest_name:'Voyageur Booking.com',check_in_date:'2026-06-23',check_out_date:'2026-06-26',channel_type:'booking.com',property_id:'12619011',number_of_guests:2,status:'accepted',total_price:0,currency:'EUR'},
+    {reservation_code:'BK-03462f0e-suite',guest_name:'Voyageur Booking.com',check_in_date:'2026-06-28',check_out_date:'2026-07-02',channel_type:'booking.com',property_id:'12619011',number_of_guests:2,status:'accepted',total_price:0,currency:'EUR'},
     {reservation_code:'BK-d1327e28-suite',guest_name:'Voyageur Booking.com',check_in_date:'2026-07-10',check_out_date:'2026-07-12',channel_type:'booking.com',property_id:'12619011',number_of_guests:2,status:'accepted',total_price:0,currency:'EUR'},
     {reservation_code:'BK-575b765e-suite',guest_name:'Voyageur Booking.com',check_in_date:'2026-07-24',check_out_date:'2026-07-26',channel_type:'booking.com',property_id:'12619011',number_of_guests:2,status:'accepted',total_price:0,currency:'EUR'},
   ];
