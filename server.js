@@ -315,6 +315,15 @@ app.get('/health', function(req, res) {
   res.json({ status: 'ok', token_set: !!HOSTEX_TOKEN, reservations_stored: db.total || 0, last_sync: db.last_sync, timestamp: new Date().toISOString(), webhook_url: 'https://hostex-proxy.onrender.com/webhook' });
 });
 
+
+// Keep-alive pour Render (evite la mise en veille)
+setInterval(async function() {
+  try {
+    await fetch('https://hostex-proxy.onrender.com/health');
+    console.log('Keep-alive ping OK', new Date().toISOString());
+  } catch(e) {}
+}, 14 * 60 * 1000); // toutes les 14 minutes
+
 app.listen(PORT, function() { console.log('Listening on', PORT); });
 
 // Sync au démarrage si pas de données récentes
