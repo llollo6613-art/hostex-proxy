@@ -175,8 +175,21 @@ async function syncLive(){
       if(b.status==='cancelled'&&a.status!=='cancelled')return -1;
       return (b.booked_at||'').localeCompare(a.booked_at||'');
     }).forEach(r=>{
-      const dk=(r.guest||'')+'_'+(r.check_in||'')+'_'+(r.prop_id||'');
-      if(!seen2[dk]){seen2[dk]=r.id;final2[r.id]=r;}
+      const dk=(r.guest||'unknown')+'_'+(r.check_in||'')+'_'+(r.prop_id||'');
+      if(!seen2[dk]){
+        seen2[dk]=r.id;final2[r.id]=r;
+      } else {
+        // Garder celle avec le plus grand montant ou vrai nom
+        const prev=final2[seen2[dk]];
+        const prevAmt=parseFloat(prev.amount||0);
+        const curAmt=parseFloat(r.amount||0);
+        const prevIsVoyageur=!prev.guest||prev.guest.startsWith('Voyageur');
+        const curIsVoyageur=!r.guest||r.guest.startsWith('Voyageur');
+        if((!prevIsVoyageur&&curAmt>prevAmt)||(prevIsVoyageur&&!curIsVoyageur)||(curAmt>prevAmt&&!prevIsVoyageur)){
+          delete final2[seen2[dk]];
+          seen2[dk]=r.id;final2[r.id]=r;
+        }
+      }
     });
     S.reservations=Object.values(final2).sort((a,b)=>(b.check_in||'').localeCompare(a.check_in||''));
     document.getElementById('conn-label').innerHTML='&#10003; '+S.reservations.length+' r\u00e9servations';
