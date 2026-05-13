@@ -355,6 +355,45 @@ app.post('/reset-db', function(req, res) {
   res.json({ok:true, msg:'DB reset'});
 });
 
+// Endpoint pour recevoir les reservations depuis le bookmarklet Hostex
+app.post('/sync-from-browser', async function(req, res) {
+  try {
+    const db = loadDB();
+    const reservations = req.body.reservations || [];
+    let added = 0;
+    for(const rv of reservations) {
+      const k = rv.reservation_code || rv.id;
+      if(!k) continue;
+      const price = rv.rates && rv.rates.total_rate ? rv.rates.total_rate.amount : (rv.total_price || 0);
+      const com = rv.rates && rv.rates.total_commission ? rv.rates.total_commission.amount : 0;
+      const existing = db.reservations[k];
+      // Toujours mettre à jour avec les vraies données
+      db.reservations[k] = {
+        reservation_code: k,
+        guest_name: rv.guest_name || (existing && existing.guest_name) || 'Voyageur',
+        check_in_date: rv.check_in_date || (existing && existing.check_in_date) || '',
+        check_out_date: rv.check_out_date || (existing && existing.check_out_date) || '',
+        channel_type: rv.channel_type || (existing && existing.channel_type) || 'airbnb',
+        property_id: String(rv.property_id || (existing && existing.property_id) || ''),
+        number_of_guests: rv.number_of_guests || (existing && existing.number_of_guests) || 1,
+        status: rv.status || 'accepted',
+        total_price: price || (existing && existing.total_price) || 0,
+        commission: com || (existing && existing.commission) || 0,
+        currency: 'EUR',
+        guest_phone: rv.guest_phone || (existing && existing.guest_phone) || '',
+        guest_email: rv.guest_email || (existing && existing.guest_email) || '',
+        booked_at: rv.booked_at || (existing && existing.booked_at) || '',
+        rates: rv.rates || (existing && existing.rates) || null,
+      };
+      if(!existing) added++;
+    }
+    db.total = Object.keys(db.reservations).length;
+    saveDB(db);
+    console.log('sync-from-browser: received', reservations.length, 'added', added, 'total', db.total);
+    res.json({ok:true, received: reservations.length, added, total: db.total});
+  } catch(e) { res.status(500).json({error: e.message}); }
+});
+
 app.get('/health', function(req, res) {
   const db = loadDB();
   res.json({ status: 'ok', token_set: !!HOSTEX_TOKEN, reservations_stored: db.total || 0, last_sync: db.last_sync, timestamp: new Date().toISOString(), webhook_url: 'https://hostex-proxy.onrender.com/webhook' });
