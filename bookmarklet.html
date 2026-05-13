@@ -28,45 +28,59 @@ h1{color:#0F6E56;margin-bottom:8px;}
   <center>
     <a class="bookmarklet" href="javascript:(function(){
 var PROXY='https://hostex-proxy.onrender.com';
-var all={};
-var now=new Date();
-var done=0;
-var total=21;
 var div=document.createElement('div');
-div.style.cssText='position:fixed;top:20px;right:20px;z-index:999999;background:#0F6E56;color:#fff;padding:16px 20px;border-radius:14px;font-family:system-ui;font-size:14px;box-shadow:0 4px 20px rgba(0,0,0,.3);min-width:240px;';
-div.innerHTML='<b>Illiberis Sync</b><br><span id="ilsync-status">Démarrage...</span><br><div style="background:rgba(255,255,255,.3);border-radius:4px;height:6px;margin-top:8px;"><div id="ilsync-bar" style="background:#fff;height:100%;border-radius:4px;width:0%;transition:width .3s;"></div></div>';
+div.style.cssText='position:fixed;top:20px;right:20px;z-index:999999;background:#0F6E56;color:#fff;padding:16px 20px;border-radius:14px;font-family:system-ui;font-size:14px;box-shadow:0 4px 20px rgba(0,0,0,.3);min-width:260px;';
+div.innerHTML='<b>Illiberis Sync</b><br><span id="ilsync-status">Chargement...</span><div style="background:rgba(255,255,255,.3);border-radius:4px;height:6px;margin-top:8px;"><div id="ilsync-bar" style="background:#fff;height:100%;border-radius:4px;width:0%;transition:width .3s;"></div></div>';
 document.body.appendChild(div);
 function setS(msg,pct){document.getElementById('ilsync-status').textContent=msg;if(pct!==undefined)document.getElementById('ilsync-bar').style.width=pct+'%';}
 (async function(){
-  var months=[];
-  for(var m=-6;m<=14;m++){var d=new Date(now.getFullYear(),now.getMonth()+m,1);months.push(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'));}
-  for(var month of months){
-    setS('Chargement '+month+'...',Math.round(done/total*80));
+  var all={};
+  var now=new Date();
+  var total=21;
+  var done=0;
+  // Charger mois par mois -3 à +14
+  for(var m=-3;m<=14;m++){
+    var d=new Date(now.getFullYear(),now.getMonth()+m,1);
+    var year=d.getFullYear();
+    var month=String(d.getMonth()+1).padStart(2,'0');
+    setS('Chargement '+year+'-'+month+'...',Math.round(done/total*80));
     try{
-      var r=await fetch('/api/reservation/today_reservation?opid=160776&opclient=Web-Mac-Chrome&month='+month,{credentials:'include'});
+      var r=await fetch('/api/reservations?check_in_date_min='+year+'-'+month+'-01&check_in_date_max='+year+'-'+month+'-31&page_size=50',{credentials:'include'});
       var data=await r.json();
-      var list=data.data&&data.data.list||[];
-      list.forEach(function(res){
-        if(!res.code)return;
-        var ch='direct';
-        if(res.channel_name){var cn=res.channel_name.toLowerCase();ch=cn.includes('airbnb')?'airbnb':cn.includes('booking')?'booking.com':res.channel_name;}
-        else if(res.thirdparty_type===1)ch='airbnb';
-        else if(res.thirdparty_type===3)ch='booking.com';
-        var pid='';
-        if(res.house){var hn=(res.house.title_alias||res.house.name||'').toLowerCase();pid=hn.includes('loft')||hn.includes('cinema')?'12619012':hn.includes('suite')||hn.includes('illiberis')?'12619011':String(res.house.id||'');}
-        all[res.code]={reservation_code:res.code,guest_name:(res.thirdparty_customer&&res.thirdparty_customer.name)||(res.thirdparty_guest&&res.thirdparty_guest.name)||'Voyageur',check_in_date:res.check_in,check_out_date:res.check_out,channel_type:ch,property_id:pid,number_of_guests:res.number_of_guests||1,status:(res.out_status==='cancelled'||res.out_status==='cancel')?'cancelled':'accepted',total_price:res.house_fee||res.earning||0,commission:res.commission||0,currency:res.currency||'EUR'};
+      var list=data.data&&data.data.reservations||[];
+      list.filter(rv=>rv.status!=='cancelled').forEach(function(rv){
+        var k=rv.reservation_code||rv.id;
+        if(k)all[k]=rv;
       });
     }catch(e){}
     done++;
-    await new Promise(res=>setTimeout(res,200));
+    await new Promise(function(res){setTimeout(res,200);});
   }
-  var reservations=Object.values(all);
-  setS('Envoi '+reservations.length+' réservations...',85);
+  // Aussi les sorts
+  for(var sort of['check_in_date&sort_order=asc','check_in_date&sort_order=desc','created_at&sort_order=desc']){
+    try{
+      var r=await fetch('/api/reservations?page_size=50&sort='+sort,{credentials:'include'});
+      var data=await r.json();
+      (data.data&&data.data.reservations||[]).filter(rv=>rv.status!=='cancelled').forEach(function(rv){
+        var k=rv.reservation_code||rv.id;if(k)all[k]=rv;
+      });
+    }catch(e){}
+    await new Promise(function(res){setTimeout(res,200);});
+  }
+  var reservations=Object.values(all).map(function(rv){
+    var price=rv.rates&&rv.rates.total_rate?rv.rates.total_rate.amount:(rv.total_price||0);
+    var com=rv.rates&&rv.rates.total_commission?rv.rates.total_commission.amount:0;
+    return{reservation_code:rv.reservation_code||rv.id,guest_name:rv.guest_name||'',check_in_date:rv.check_in_date||'',check_out_date:rv.check_out_date||'',channel_type:rv.channel_type||'airbnb',property_id:String(rv.property_id||''),number_of_guests:rv.number_of_guests||1,status:rv.status||'accepted',total_price:price,commission:com,currency:'EUR',guest_phone:rv.guest_phone||'',guest_email:rv.guest_email||'',booked_at:rv.booked_at||'',rates:rv.rates||null};
+  });
+  setS('Envoi de '+reservations.length+' réservations...',85);
+  if(!reservations.length){setS('Aucune réservation trouvée');return;}
   try{
-    var resp=await fetch(PROXY+'/import-csv',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({reservations:reservations})});
+    var resp=await fetch(PROXY+'/sync-from-browser',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({reservations:reservations})});
     var result=await resp.json();
-    if(result.ok){setS('✓ Sync OK ! '+reservations.length+' rés. | Total: '+result.total,100);setTimeout(()=>div.remove(),4000);}
-    else{setS('Erreur: '+(result.error||'inconnue'));}
+    if(result.ok){
+      setS('✓ '+reservations.length+' réservations sync. Total: '+result.total,100);
+      setTimeout(function(){div.remove();},5000);
+    }else{setS('Erreur: '+(result.error||'inconnue'));}
   }catch(e){setS('Erreur: '+e.message);}
 })();
 })();">🔄 Sync Illiberis</a>
