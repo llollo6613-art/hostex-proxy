@@ -175,7 +175,7 @@ async function syncLive(){
       if(b.status==='cancelled'&&a.status!=='cancelled')return -1;
       return (b.booked_at||'').localeCompare(a.booked_at||'');
     }).forEach(r=>{
-      const dk=(r.guest||'unknown')+'_'+(r.check_in||'')+'_'+(r.prop_id||'');
+      const dk=(r.check_in||'')+'_'+(r.prop_id||'');
       if(!seen2[dk]){
         seen2[dk]=r.id;final2[r.id]=r;
       } else {
