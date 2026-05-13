@@ -37,6 +37,7 @@ async function syncFromICal() {
     {url: 'https://ical.booking.com/v1/export?t=0e46cbb9-8661-4a50-99d3-0dc9ec5ab511', prop: '12619012', channel: 'booking.com'},
   ];
   let added = 0;
+  const icalCodes = [];
   for(const {url, prop, channel} of icalUrls) {
     try {
       const r = await fetch(url, {headers:{'User-Agent':'Mozilla/5.0','Accept':'text/calendar,*/*'}});
@@ -51,29 +52,59 @@ async function syncFromICal() {
         const summary = ((ev.match(/SUMMARY:([^\n]+)/) || [])[1] || '').trim();
         const desc = ((ev.match(/DESCRIPTION:([^\n]+)/) || [])[1] || '').trim();
         if(!dtstart || !dtend || !uid) continue;
-        if(summary === 'Not available' || summary === 'Blocked' || summary.includes('Not available') || summary === 'Airbnb (Not available)') continue;
+        if(summary === 'Not available' || summary === 'Blocked' || summary === 'Airbnb (Not available)' || summary.includes('Not available')) continue;
         const ci = dtstart.slice(0,4)+'-'+dtstart.slice(4,6)+'-'+dtstart.slice(6,8);
         const co = dtend.slice(0,4)+'-'+dtend.slice(4,6)+'-'+dtend.slice(6,8);
         const codeMatch = desc.match(/details\/([A-Z0-9]+)/);
         const key = codeMatch ? codeMatch[1] : uid.trim().replace(/@.*/, '');
-        if(true) { // toujours mettre a jour depuis iCal
-          db.reservations[key] = {reservation_code:key, guest_name:summary==='Reserved'?'Voyageur Airbnb':(summary||'Voyageur'), check_in_date:ci, check_out_date:co, channel_type:channel, property_id:prop, number_of_guests:1, status:'accepted', total_price:0, currency:'EUR'};
-          added++;
+        // Ajouter seulement si pas deja present avec des donnees enrichies
+        const existing = db.reservations[key];
+        const hasRealData = existing && existing.guest_name && existing.guest_name !== 'Voyageur Airbnb' && existing.guest_name !== 'Voyageur Booking.com';
+        if(!existing || !hasRealData) {
+          db.reservations[key] = {
+            reservation_code: key,
+            guest_name: hasRealData ? existing.guest_name : (summary === 'Reserved' ? 'Voyageur Airbnb' : (summary || 'Voyageur')),
+            check_in_date: ci,
+            check_out_date: co,
+            channel_type: channel,
+            property_id: prop,
+            number_of_guests: existing ? existing.number_of_guests : 1,
+            status: 'accepted',
+            total_price: existing ? (existing.total_price || 0) : 0,
+            commission: existing ? (existing.commission || 0) : 0,
+            currency: 'EUR',
+            rates: existing ? existing.rates : null,
+            guest_phone: existing ? (existing.guest_phone || '') : '',
+          };
+          if(!existing) added++;
         }
+        if(codeMatch) icalCodes.push(key);
       }
-    } catch(e) { console.log('iCal error:', e.message); }
+    } catch(e) { console.log('iCal error:', url, e.message); }
   }
-  db.total = Object.keys(db.reservations).length;
-  // Reservations Booking manquantes de l'API (hardcoded)
-  // Reservations Booking manquantes de l'API (hardcoded depuis iCal Booking)
-  const bookingMissing = [
-    {reservation_code:'BK-61b7f250-suite',guest_name:'Voyageur Booking.com',check_in_date:'2026-06-23',check_out_date:'2026-06-26',channel_type:'booking.com',property_id:'12619011',number_of_guests:2,status:'accepted',total_price:0,currency:'EUR'},
-    {reservation_code:'BK-03462f0e-suite',guest_name:'Voyageur Booking.com',check_in_date:'2026-06-28',check_out_date:'2026-07-02',channel_type:'booking.com',property_id:'12619011',number_of_guests:2,status:'accepted',total_price:0,currency:'EUR'},
-    {reservation_code:'BK-d1327e28-suite',guest_name:'Voyageur Booking.com',check_in_date:'2026-07-10',check_out_date:'2026-07-12',channel_type:'booking.com',property_id:'12619011',number_of_guests:2,status:'accepted',total_price:0,currency:'EUR'},
-    {reservation_code:'BK-575b765e-suite',guest_name:'Voyageur Booking.com',check_in_date:'2026-07-24',check_out_date:'2026-07-26',channel_type:'booking.com',property_id:'12619011',number_of_guests:2,status:'accepted',total_price:0,currency:'EUR'},
-  ];
-  for(const r of bookingMissing) { if(!db.reservations[r.reservation_code]) db.reservations[r.reservation_code] = r; }
-  saveDB(db);
+  // Enrichir les codes iCal sans prix via API Hostex channel_id
+  console.log('Enriching', icalCodes.length, 'iCal codes...');
+  for(const key of icalCodes) {
+    const r = db.reservations[key];
+    if(r && (r.guest_name === 'Voyageur Airbnb' || !r.total_price)) {
+      try {
+        const apiRes = await hostexGet('/reservations?channel_id='+key+'&page_size=1');
+        const match = apiRes && apiRes.data && apiRes.data.reservations && apiRes.data.reservations[0];
+        if(match && match.guest_name) {
+          const price = match.rates && match.rates.total_rate ? match.rates.total_rate.amount : 0;
+          db.reservations[key].guest_name = match.guest_name;
+          db.reservations[key].guest_phone = match.guest_phone || '';
+          db.reservations[key].total_price = price;
+          db.reservations[key].commission = match.rates && match.rates.total_commission ? match.rates.total_commission.amount : 0;
+          db.reservations[key].number_of_guests = match.number_of_guests || 1;
+          db.reservations[key].rates = match.rates;
+          console.log('Enriched:', key, match.guest_name, price+'EUR');
+        }
+      } catch(e) {}
+      await new Promise(res => setTimeout(res, 150));
+    }
+  }
+  console.log('iCal done added:', added, 'total:', Object.keys(db.reservations).length);
   console.log('iCal done added:', added, 'total:', db.total);
   return db;
 }
