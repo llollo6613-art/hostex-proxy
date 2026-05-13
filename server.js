@@ -163,7 +163,21 @@ async function doSync() {
   try {
     const icalDb = await syncFromICal();
     for(const k of Object.keys(icalDb.reservations)) {
-      if(!db.reservations[k]) db.reservations[k] = icalDb.reservations[k];
+    for(const k of Object.keys(icalDb.reservations)) {
+      const existing = db.reservations[k];
+      const ical = icalDb.reservations[k];
+      if(!existing) {
+        // Nouvelle réservation iCal
+        db.reservations[k] = ical;
+      } else if(existing.guest_name === 'Voyageur Airbnb' || existing.guest_name === 'Voyageur Booking.com') {
+        // Mettre à jour seulement les dates/canal si pas encore enrichi
+        db.reservations[k].check_in_date = ical.check_in_date;
+        db.reservations[k].check_out_date = ical.check_out_date;
+        db.reservations[k].channel_type = ical.channel_type;
+        db.reservations[k].property_id = ical.property_id;
+      }
+      // Si enrichi (vrai nom), on garde tout sans toucher
+    }
     }
     console.log('iCal merged, total after merge:', Object.keys(db.reservations).length);
     // Enrichir les reservations iCal avec les vraies donnees API
