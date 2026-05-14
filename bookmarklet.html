@@ -34,7 +34,7 @@ div.innerHTML='<b>&#127968; Illiberis Sync</b><br><span id="ils">Récupération 
 document.body.appendChild(div);
 function s(msg,pct){document.getElementById('ils').textContent=msg;if(pct!==undefined)document.getElementById('ilb').style.width=pct+'%';}
 (async function(){
-  var token=localStorage.getItem('token')||localStorage.getItem('access_token')||localStorage.getItem('hostex_token');
+  var _happ=JSON.parse(localStorage.getItem('$$hostex_app_app')||'{}');var _tok=_happ.token||{};var token=Object.values(_tok).find(function(v){return v&&typeof v==='string'&&v.length>10;});
   if(!token){s('&#10060; Token non trouvé');return;}
   s('Token OK - sync en cours...',10);
   try{
