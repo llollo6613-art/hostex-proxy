@@ -243,15 +243,37 @@ app.post('/webhook', async function(req, res) {
     const payload = req.body;
     console.log('Webhook recu:', JSON.stringify(payload).slice(0, 200));
     // Hostex envoie l'objet reservation dans payload.data ou directement
-    const r = payload.data || payload.reservation || payload;
-    if (r && (r.reservation_code || r.id)) {
+    // Hostex envoie dans payload.data, payload.reservation, ou plusieurs dans payload.reservations
+    const items = payload.reservations || (payload.data ? [payload.data] : null) || (payload.reservation ? [payload.reservation] : null) || (payload.reservation_code ? [payload] : []);
+    if (items.length > 0) {
       const db = loadDB();
-      const k = r.reservation_code || r.id;
-      db.reservations[k] = r;
+      for (const r of items) {
+        if (!r || !(r.reservation_code || r.id)) continue;
+        const k = r.reservation_code || r.id;
+        const price = r.rates && r.rates.total_rate ? r.rates.total_rate.amount : (r.total_price || 0);
+        const com = r.rates && r.rates.total_commission ? r.rates.total_commission.amount : 0;
+        db.reservations[k] = {
+          reservation_code: k,
+          guest_name: r.guest_name || '',
+          check_in_date: r.check_in_date || '',
+          check_out_date: r.check_out_date || '',
+          channel_type: r.channel_type || 'airbnb',
+          property_id: String(r.property_id || ''),
+          number_of_guests: r.number_of_guests || 1,
+          status: r.status || 'accepted',
+          total_price: price,
+          commission: com,
+          currency: 'EUR',
+          guest_phone: r.guest_phone || '',
+          guest_email: r.guest_email || '',
+          booked_at: r.booked_at || '',
+          rates: r.rates || null,
+        };
+        console.log('Webhook reservation sauvegardee:', k, r.guest_name, price+'EUR');
+      }
       db.total = Object.keys(db.reservations).length;
       db.last_sync = new Date().toISOString();
       saveDB(db);
-      console.log('Reservation sauvegardee via webhook:', k);
     }
     res.json({ ok: true });
   } catch(e) { res.status(500).json({ error: e.message }); }
