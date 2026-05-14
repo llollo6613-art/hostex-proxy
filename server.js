@@ -356,6 +356,79 @@ app.post('/reset-db', function(req, res) {
 });
 
 // Endpoint pour recevoir les reservations depuis le bookmarklet Hostex
+// Sync complet avec token Hostex fourni par le bookmarklet
+app.post('/sync-with-token', async function(req, res) {
+  try {
+    const token = req.body.token;
+    if(!token) return res.status(400).json({error:'No token'});
+    
+    const db = loadDB();
+    let all = {};
+    const now = new Date();
+    
+    // Charger toutes les reservations mois par mois avec le vrai token
+    for(let m = -6; m <= 18; m++) {
+      const d = new Date(now.getFullYear(), now.getMonth()+m, 1);
+      const year = d.getFullYear();
+      const month = String(d.getMonth()+1).padStart(2,'0');
+      try {
+        const r = await fetch(`https://api.hostex.io/v3/reservations?check_in_date_min=${year}-${month}-01&check_in_date_max=${year}-${month}-31&page_size=50`, {
+          headers: { 'Hostex-Access-Token': token, 'Content-Type': 'application/json' }
+        });
+        const data = await r.json();
+        const list = data?.data?.reservations || [];
+        list.filter(rv => rv.status !== 'cancelled').forEach(rv => { all[rv.reservation_code||rv.id] = rv; });
+        console.log(`Month ${year}-${month}: ${list.length} reservations`);
+      } catch(e) { console.log('Month error:', e.message); }
+      await new Promise(res => setTimeout(res, 200));
+    }
+    
+    // Aussi les sorts
+    for(const sort of ['check_in_date&sort_order=asc','created_at&sort_order=desc']) {
+      try {
+        const r = await fetch(`https://api.hostex.io/v3/reservations?page_size=50&sort=${sort}`, {
+          headers: { 'Hostex-Access-Token': token }
+        });
+        const data = await r.json();
+        (data?.data?.reservations||[]).filter(rv=>rv.status!=='cancelled').forEach(rv=>{all[rv.reservation_code||rv.id]=rv;});
+      } catch(e) {}
+      await new Promise(res => setTimeout(res, 200));
+    }
+    
+    const reservations = Object.values(all);
+    console.log('sync-with-token: total found', reservations.length);
+    
+    let added = 0;
+    for(const rv of reservations) {
+      const k = rv.reservation_code || rv.id;
+      if(!k) continue;
+      const price = rv.rates?.total_rate?.amount || rv.total_price || 0;
+      const com = rv.rates?.total_commission?.amount || 0;
+      if(!db.reservations[k]) added++;
+      db.reservations[k] = {
+        reservation_code: k,
+        guest_name: rv.guest_name || '',
+        check_in_date: rv.check_in_date || '',
+        check_out_date: rv.check_out_date || '',
+        channel_type: rv.channel_type || 'airbnb',
+        property_id: String(rv.property_id || ''),
+        number_of_guests: rv.number_of_guests || 1,
+        status: rv.status || 'accepted',
+        total_price: price,
+        commission: com,
+        currency: 'EUR',
+        guest_phone: rv.guest_phone || '',
+        guest_email: rv.guest_email || '',
+        booked_at: rv.booked_at || '',
+        rates: rv.rates || null,
+      };
+    }
+    db.total = Object.keys(db.reservations).length;
+    saveDB(db);
+    res.json({ok:true, found: reservations.length, added, total: db.total});
+  } catch(e) { res.status(500).json({error: e.message}); }
+});
+
 app.post('/sync-from-browser', async function(req, res) {
   try {
     const db = loadDB();
