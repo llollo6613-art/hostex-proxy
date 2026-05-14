@@ -29,59 +29,22 @@ h1{color:#0F6E56;margin-bottom:8px;}
     <a class="bookmarklet" href="javascript:(function(){
 var PROXY='https://hostex-proxy.onrender.com';
 var div=document.createElement('div');
-div.style.cssText='position:fixed;top:20px;right:20px;z-index:999999;background:#0F6E56;color:#fff;padding:16px 20px;border-radius:14px;font-family:system-ui;font-size:14px;box-shadow:0 4px 20px rgba(0,0,0,.3);min-width:260px;';
-div.innerHTML='<b>Illiberis Sync</b><br><span id="ilsync-status">Chargement...</span><div style="background:rgba(255,255,255,.3);border-radius:4px;height:6px;margin-top:8px;"><div id="ilsync-bar" style="background:#fff;height:100%;border-radius:4px;width:0%;transition:width .3s;"></div></div>';
+div.style.cssText='position:fixed;top:20px;right:20px;z-index:999999;background:#0F6E56;color:#fff;padding:16px 20px;border-radius:14px;font-family:system-ui;font-size:14px;box-shadow:0 4px 20px rgba(0,0,0,.3);min-width:280px;';
+div.innerHTML='<b>&#127968; Illiberis Sync</b><br><span id="ils">Récupération du token...</span><div style="background:rgba(255,255,255,.3);border-radius:4px;height:6px;margin-top:8px;"><div id="ilb" style="background:#fff;height:100%;border-radius:4px;width:0%;transition:width .4s;"></div></div>';
 document.body.appendChild(div);
-function setS(msg,pct){document.getElementById('ilsync-status').textContent=msg;if(pct!==undefined)document.getElementById('ilsync-bar').style.width=pct+'%';}
+function s(msg,pct){document.getElementById('ils').textContent=msg;if(pct!==undefined)document.getElementById('ilb').style.width=pct+'%';}
 (async function(){
-  var all={};
-  var now=new Date();
-  var total=21;
-  var done=0;
-  // Charger mois par mois -3 à +14
-  for(var m=-3;m<=14;m++){
-    var d=new Date(now.getFullYear(),now.getMonth()+m,1);
-    var year=d.getFullYear();
-    var month=String(d.getMonth()+1).padStart(2,'0');
-    setS('Chargement '+year+'-'+month+'...',Math.round(done/total*80));
-    try{
-      var r=await fetch('/api/reservations?check_in_date_min='+year+'-'+month+'-01&check_in_date_max='+year+'-'+month+'-31&page_size=50',{credentials:'include'});
-      var data=await r.json();
-      var list=data.data&&data.data.reservations||[];
-      list.filter(rv=>rv.status!=='cancelled').forEach(function(rv){
-        var k=rv.reservation_code||rv.id;
-        if(k)all[k]=rv;
-      });
-    }catch(e){}
-    done++;
-    await new Promise(function(res){setTimeout(res,200);});
-  }
-  // Aussi les sorts
-  for(var sort of['check_in_date&sort_order=asc','check_in_date&sort_order=desc','created_at&sort_order=desc']){
-    try{
-      var r=await fetch('/api/reservations?page_size=50&sort='+sort,{credentials:'include'});
-      var data=await r.json();
-      (data.data&&data.data.reservations||[]).filter(rv=>rv.status!=='cancelled').forEach(function(rv){
-        var k=rv.reservation_code||rv.id;if(k)all[k]=rv;
-      });
-    }catch(e){}
-    await new Promise(function(res){setTimeout(res,200);});
-  }
-  var reservations=Object.values(all).map(function(rv){
-    var price=rv.rates&&rv.rates.total_rate?rv.rates.total_rate.amount:(rv.total_price||0);
-    var com=rv.rates&&rv.rates.total_commission?rv.rates.total_commission.amount:0;
-    return{reservation_code:rv.reservation_code||rv.id,guest_name:rv.guest_name||'',check_in_date:rv.check_in_date||'',check_out_date:rv.check_out_date||'',channel_type:rv.channel_type||'airbnb',property_id:String(rv.property_id||''),number_of_guests:rv.number_of_guests||1,status:rv.status||'accepted',total_price:price,commission:com,currency:'EUR',guest_phone:rv.guest_phone||'',guest_email:rv.guest_email||'',booked_at:rv.booked_at||'',rates:rv.rates||null};
-  });
-  setS('Envoi de '+reservations.length+' réservations...',85);
-  if(!reservations.length){setS('Aucune réservation trouvée');return;}
+  var token=localStorage.getItem('token')||localStorage.getItem('access_token')||localStorage.getItem('hostex_token');
+  if(!token){s('&#10060; Token non trouvé');return;}
+  s('Token OK - sync en cours...',10);
   try{
-    var resp=await fetch(PROXY+'/sync-from-browser',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({reservations:reservations})});
+    var resp=await fetch(PROXY+'/sync-with-token',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:token})});
     var result=await resp.json();
     if(result.ok){
-      setS('✓ '+reservations.length+' réservations sync. Total: '+result.total,100);
-      setTimeout(function(){div.remove();},5000);
-    }else{setS('Erreur: '+(result.error||'inconnue'));}
-  }catch(e){setS('Erreur: '+e.message);}
+      s('&#10003; '+result.found+' rés. trouvées, '+result.added+' nouvelles. Total: '+result.total,100);
+      setTimeout(function(){div.remove();},6000);
+    }else{s('&#10060; Erreur: '+(result.error||'inconnue'));}
+  }catch(e){s('&#10060; '+e.message);}
 })();
 })();">🔄 Sync Illiberis</a>
   </center>
