@@ -351,8 +351,24 @@ function renderBilan(){
     var occ=Math.round(bookedDays/totalDays*100);
     var avgNight=bookedDays>0?Math.round(brut/bookedDays):0;
     var months=MONTHS.map((lbl,m)=>{
-      var mr=res.filter(r=>new Date(r.check_in+'T00:00:00').getMonth()===m);
-      return {lbl:lbl,count:mr.length,brut:mr.reduce((s,r)=>s+r.amount,0),net:mr.reduce((s,r)=>s+netRev(r)-cleaning(r),0)};
+      // Prorata pour les séjours qui débordent sur plusieurs mois
+      var debut_mois=new Date(selYear,m,1);
+      var fin_mois=new Date(selYear,m+1,1);
+      var mr=res.filter(r=>r.check_in&&r.check_out&&new Date(r.check_in+'T00:00:00')<fin_mois&&new Date(r.check_out+'T00:00:00')>debut_mois);
+      var brut_m=mr.reduce((s,r)=>{
+        var ci=new Date(r.check_in+'T00:00:00'),co=new Date(r.check_out+'T00:00:00');
+        var debut=Math.max(ci,debut_mois),fin=Math.min(co,fin_mois);
+        var nuits_total=Math.round((co-ci)/86400000),nuits_mois=Math.round((fin-debut)/86400000);
+        return s+(nuits_total>0?r.amount*nuits_mois/nuits_total:r.amount);
+      },0);
+      var net_m=mr.reduce((s,r)=>{
+        var ci=new Date(r.check_in+'T00:00:00'),co=new Date(r.check_out+'T00:00:00');
+        var debut=Math.max(ci,debut_mois),fin=Math.min(co,fin_mois);
+        var nuits_total=Math.round((co-ci)/86400000),nuits_mois=Math.round((fin-debut)/86400000);
+        var ratio=nuits_total>0?nuits_mois/nuits_total:1;
+        return s+(netRev(r)-cleaning(r))*ratio;
+      },0);
+      return {lbl:lbl,count:mr.length,brut:Math.round(brut_m),net:Math.round(net_m)};
     });
     return {res,brut,com,cl,net,airRes,bkRes,airRev,bkRev,bookedDays,occ,avgNight,months};
   }
