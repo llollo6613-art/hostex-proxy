@@ -124,6 +124,31 @@ async function api(path,method='GET',body=null,timeoutMs=6000){
   }catch(e){clearTimeout(timer);throw e;}
 }
 
+function revenusProrataMois(reservations, annee, mois) {
+  var debut_mois = new Date(annee, mois, 1);
+  var fin_mois = new Date(annee, mois+1, 1);
+  return reservations.filter(function(r) {
+    return r.check_in && r.check_out &&
+      new Date(r.check_in+'T00:00:00') < fin_mois &&
+      new Date(r.check_out+'T00:00:00') > debut_mois &&
+      r.status !== 'cancelled';
+  }).reduce(function(s, r) {
+    var ci = new Date(r.check_in+'T00:00:00'), co = new Date(r.check_out+'T00:00:00');
+    var debut = Math.max(ci, debut_mois), fin = Math.min(co, fin_mois);
+    var nt = Math.round((co-ci)/86400000), nm = Math.round((fin-debut)/86400000);
+    return s + (nt > 0 ? (r.amount||0) * nm / nt : (r.amount||0));
+  }, 0);
+}
+function countProrataMois(reservations, annee, mois) {
+  var debut_mois = new Date(annee, mois, 1);
+  var fin_mois = new Date(annee, mois+1, 1);
+  return reservations.filter(function(r) {
+    return r.check_in && r.check_out &&
+      new Date(r.check_in+'T00:00:00') < fin_mois &&
+      new Date(r.check_out+'T00:00:00') > debut_mois &&
+      r.status !== 'cancelled';
+  }).length;
+}
 function fmt(s){if(!s)return '';const d=new Date(s+'T00:00:00');return d.toLocaleDateString('fr-FR',{day:'numeric',month:'short'});}
 function dStr(d){var y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),dd=String(d.getDate()).padStart(2,'0');return y+'-'+m+'-'+dd;}
 function parseD(s){const[y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d);}
@@ -581,7 +606,7 @@ async function _downloadBilanPDF(propId){
 
   var grandBrut=0,grandCom=0,grandCl=0,grandNet=0,grandRes=0;
   for(var m=0;m<12;m++){
-    var mr=res.filter(r=>new Date(r.check_in+'T00:00:00').getMonth()===m);
+    var mr=res.filter(r=>r.check_in&&r.check_out&&new Date(r.check_in+'T00:00:00')<new Date(selYear,m+1,1)&&new Date(r.check_out+'T00:00:00')>new Date(selYear,m,1)&&r.status!=='cancelled');
     if(!mr.length)continue;
     var mb=mr.reduce((s,r)=>s+r.amount,0);
     var mc=mr.reduce((s,r)=>s+commission(r),0);
@@ -994,7 +1019,7 @@ function _barClick(i){
   box.dataset.idx=String(i);
   var past=window._dashPast||[];
   function nR(r){var isB=r.platform==="booking.com"||r.platform==="booking";return isB?r.amount-r.commission:r.amount;}
-  var mr=past.filter(function(r){var d=new Date(r.check_in+"T00:00:00");return d.getMonth()===m.month&&d.getFullYear()===m.year;});
+  var mr=past.filter(function(r){if(!r.check_in||!r.check_out||r.status==="cancelled")return false;var dm=new Date(m.year,m.month,1),fm=new Date(m.year,m.month+1,1);return new Date(r.check_in+"T00:00:00")<fm&&new Date(r.check_out+"T00:00:00")>dm;});
   var airR=mr.filter(function(r){return platClass(r.platform)==="airbnb";}).reduce(function(s,r){return s+nR(r);},0);
   var bkR=mr.filter(function(r){return platClass(r.platform)==="booking";}).reduce(function(s,r){return s+nR(r);},0);
   box.style.display="block";
@@ -1043,7 +1068,7 @@ function _showMonthDetail(type){
     for(var mx=0;mx<12;mx++){var v=past.filter(function(r){var d=new Date(r.check_in+"T00:00:00");return d.getMonth()===mx&&d.getFullYear()===now.getFullYear();}).reduce(function(s,r){return s+nR(r);},0);if(v>maxV)maxV=v;}
     var rows="";
     for(var m=0;m<12;m++){
-      var mr=past.filter(function(r){var d=new Date(r.check_in+"T00:00:00");return d.getMonth()===m&&d.getFullYear()===now.getFullYear();});
+      var mr=past.filter(function(r){if(!r.check_in||!r.check_out||r.status==="cancelled")return false;var dm=new Date(now.getFullYear(),m,1),fm=new Date(now.getFullYear(),m+1,1);return new Date(r.check_in+"T00:00:00")<fm&&new Date(r.check_out+"T00:00:00")>dm;});
       var rev=mr.reduce(function(s,r){return s+nR(r);},0);
       var isCur=m===now.getMonth();
       var pct=Math.round(rev/maxV*100);
@@ -1087,7 +1112,7 @@ function _showMonthDetail(type){
     var isSuite=propId==="12619011";
     var rows3="";
     for(var mm=0;mm<now.getMonth()+1;mm++){
-      var mr3=past.filter(function(r){var d=new Date(r.check_in+"T00:00:00");return d.getMonth()===mm&&d.getFullYear()===now.getFullYear()&&r.prop_id===propId;});
+      var mr3=past.filter(function(r){if(!r.check_in||!r.check_out||r.status==="cancelled")return false;var dm=new Date(now.getFullYear(),mm,1),fm=new Date(now.getFullYear(),mm+1,1);return new Date(r.check_in+"T00:00:00")<fm&&new Date(r.check_out+"T00:00:00")>dm&&r.prop_id===propId;});
       var dInM=new Date(now.getFullYear(),mm+1,0).getDate();
       var days=mr3.reduce(function(s,r){return s+Math.round((new Date(r.check_out)-new Date(r.check_in))/86400000);},0);
       var occ=Math.round(days/dInM*100);
@@ -1312,7 +1337,7 @@ function renderDash(){
   function platBadge(pl,small){var isA=platClass(pl)==="airbnb";var sz=small?"font-size:9px;padding:1px 4px":"font-size:9px;padding:1px 5px";return"<span style=\""+sz+";font-weight:500;background:"+(isA?"#FF385C":"#003580")+";color:#fff;border-radius:3px;\">"+(isA?"AIR":"BK")+"</span>";}
   function dFmt(ds){if(!ds)return"";var p=ds.split("-");return p[2]+"/"+p[1];}
 
-  var monthRes=past.filter(function(r){var d=new Date(r.check_in+"T00:00:00");return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();});
+  var monthRes=past.filter(function(r){if(!r.check_in||!r.check_out||r.status==="cancelled")return false;var dm=new Date(now.getFullYear(),now.getMonth(),1),fm=new Date(now.getFullYear(),now.getMonth()+1,1);return new Date(r.check_in+"T00:00:00")<fm&&new Date(r.check_out+"T00:00:00")>dm;});
   var monthRev=monthRes.reduce(function(s,r){return s+netRev(r);},0);
   var yearRes=past.filter(function(r){var d=new Date(r.check_in+"T00:00:00");return d.getFullYear()===now.getFullYear()&&d<=now;});
   var yearRev=yearRes.reduce(function(s,r){return s+netRev(r);},0);
@@ -1336,7 +1361,7 @@ function renderDash(){
   var monthData=[];
   for(var mi=11;mi>=0;mi--){
     var md=new Date(now.getFullYear(),now.getMonth()-mi,1);
-    var mr=past.filter(function(r){var rd=new Date(r.check_in+"T00:00:00");return rd.getMonth()===md.getMonth()&&rd.getFullYear()===md.getFullYear();});
+    var mr=past.filter(function(r){if(!r.check_in||!r.check_out||r.status==="cancelled")return false;var dm=new Date(md.getFullYear(),md.getMonth(),1),fm=new Date(md.getFullYear(),md.getMonth()+1,1);return new Date(r.check_in+"T00:00:00")<fm&&new Date(r.check_out+"T00:00:00")>dm;});
     var rev=mr.reduce(function(s,r){return s+netRev(r);},0);
     monthData.push({lbl:MONTHS[md.getMonth()],full:MFULL[md.getMonth()]+" "+md.getFullYear(),rev:Math.round(rev),count:mr.length,isCur:mi===0,isFut:md>now,month:md.getMonth(),year:md.getFullYear()});
   }
