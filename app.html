@@ -363,9 +363,10 @@ function renderBilan(){
       if(propId!=='all'&&r.prop_id!==propId)return false;
       return true;
     });
-    var brut=res.reduce((s,r)=>s+r.amount,0);
-    var com=res.reduce((s,r)=>s+commission(r),0);
-    var cl=res.reduce((s,r)=>s+cleaning(r),0);
+    function prorataNuits(r,yr){var ci=new Date(r.check_in+'T00:00:00'),co=new Date(r.check_out+'T00:00:00'),dm=new Date(yr,0,1),fm=new Date(yr+1,0,1),debut=Math.max(ci,dm),fin=Math.min(co,fm),nt=Math.round((co-ci)/86400000),nm=Math.round((fin-debut)/86400000);return nt>0?nm/nt:1;}
+    var brut=res.reduce((s,r)=>s+r.amount*prorataNuits(r,selYear),0);
+    var com=res.reduce((s,r)=>s+commission(r)*prorataNuits(r,selYear),0);
+    var cl=res.reduce((s,r)=>s+cleaning(r)*prorataNuits(r,selYear),0);
     var net=brut-com-cl;
     var airRes=res.filter(r=>platClass(r.platform)==='airbnb');
     var bkRes=res.filter(r=>platClass(r.platform)==='booking');
@@ -608,9 +609,9 @@ async function _downloadBilanPDF(propId){
   for(var m=0;m<12;m++){
     var mr=res.filter(r=>r.check_in&&r.check_out&&new Date(r.check_in+'T00:00:00')<new Date(selYear,m+1,1)&&new Date(r.check_out+'T00:00:00')>new Date(selYear,m,1)&&r.status!=='cancelled');
     if(!mr.length)continue;
-    var mb=mr.reduce((s,r)=>s+r.amount,0);
-    var mc=mr.reduce((s,r)=>s+commission(r),0);
-    var mcl=mr.reduce((s,r)=>s+cleaning(r),0);
+    var mb=mr.reduce((s,r)=>{var ci=new Date(r.check_in+'T00:00:00'),co=new Date(r.check_out+'T00:00:00'),dm=new Date(selYear,m,1),fm=new Date(selYear,m+1,1),debut=Math.max(ci,dm),fin=Math.min(co,fm),nt=Math.round((co-ci)/86400000),nm=Math.round((fin-debut)/86400000);return s+(nt>0?r.amount*nm/nt:r.amount);},0);
+    var mc=mr.reduce((s,r)=>{var ci=new Date(r.check_in+'T00:00:00'),co=new Date(r.check_out+'T00:00:00'),dm=new Date(selYear,m,1),fm=new Date(selYear,m+1,1),debut=Math.max(ci,dm),fin=Math.min(co,fm),nt=Math.round((co-ci)/86400000),nm=Math.round((fin-debut)/86400000),ratio=nt>0?nm/nt:1;return s+commission(r)*ratio;},0);
+    var mcl=mr.reduce((s,r)=>{var ci=new Date(r.check_in+'T00:00:00'),co=new Date(r.check_out+'T00:00:00'),dm=new Date(selYear,m,1),fm=new Date(selYear,m+1,1),debut=Math.max(ci,dm),fin=Math.min(co,fm),nt=Math.round((co-ci)/86400000),nm=Math.round((fin-debut)/86400000),ratio=nt>0?nm/nt:1;return s+cleaning(r)*ratio;},0);
     var mn2=mb-mc-mcl;
     grandBrut+=mb;grandCom+=mc;grandCl+=mcl;grandNet+=mn2;grandRes+=mr.length;
     html+='<tr><td>'+MONTHS[m]+'</td><td>'+mr.length+'</td><td>'+Math.round(mb).toLocaleString('fr-FR')+' \u20ac</td><td style="color:#E24B4A;">-'+Math.round(mc).toLocaleString('fr-FR')+' \u20ac</td><td style="color:#E24B4A;">-'+Math.round(mcl).toLocaleString('fr-FR')+' \u20ac</td><td style="color:#0F6E56;font-weight:600;">'+Math.round(mn2).toLocaleString('fr-FR')+' \u20ac</td></tr>';
