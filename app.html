@@ -362,6 +362,11 @@ async function _unblockDates(propId,from,to){
         inventories:[{start_date:from,end_date:to,inventory:1}]
       });
     }
+    // Mettre à jour blockedDates local
+    if(S.blockedDates){
+      S.blockedDates=S.blockedDates.filter(function(d){return d<from||d>to;});
+      try{localStorage.setItem('blockedDates_'+propId,JSON.stringify(S.blockedDates));}catch(ex){}
+    }
     showToast('✓ Dates débloquées');
     S.ratesLoaded={};
     renderRates();
