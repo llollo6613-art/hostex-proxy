@@ -2168,6 +2168,7 @@ async function _loadPricesFromAPI(propId){
   var from=dStr(new Date(m.getFullYear(),m.getMonth(),1));
   var to=dStr(new Date(m.getFullYear(),m.getMonth()+12,0));
   showToast('Chargement '+prop.channels.length+' canaux...');
+  S.blockedDates=[];
   var total=0;
   for(var ci=0;ci<prop.channels.length;ci++){
     var ch=prop.channels[ci];
@@ -2180,9 +2181,18 @@ async function _loadPricesFromAPI(propId){
       listings.forEach(function(lst){
         var days=lst.calendar||[];
         days.forEach(function(p){
-          if(p.price&&p.date){
-            var k=propId+'_'+p.date+'_'+(type==='airbnb'?'air':'bk');if(!S.ratesModified||!S.ratesModified[k])S.ratesPrices[k]=parseInt(p.price);
-            total++;
+          if(p.date){
+            // Charger les prix
+            if(p.price){
+              var k=propId+'_'+p.date+'_'+(type==='airbnb'?'air':'bk');
+              if(!S.ratesModified||!S.ratesModified[k])S.ratesPrices[k]=parseInt(p.price);
+              total++;
+            }
+            // Charger les dates bloquées (inventory=0)
+            if(p.inventory===0||p.available===false||p.status==='blocked'||p.status==='unavailable'){
+              if(!S.blockedDates)S.blockedDates=[];
+              if(S.blockedDates.indexOf(p.date)<0)S.blockedDates.push(p.date);
+            }
           }
         });
       });
