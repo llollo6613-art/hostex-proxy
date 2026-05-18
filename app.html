@@ -124,6 +124,22 @@ async function api(path,method='GET',body=null,timeoutMs=6000){
   }catch(e){clearTimeout(timer);throw e;}
 }
 
+function prorataM(r,yr,m){
+  if(!r.check_in||!r.check_out) return 1;
+  var ci=new Date(r.check_in+'T00:00:00'),co=new Date(r.check_out+'T00:00:00');
+  var dm=new Date(yr,m,1),fm=new Date(yr,m+1,1);
+  var debut=Math.max(ci,dm),fin=Math.min(co,fm);
+  var nt=Math.round((co-ci)/86400000),nm=Math.round((fin-debut)/86400000);
+  return nt>0?nm/nt:1;
+}
+function prorataY(r,yr){
+  if(!r.check_in||!r.check_out) return 1;
+  var ci=new Date(r.check_in+'T00:00:00'),co=new Date(r.check_out+'T00:00:00');
+  var dm=new Date(yr,0,1),fm=new Date(yr+1,0,1);
+  var debut=Math.max(ci,dm),fin=Math.min(co,fm);
+  var nt=Math.round((co-ci)/86400000),nm=Math.round((fin-debut)/86400000);
+  return nt>0?nm/nt:1;
+}
 function revenusProrataMois(reservations, annee, mois) {
   var debut_mois = new Date(annee, mois, 1);
   var fin_mois = new Date(annee, mois+1, 1);
