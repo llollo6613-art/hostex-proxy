@@ -277,9 +277,9 @@ async function loadAll(){
     }).catch(()=>{S.conversations=[];});
   },100);
 }
-const navDef=[{id:'dashboard',label:'Tableau de bord',icon:'◈'},{id:'reservations',label:'Réservations',icon:'≡'},{id:'calendar',label:'Calendrier',icon:'▦'},{id:'rates',label:'Tarifs',icon:'€'},{id:'properties',label:'Mes biens',icon:'⌂'},{id:'messages',label:'Messages',icon:'✉'},{id:'bilan',label:'Bilan',icon:'▣'},{id:'reviews',label:'Avis',icon:'★'}];
+const navDef=[{id:'dashboard',label:'Tableau de bord',icon:'◈'},{id:'reservations',label:'Réservations',icon:'≡'},{id:'calendar',label:'Calendrier',icon:'▦'},{id:'rates',label:'Tarifs',icon:'€'},{id:'properties',label:'Mes biens',icon:'⌂'},{id:'messages',label:'Messages',icon:'✉'},{id:'bilan',label:'Bilan',icon:'▣'},{id:'reviews',label:'Avis',icon:'★'},{id:'menage',label:'Ménage',icon:'🧹'}];
 
-function navigate(p){S.page=p;render();}
+function navigate(p){if(p==='menage'){window.open('/menage','_blank');return;}S.page=p;render();}
 
 function render(){
   if(!S._msgsOpened){try{S._msgsOpened=JSON.parse(localStorage.getItem('msgsOpened')||'{}');}catch(e){S._msgsOpened={};}}const unread=S.conversations.filter(c=>!S._msgsOpened[c.id]).length;
