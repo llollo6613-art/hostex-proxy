@@ -2188,15 +2188,18 @@ async function _loadPricesFromAPI(propId){
               if(!S.ratesModified||!S.ratesModified[k])S.ratesPrices[k]=parseInt(p.price);
               total++;
             }
-            // Charger les dates bloquées manuellement:
-            // inventory=0 ET pas de réservation en DB = bloqué manuellement
+            // Charger les dates bloquées manuellement (futures uniquement):
+            // inventory=0 ET pas de réservation en DB ET date future = bloqué manuellement
             if(p.inventory===0){
-              var hasRes=S.reservations.some(function(r){
-                return r.prop_id===propId&&r.status!=='cancelled'&&r.check_in<=p.date&&r.check_out>p.date;
-              });
-              if(!hasRes){
-                if(!S.blockedDates)S.blockedDates=[];
-                if(S.blockedDates.indexOf(p.date)<0)S.blockedDates.push(p.date);
+              var today=new Date().toISOString().split('T')[0];
+              if(p.date>=today){
+                var hasRes=S.reservations.some(function(r){
+                  return r.prop_id===propId&&r.status!=='cancelled'&&r.check_in<=p.date&&r.check_out>p.date;
+                });
+                if(!hasRes){
+                  if(!S.blockedDates)S.blockedDates=[];
+                  if(S.blockedDates.indexOf(p.date)<0)S.blockedDates.push(p.date);
+                }
               }
             }
           }
