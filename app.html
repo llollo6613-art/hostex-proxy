@@ -1392,9 +1392,16 @@ function renderDash(){
   var daysInMonth=new Date(now.getFullYear(),now.getMonth()+1,0).getDate();
 
   function occMois(propId){
+    var dm=new Date(now.getFullYear(),now.getMonth(),1);
+    var fm=new Date(now.getFullYear(),now.getMonth()+1,1);
     var pRes=monthRes.filter(function(r){return r.prop_id===propId;});
-    var days=pRes.reduce(function(s,r){return s+Math.round((new Date(r.check_out)-new Date(r.check_in))/86400000);},0);
-    return Math.round(days/daysInMonth*100);
+    var days=pRes.reduce(function(s,r){
+      var ci=new Date(r.check_in+'T00:00:00'),co=new Date(r.check_out+'T00:00:00');
+      var debut=Math.max(ci,dm),fin=Math.min(co,fm);
+      var nm=Math.round((fin-debut)/86400000);
+      return s+(nm>0?nm:0);
+    },0);
+    return Math.min(Math.round(days/daysInMonth*100),100);
   }
 
   function nextEvt(propId){
