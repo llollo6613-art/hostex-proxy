@@ -547,3 +547,4 @@ app.get('/test-booking-ical', async function(req, res) {
     res.json({ok:false, error:e.message});
   }
 });
+// Lun 18 mai 2026 15:37:22 CEST
