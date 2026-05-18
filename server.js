@@ -533,13 +533,9 @@ async function lightSync() {
   console.log('Light sync done, enriched:', enriched);
 }
 
-const db0 = loadDB();
-const lastSync = db0.last_sync ? new Date(db0.last_sync) : null;
-const needsSync = !lastSync || (Date.now() - lastSync.getTime() > 3600000);
-if(needsSync) { console.log('Light sync au démarrage...'); lightSync().catch(console.error); }
-
-// Light sync toutes les heures (pas de doublons)
-setInterval(() => { lightSync().catch(console.error); }, 3600000);
+// Pas de sync auto - webhook gère les nouvelles reservations
+// Pour sync manuel: POST /sync
+console.log('Serveur démarré, DB:', Object.keys(loadDB().reservations||{}).length, 'reservations');
 
 app.get('/test-booking-ical', async function(req, res) {
   try {
