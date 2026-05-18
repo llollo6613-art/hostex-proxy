@@ -339,6 +339,7 @@ async function _saveBlock(){
       if(S.blockedDates.indexOf(dd)<0)S.blockedDates.push(dd);
       cur=new Date(cur.getFullYear(),cur.getMonth(),cur.getDate()+1);
     }
+    try{localStorage.setItem('blockedDates_'+propId,JSON.stringify(S.blockedDates));}catch(ex){}
     showToast('✓ '+sel.length+' jour(s) bloqués');
     S.ratesSelected={};
     closeModal();
@@ -2168,7 +2169,8 @@ async function _loadPricesFromAPI(propId){
   var from=dStr(new Date(m.getFullYear(),m.getMonth(),1));
   var to=dStr(new Date(m.getFullYear(),m.getMonth()+12,0));
   showToast('Chargement '+prop.channels.length+' canaux...');
-  S.blockedDates=[];
+  // Charger les dates bloquées depuis localStorage (persistées localement)
+  try { S.blockedDates=JSON.parse(localStorage.getItem('blockedDates_'+propId)||'[]'); } catch(e){ S.blockedDates=[]; }
   var total=0;
   for(var ci=0;ci<prop.channels.length;ci++){
     var ch=prop.channels[ci];
@@ -2188,20 +2190,7 @@ async function _loadPricesFromAPI(propId){
               if(!S.ratesModified||!S.ratesModified[k])S.ratesPrices[k]=parseInt(p.price);
               total++;
             }
-            // Charger les dates bloquées manuellement (futures uniquement):
-            // inventory=0 ET pas de réservation en DB ET date future = bloqué manuellement
-            if(p.inventory===0){
-              var today=new Date().toISOString().split('T')[0];
-              if(p.date>=today){
-                var hasRes=S.reservations.some(function(r){
-                  return r.prop_id===propId&&r.status!=='cancelled'&&r.check_in<=p.date&&r.check_out>p.date;
-                });
-                if(!hasRes){
-                  if(!S.blockedDates)S.blockedDates=[];
-                  if(S.blockedDates.indexOf(p.date)<0)S.blockedDates.push(p.date);
-                }
-              }
-            }
+
           }
         });
       });
