@@ -1919,6 +1919,12 @@ function renderRates(){
     isDragging=false;hasDragged=false;
   });
   document.addEventListener('mouseup',function(){isDragging=false;});
+  // Désélectionner en cliquant à côté des cases
+  rc.addEventListener('mousedown',function(e){
+    if(!e.target.closest('[data-ds]')&&Object.keys(S.ratesSelected||{}).length>0){
+      S.ratesSelected={};renderRates();
+    }
+  });
 }
 function _renderRules(prop){window._rpropId=prop.id;
   if(!S.ratesRules)S.ratesRules={};
