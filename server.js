@@ -505,14 +505,41 @@ setInterval(async function() {
 
 app.listen(PORT, function() { console.log('Listening on', PORT); });
 
-// Sync au démarrage si pas de données récentes
+// Sync léger au démarrage - enrichit via channel_id sans recréer de doublons
+async function lightSync() {
+  const db = loadDB();
+  if(!db.reservations) return;
+  console.log('Light sync: enrichissement', Object.keys(db.reservations).length, 'reservations...');
+  let enriched = 0;
+  for(const k of Object.keys(db.reservations)) {
+    const r = db.reservations[k];
+    if(r.guest_name && r.guest_name !== 'Voyageur Airbnb' && r.guest_name !== 'Voyageur Booking.com') continue;
+    if(!k.startsWith('HM')) continue;
+    try {
+      const apiRes = await hostexGet('/reservations?channel_id='+k+'&page_size=1');
+      const match = apiRes && apiRes.data && apiRes.data.reservations && apiRes.data.reservations[0];
+      if(match && match.guest_name) {
+        db.reservations[k].guest_name = match.guest_name;
+        db.reservations[k].guest_phone = match.guest_phone || '';
+        const price = match.rates && match.rates.total_rate ? match.rates.total_rate.amount : 0;
+        if(price > 0) db.reservations[k].total_price = price;
+        enriched++;
+      }
+    } catch(e) {}
+    await new Promise(res => setTimeout(res, 150));
+  }
+  db.last_sync = new Date().toISOString();
+  saveDB(db);
+  console.log('Light sync done, enriched:', enriched);
+}
+
 const db0 = loadDB();
 const lastSync = db0.last_sync ? new Date(db0.last_sync) : null;
-const needsSync = !lastSync || (Date.now() - lastSync.getTime() > 3600000); // 1h
-if (needsSync) { console.log('Auto-sync au démarrage...'); doSync().catch(console.error); }
+const needsSync = !lastSync || (Date.now() - lastSync.getTime() > 3600000);
+if(needsSync) { console.log('Light sync au démarrage...'); lightSync().catch(console.error); }
 
-// Sync toutes les heures
-setInterval(() => { doSync().catch(console.error); }, 3600000);
+// Light sync toutes les heures (pas de doublons)
+setInterval(() => { lightSync().catch(console.error); }, 3600000);
 
 app.get('/test-booking-ical', async function(req, res) {
   try {
