@@ -186,11 +186,18 @@ async function syncLive(){
     const liveRes=data.data?.reservations||[];
     if(!liveRes.length)return;
     const map={};
-    for(const r of S.reservations)map[r.id]=r;
-    // API a toujours priorité sur CSV
+    // Live API en premier (priorité basse)
     for(const r of liveRes){
       const key=r.reservation_code||r.id;
       map[key]=mapRes(r);
+    }
+    // DB a priorité sur le live - écrase si déjà enrichi
+    for(const r of S.reservations){
+      const existing=map[r.id];
+      // Garder DB si elle a un vrai nom et un prix
+      if(!existing || (r.amount>0 && !r.guest.startsWith('Voyageur'))){
+        map[r.id]=r;
+      }
     }
     // Dedup par guest+check_in+prop_id - toujours garder accepted sur cancelled
     const seen2={};const final2={};
