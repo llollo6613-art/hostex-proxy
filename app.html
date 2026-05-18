@@ -379,9 +379,16 @@ function renderBilan(){
     var bkRes=res.filter(r=>platClass(r.platform)==='booking');
     var airRev=airRes.reduce((s,r)=>s+r.amount*prorataNuits(r,selYear),0);
     var bkRev=bkRes.reduce((s,r)=>s+netRev(r)*prorataNuits(r,selYear),0);
-    var bookedDays=res.reduce((s,r)=>{if(r.check_in&&r.check_out)return s+Math.round((new Date(r.check_out)-new Date(r.check_in))/86400000);return s;},0);
+    var bookedDays=res.reduce((s,r)=>{
+      if(!r.check_in||!r.check_out) return s;
+      var ci=new Date(r.check_in+'T00:00:00'),co=new Date(r.check_out+'T00:00:00');
+      var dm=new Date(selYear,0,1),fm=new Date(selYear+1,0,1);
+      var debut=Math.max(ci,dm),fin=Math.min(co,fm);
+      var nm=Math.round((fin-debut)/86400000);
+      return s+(nm>0?nm:0);
+    },0);
     var totalDays=propId==='all'?365*S.props.length:365;
-    var occ=Math.round(bookedDays/totalDays*100);
+    var occ=Math.min(Math.round(bookedDays/totalDays*100),100);
     var avgNight=bookedDays>0?Math.round(brut/bookedDays):0;
     var months=MONTHS.map((lbl,m)=>{
       // Prorata pour les séjours qui débordent sur plusieurs mois
