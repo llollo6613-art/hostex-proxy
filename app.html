@@ -283,7 +283,7 @@ function render(){
 
 async function _openBlockDates(propId){
   // Utiliser _pendingBlock (sauvegardé avant renderRates) ou ratesSelected
-  var sel=Object.keys(S._pendingBlock||S.ratesSelected||{});
+  var sel=Object.keys(window._ratesDragSel||S.ratesSelected||{});
   if(!sel.length){showToast('⚠ Sélectionnez des dates sur le calendrier');return;}
   sel.sort();
   var from=sel[0],to=sel[sel.length-1];
@@ -301,7 +301,7 @@ async function _openBlockDates(propId){
 
 async function _saveBlock(){
   var propId=window._blockPropId;
-  var sel=Object.keys(S._pendingBlock||S.ratesSelected||{});
+  var sel=Object.keys(window._ratesDragSel||S.ratesSelected||{});
   if(!sel.length){showToast('Aucune date');return;}
   sel.sort();
   var from=sel[0],to=sel[sel.length-1];
@@ -328,7 +328,7 @@ async function _saveBlock(){
     }
     try{localStorage.setItem('blockedDates_'+propId,JSON.stringify(S.blockedDates));}catch(ex){}
     showToast('✓ '+sel.length+' jour(s) bloqué(s) sur Airbnb et Booking');
-    S.ratesSelected={};S._pendingBlock={};
+    S.ratesSelected={};window._ratesDragSel={};
     closeModal();
     // Ne pas réinitialiser ratesLoaded pour conserver S.blockedDates mis à jour
     renderRates();
@@ -1914,7 +1914,7 @@ function renderRates(){
       });
       // Mettre à jour le compteur sans re-render
       // Le bouton sera mis à jour par renderRates via _pendingBlock
-      S._pendingBlock=Object.assign({},S.ratesSelected);
+      window._ratesDragSel=Object.assign({},S.ratesSelected);
     }
   });
   rc.addEventListener('mouseup',function(e){
@@ -1923,7 +1923,7 @@ function renderRates(){
       _rcClick(el.dataset.ds);
     } else if(hasDragged) {
       // Sauvegarder la sélection AVANT que renderRates la vide
-      S._pendingBlock = Object.assign({}, S.ratesSelected);
+      window._ratesDragSel = Object.assign({}, S.ratesSelected);
       renderRates();
     }
     isDragging=false;hasDragged=false;
