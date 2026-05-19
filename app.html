@@ -329,7 +329,7 @@ async function _saveBlock(){
     showToast('✓ '+sel.length+' jour(s) bloqué(s) sur Airbnb et Booking');
     S.ratesSelected={};
     closeModal();
-    S.ratesLoaded={};
+    // Ne pas réinitialiser ratesLoaded pour conserver S.blockedDates mis à jour
     renderRates();
   }catch(e){
     console.error('Block error:',e);
