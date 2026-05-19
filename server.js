@@ -1,3 +1,129 @@
+
+// ============ SUPABASE DB ============
+const SUPABASE_URL = process.env.SUPABASE_URL || 'https://bdreatiovsfutxkyxxoo.supabase.co';
+const SUPABASE_KEY = process.env.SUPABASE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJkcmVhdGlvdnNmdXR4a3l4eG9vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3OTE1MzA5MywiZXhwIjoyMDk0NzI5MDkzfQ.MqlLVk4pRoZhJ783fBP9dkXTLbXReqz26swE-tbQYFY';
+
+async function supaFetch(path, method='GET', body=null) {
+  const opts = {
+    method,
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': 'Bearer ' + SUPABASE_KEY,
+      'Content-Type': 'application/json',
+      'Prefer': method === 'POST' ? 'resolution=merge-duplicates' : ''
+    }
+  };
+  if (body) opts.body = JSON.stringify(body);
+  const r = await fetch(SUPABASE_URL + '/rest/v1/' + path, opts);
+  if (!r.ok) {
+    const err = await r.text();
+    throw new Error('Supabase error: ' + err);
+  }
+  const text = await r.text();
+  return text ? JSON.parse(text) : [];
+}
+
+async function supaLoadAll() {
+  try {
+    let all = [];
+    let offset = 0;
+    const limit = 1000;
+    while (true) {
+      const rows = await supaFetch(`reservations?select=*&order=check_in_date.desc&limit=${limit}&offset=${offset}`);
+      all = all.concat(rows);
+      if (rows.length < limit) break;
+      offset += limit;
+    }
+    console.log('Supabase: loaded', all.length, 'reservations');
+    return all;
+  } catch(e) {
+    console.error('Supabase load error:', e.message);
+    return null;
+  }
+}
+
+async function supaSave(reservations) {
+  try {
+    const rows = reservations.map(r => ({
+      reservation_code: String(r.reservation_code || r.id || ''),
+      guest_name: r.guest_name || r.g || '',
+      check_in_date: r.check_in_date || r.ci || r.check_in || '',
+      check_out_date: r.check_out_date || r.co || r.check_out || '',
+      channel_type: r.channel_type || r.pl || 'direct',
+      property_id: String(r.property_id || r.pi || ''),
+      number_of_guests: r.number_of_guests || r.n || 1,
+      status: r.status || r.st || 'accepted',
+      total_price: parseFloat(r.total_price || r.a || 0),
+      commission: parseFloat(r.commission || r.c || 0),
+      currency: r.currency || 'EUR',
+      guest_phone: r.guest_phone || r.ph || '',
+      guest_email: r.guest_email || r.em || '',
+      booked_at: r.booked_at || r.b || '',
+      stay_status: r.stay_status || r.ss || '',
+      updated_at: new Date().toISOString()
+    })).filter(r => r.reservation_code);
+
+    // Insérer par batch de 500
+    for (let i = 0; i < rows.length; i += 500) {
+      const batch = rows.slice(i, i + 500);
+      await supaFetch('reservations?on_conflict=reservation_code', 'POST', batch);
+    }
+    console.log('Supabase: saved', rows.length, 'reservations');
+    return rows.length;
+  } catch(e) {
+    console.error('Supabase save error:', e.message);
+    return 0;
+  }
+}
+
+async function supaUpsert(reservation) {
+  try {
+    const r = reservation;
+    const row = {
+      reservation_code: String(r.reservation_code || r.id || ''),
+      guest_name: r.guest_name || r.g || '',
+      check_in_date: r.check_in_date || r.ci || r.check_in || '',
+      check_out_date: r.check_out_date || r.co || r.check_out || '',
+      channel_type: r.channel_type || r.pl || 'direct',
+      property_id: String(r.property_id || r.pi || ''),
+      number_of_guests: r.number_of_guests || r.n || 1,
+      status: r.status || r.st || 'accepted',
+      total_price: parseFloat(r.total_price || r.a || 0),
+      commission: parseFloat(r.commission || r.c || 0),
+      currency: r.currency || 'EUR',
+      guest_phone: r.guest_phone || r.ph || '',
+      guest_email: r.guest_email || r.em || '',
+      booked_at: r.booked_at || r.b || '',
+      stay_status: r.stay_status || r.ss || '',
+      updated_at: new Date().toISOString()
+    };
+    if (!row.reservation_code) return;
+    await supaFetch('reservations?on_conflict=reservation_code', 'POST', [row]);
+  } catch(e) {
+    console.error('Supabase upsert error:', e.message);
+  }
+}
+
+// Cache mémoire pour éviter trop d'appels Supabase
+let _supaCache = null;
+let _supaCacheTime = 0;
+
+async function getDB() {
+  const now = Date.now();
+  if (_supaCache && (now - _supaCacheTime) < 30000) return _supaCache; // cache 30s
+  const rows = await supaLoadAll();
+  if (rows) {
+    _supaCache = rows;
+    _supaCacheTime = now;
+  }
+  return _supaCache || [];
+}
+
+function invalidateCache() {
+  _supaCache = null;
+  _supaCacheTime = 0;
+}
+
 const express = require('express');
 const cors    = require('cors');
 const fs      = require('fs');
@@ -280,28 +406,35 @@ app.post('/webhook', async function(req, res) {
 });
 
 // Import CSV depuis Hostex
-app.post('/import-csv', function(req, res) {
+app.post('/import-csv', async function(req, res) {
   try {
     const { reservations } = req.body;
     if (!Array.isArray(reservations)) return res.status(400).json({ error: 'Invalid data' });
+    const saved = await supaSave(reservations);
+    invalidateCache();
+    // Aussi sauvegarder en local comme backup
     const db = loadDB();
-    let added = 0;
     for (const r of reservations) {
       const k = r.reservation_code || r.id;
-      if (k) { db.reservations[k] = r; added++; }
+      if (k) { db.reservations[k] = r; }
     }
     db.total = Object.keys(db.reservations).length;
     db.last_sync = new Date().toISOString();
     saveDB(db);
-    res.json({ ok: true, added, total: db.total });
+    res.json({ ok: true, added: saved, total: db.total });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
 // All reservations
 app.get('/all-reservations', async function(req, res) {
   try {
-    const db = loadDB();
-    const stored = Object.values(db.reservations);
+    // Lire depuis Supabase (persistant)
+    let stored = await getDB();
+    // Si Supabase vide, fallback sur local
+    if (!stored || stored.length === 0) {
+      const db = loadDB();
+      stored = Object.values(db.reservations || {});
+    }
     // Live: toutes les pages
     let liveRes = [];
     try {
@@ -489,9 +622,9 @@ app.post('/sync-from-browser', async function(req, res) {
   } catch(e) { res.status(500).json({error: e.message}); }
 });
 
-app.get('/health', function(req, res) {
+app.get('/health', async function(req, res) {
   const db = loadDB();
-  res.json({ status: 'ok', token_set: !!HOSTEX_TOKEN, reservations_stored: db.total || 0, last_sync: db.last_sync, timestamp: new Date().toISOString(), webhook_url: 'https://hostex-proxy.onrender.com/webhook' });
+  res.json({ status: 'ok', token_set: !!HOSTEX_TOKEN, reservations_stored: (await getDB()).length || db.total || 0, last_sync: db.last_sync, timestamp: new Date().toISOString(), webhook_url: 'https://hostex-proxy.onrender.com/webhook' });
 });
 
 
