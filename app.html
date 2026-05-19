@@ -2192,13 +2192,21 @@ async function _loadPricesFromAPI(propId){
         var days=lst.calendar||[];
         days.forEach(function(p){
           if(p.date){
-            // Charger les prix
+            // Prix
             if(p.price){
               var k=propId+'_'+p.date+'_'+(type==='airbnb'?'air':'bk');
               if(!S.ratesModified||!S.ratesModified[k])S.ratesPrices[k]=parseInt(p.price);
               total++;
             }
-
+            // Dates bloquées manuellement (inventory=0, pas de réservation, date future)
+            if(p.inventory===0&&p.date>=today){
+              var hasRes=S.reservations.some(function(r){
+                return r.prop_id===propId&&r.status!=='cancelled'&&r.check_in<=p.date&&r.check_out>p.date;
+              });
+              if(!hasRes&&S.blockedDates.indexOf(p.date)<0){
+                S.blockedDates.push(p.date);
+              }
+            }
           }
         });
       });
