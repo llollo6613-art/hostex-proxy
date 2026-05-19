@@ -428,34 +428,12 @@ app.post('/import-csv', async function(req, res) {
 // All reservations
 app.get('/all-reservations', async function(req, res) {
   try {
-    // Lire depuis Supabase (persistant)
     let stored = await getDB();
-    // Si Supabase vide, fallback sur local
     if (!stored || stored.length === 0) {
       const db = loadDB();
       stored = Object.values(db.reservations || {});
     }
-    // Live: toutes les pages
-    let liveRes = [];
-    try {
-      const live = await hostexGet('/reservations?page_size=50&sort=check_in_date&sort_order=desc');
-      liveRes = (live && live.data && live.data.reservations) ? live.data.reservations : [];
-    } catch(e) {}
-    // Merger stored + live, live a priorite
-    const map = {};
-    for (const r of stored) map[r.reservation_code || r.id] = r;
-    for (const r of liveRes) {
-      const k = r.reservation_code || r.id;
-      // Normaliser le prix depuis rates
-      if(r.rates && r.rates.total_rate) {
-        r.total_price = r.rates.total_rate.amount;
-        r.currency = r.rates.total_rate.currency;
-        r.commission = r.rates.total_commission ? r.rates.total_commission.amount : 0;
-      }
-      map[k] = r;
-    }
-    const all = Object.values(map).sort((a,b) => (b.check_in_date||b.check_in||'').localeCompare(a.check_in_date||a.check_in||''));
-    res.json({ error_code: 200, error_msg: 'Done.', data: { reservations: all, total: all.length, last_sync: db.last_sync } });
+    res.json({ ok: true, data: { reservations: stored }, total: stored.length });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
