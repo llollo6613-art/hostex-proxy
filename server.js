@@ -659,3 +659,4 @@ app.get('/test-booking-ical', async function(req, res) {
   }
 });
 // Lun 18 mai 2026 15:37:22 CEST
+// force Mar 19 mai 2026 15:21:30 CEST
