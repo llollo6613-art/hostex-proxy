@@ -215,29 +215,23 @@ async function syncLive(){
         map[r.id]=r;
       }
     }
-    // Dedup par guest+check_in+prop_id - toujours garder accepted sur cancelled
+    // DB Supabase a priorité absolue sur le live API
+    // On garde TOUTES les réservations DB + les nouvelles du live non présentes en DB
+    const dbIds = new Set(S.reservations.map(r=>r.id));
+    const liveOnly = liveRes.map(r=>mapRes(r)).filter(r=>!dbIds.has(r.id));
+    // Ajouter les réservations live uniquement si pas déjà en DB
     const seen2={};const final2={};
-    // API cancelled toujours prioritaire - trier par: cancelled en dernier, puis booked_at
-    Object.values(map).sort((a,b)=>{
-      if(a.status==='cancelled'&&b.status!=='cancelled')return 1;
-      if(b.status==='cancelled'&&a.status!=='cancelled')return -1;
-      return (b.booked_at||'').localeCompare(a.booked_at||'');
-    }).forEach(r=>{
-      const dk=(r.check_in||'')+'_'+(r.prop_id||'');
-      if(!seen2[dk]){
-        seen2[dk]=r.id;final2[r.id]=r;
-      } else {
-        // Garder celle avec le plus grand montant ou vrai nom
-        const prev=final2[seen2[dk]];
-        const prevAmt=parseFloat(prev.amount||0);
-        const curAmt=parseFloat(r.amount||0);
-        const prevIsVoyageur=!prev.guest||prev.guest.startsWith('Voyageur');
-        const curIsVoyageur=!r.guest||r.guest.startsWith('Voyageur');
-        if((!prevIsVoyageur&&curAmt>prevAmt)||(prevIsVoyageur&&!curIsVoyageur)||(curAmt>prevAmt&&!prevIsVoyageur)){
-          delete final2[seen2[dk]];
-          seen2[dk]=r.id;final2[r.id]=r;
-        }
-      }
+    // D'abord les réservations DB (priorité)
+    S.reservations.forEach(r=>{
+      const dk=(r.check_in||'')+'_'+(r.prop_id||'')+'_'+(r.platform||'');
+      if(!seen2[dk]){ seen2[dk]=r.id; final2[r.id]=r; }
+    });
+    // Ensuite les réservations live non présentes (nouvelles)
+    liveOnly.forEach(r=>{
+      const dk=(r.check_in||'')+'_'+(r.prop_id||'')+'_'+(r.platform||'');
+      if(!seen2[dk]){ seen2[dk]=r.id; final2[r.id]=r; }
+      // Si cancelled dans le live, mettre à jour le statut
+      else if(r.status==='cancelled'){ final2[seen2[dk]].status='cancelled'; }
     });
     S.reservations=Object.values(final2).sort((a,b)=>(b.check_in||'').localeCompare(a.check_in||''));
     document.getElementById('conn-label').innerHTML='&#10003; '+S.reservations.length+' r\u00e9servations';
