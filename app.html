@@ -1924,8 +1924,11 @@ function renderRates(){
     if(!hasDragged&&el&&el.dataset.ds){
       _rcClick(el.dataset.ds);
     } else if(hasDragged) {
-      // Finaliser la sélection - remettre le bon état visuel
-      renderRates();
+      // Ne pas appeler renderRates() - ça effacerait S.ratesSelected
+      // Juste mettre à jour le compteur du bouton Bloquer
+      var cnt = Object.keys(S.ratesSelected).length;
+      var btnEl = document.querySelector('[onclick*="_openBlockDates"]');
+      if(btnEl) btnEl.textContent = '⛔ Bloquer' + (cnt>0?' ('+cnt+' j.)':'');
     }
     isDragging=false;hasDragged=false;
   });
