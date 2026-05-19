@@ -1931,8 +1931,9 @@ function renderRates(){
   document.addEventListener('mouseup',function(){isDragging=false;});
   // Désélectionner en cliquant à côté des cases
   rc.addEventListener('mousedown',function(e){
-    if(!e.target.closest('[data-ds]')&&Object.keys(S.ratesSelected||{}).length>0){
-      S.ratesSelected={};renderRates();
+    // Ne pas vider si on clique sur le bouton Bloquer
+    if(!e.target.closest('[data-ds]')&&!e.target.closest('[onclick*="_openBlockDates"]')&&!e.target.closest('[onclick*="_saveBlock"]')&&Object.keys(S.ratesSelected||{}).length>0){
+      S.ratesSelected={};window._ratesDragSel={};renderRates();
     }
   });
 }
