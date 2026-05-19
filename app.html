@@ -1901,9 +1901,22 @@ function renderRates(){
     if(el.dataset.ds!==dragStart&&!hasDragged){hasDragged=true;}
     if(hasDragged&&dragStart<=el.dataset.ds){
       var all=rc.querySelectorAll('[data-ds]');
+      // Mise à jour visuelle légère sans re-render complet
       S.ratesSelected={};
-      all.forEach(function(c){if(c.dataset.ds>=dragStart&&c.dataset.ds<=el.dataset.ds&&c.dataset.past!=='1'&&c.dataset.booked!=='1')S.ratesSelected[c.dataset.ds]=true;});
-      renderRates();
+      all.forEach(function(c){
+        if(c.dataset.ds>=dragStart&&c.dataset.ds<=el.dataset.ds&&c.dataset.past!=='1'&&c.dataset.booked!=='1'){
+          S.ratesSelected[c.dataset.ds]=true;
+          c.style.outline='2px solid #0F6E56';
+          c.style.background='rgba(15,110,86,0.15)';
+        } else {
+          c.style.outline='';
+          c.style.background='';
+        }
+      });
+      // Mettre à jour le compteur sans re-render
+      var cnt=Object.keys(S.ratesSelected).length;
+      var btnEl=document.getElementById('block-btn');
+      if(btnEl)btnEl.textContent='Bloquer '+cnt+' jour'+(cnt>1?'s':'');
     }
   });
   rc.addEventListener('mouseup',function(e){
