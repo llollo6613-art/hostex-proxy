@@ -201,19 +201,11 @@ async function syncLive(){
     const data=await rd.json();
     const liveRes=data.data?.reservations||[];
     if(!liveRes.length)return;
+    // Supabase contient toutes les réservations - on remplace directement
     const map={};
-    // Live API en premier (priorité basse)
     for(const r of liveRes){
       const key=r.reservation_code||r.id;
       map[key]=mapRes(r);
-    }
-    // DB a priorité sur le live - écrase si déjà enrichi
-    for(const r of S.reservations){
-      const existing=map[r.id];
-      // Garder DB si elle a un vrai nom et un prix
-      if(!existing || (r.amount>0 && !r.guest.startsWith('Voyageur'))){
-        map[r.id]=r;
-      }
     }
     // DB Supabase a priorité absolue sur le live API
     // On garde TOUTES les réservations DB + les nouvelles du live non présentes en DB
