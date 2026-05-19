@@ -282,7 +282,8 @@ function render(){
 }
 
 async function _openBlockDates(propId){
-  var sel=Object.keys(S.ratesSelected||{});
+  // Utiliser _pendingBlock (sauvegardé avant renderRates) ou ratesSelected
+  var sel=Object.keys(S._pendingBlock||S.ratesSelected||{});
   if(!sel.length){showToast('⚠ Sélectionnez des dates sur le calendrier');return;}
   sel.sort();
   var from=sel[0],to=sel[sel.length-1];
@@ -300,7 +301,7 @@ async function _openBlockDates(propId){
 
 async function _saveBlock(){
   var propId=window._blockPropId;
-  var sel=Object.keys(S.ratesSelected||{});
+  var sel=Object.keys(S._pendingBlock||S.ratesSelected||{});
   if(!sel.length){showToast('Aucune date');return;}
   sel.sort();
   var from=sel[0],to=sel[sel.length-1];
@@ -327,7 +328,7 @@ async function _saveBlock(){
     }
     try{localStorage.setItem('blockedDates_'+propId,JSON.stringify(S.blockedDates));}catch(ex){}
     showToast('✓ '+sel.length+' jour(s) bloqué(s) sur Airbnb et Booking');
-    S.ratesSelected={};
+    S.ratesSelected={};S._pendingBlock={};
     closeModal();
     // Ne pas réinitialiser ratesLoaded pour conserver S.blockedDates mis à jour
     renderRates();
@@ -1912,9 +1913,8 @@ function renderRates(){
         }
       });
       // Mettre à jour le compteur sans re-render
-      var cnt=Object.keys(S.ratesSelected).length;
-      var btnEl=document.getElementById('block-btn');
-      if(btnEl)btnEl.textContent='Bloquer '+cnt+' jour'+(cnt>1?'s':'');
+      // Le bouton sera mis à jour par renderRates via _pendingBlock
+      S._pendingBlock=Object.assign({},S.ratesSelected);
     }
   });
   rc.addEventListener('mouseup',function(e){
@@ -1922,11 +1922,9 @@ function renderRates(){
     if(!hasDragged&&el&&el.dataset.ds){
       _rcClick(el.dataset.ds);
     } else if(hasDragged) {
-      // Ne pas appeler renderRates() - ça effacerait S.ratesSelected
-      // Juste mettre à jour le compteur du bouton Bloquer
-      var cnt = Object.keys(S.ratesSelected).length;
-      var btnEl = document.querySelector('[onclick*="_openBlockDates"]');
-      if(btnEl) btnEl.textContent = '⛔ Bloquer' + (cnt>0?' ('+cnt+' j.)':'');
+      // Sauvegarder la sélection AVANT que renderRates la vide
+      S._pendingBlock = Object.assign({}, S.ratesSelected);
+      renderRates();
     }
     isDragging=false;hasDragged=false;
   });
