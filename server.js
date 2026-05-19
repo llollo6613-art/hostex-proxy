@@ -644,9 +644,48 @@ async function lightSync() {
   console.log('Light sync done, enriched:', enriched);
 }
 
-// Pas de sync auto - webhook gère les nouvelles reservations
-// Pour sync manuel: POST /sync
-console.log('Serveur démarré, DB:', Object.keys(loadDB().reservations||{}).length, 'reservations');
+// Sync automatique Hostex -> Supabase toutes les 15 min
+async function syncHostexToSupabase() {
+  if (!HOSTEX_TOKEN) return;
+  try {
+    let allRes = [];
+    for (let page = 1; page <= 10; page++) {
+      const data = await hostexGet('/reservations?page_size=50&page=' + page + '&sort=check_in_date&sort_order=desc');
+      const list = (data && data.data && data.data.reservations) || [];
+      if (!list.length) break;
+      allRes = allRes.concat(list);
+      if (list.length < 50) break;
+    }
+    if (allRes.length > 0) {
+      const toSave = allRes.map(r => ({
+        reservation_code: r.reservation_code || r.id,
+        guest_name: r.guest_name || '',
+        check_in_date: r.check_in_date || '',
+        check_out_date: r.check_out_date || '',
+        channel_type: r.channel_type || 'direct',
+        property_id: String(r.property_id || ''),
+        number_of_guests: r.number_of_guests || 1,
+        status: r.status || 'accepted',
+        total_price: (r.rates && r.rates.total_rate) ? parseFloat(r.rates.total_rate.amount) : parseFloat(r.total_price || 0),
+        commission: (r.rates && r.rates.total_commission) ? parseFloat(r.rates.total_commission.amount) : 0,
+        currency: 'EUR',
+        guest_phone: r.guest_phone || '',
+        stay_status: r.stay_status || '',
+        booked_at: r.created_at || ''
+      })).filter(r => r.reservation_code && r.check_in_date);
+      await supaSave(toSave);
+      invalidateCache();
+      console.log('Auto-sync: ' + toSave.length + ' reservations synced to Supabase');
+    }
+  } catch(e) {
+    console.error('Auto-sync error:', e.message);
+  }
+}
+
+// Sync 10s après démarrage puis toutes les 15 min
+setTimeout(() => syncHostexToSupabase().catch(console.error), 10000);
+setInterval(() => syncHostexToSupabase().catch(console.error), 15 * 60 * 1000);
+console.log('Serveur démarré - auto-sync Hostex->Supabase toutes les 15min');
 
 app.get('/test-booking-ical', async function(req, res) {
   try {
