@@ -237,8 +237,8 @@ async function syncLive(){
 async function loadAll(){
   document.getElementById('conn-label').innerHTML='Chargement...';
 
-  // 1. Affichage instantané depuis le CSV embarqué
-  S.reservations=loadFromCSV();
+  // 1. Supabase est la source de vérité - CSV ignoré
+  S.reservations=[];
 
   // 2. Biens hardcodés (pas d'attente API)
   if(!S.props||!S.props.length){
