@@ -1923,6 +1923,9 @@ function renderRates(){
     var el=e.target.closest('[data-ds]');
     if(!hasDragged&&el&&el.dataset.ds){
       _rcClick(el.dataset.ds);
+    } else if(hasDragged) {
+      // Finaliser la sélection - remettre le bon état visuel
+      renderRates();
     }
     isDragging=false;hasDragged=false;
   });
@@ -2512,6 +2515,7 @@ function renderCal(){
   function pad(n){return String(n).padStart(2,'0');}
   function ds2(y,m,d){return y+'-'+pad(m+1)+'-'+pad(d);}
   function bookedOn(date){return S.reservations.find(function(r){return r.prop_id===prop.id&&r.check_in<=date&&r.check_out>date&&r.status!=='cancelled';});}
+  function blockedOn(date){return S.blockedDates&&S.blockedDates.indexOf(date)>=0;}
   function getNights(r){return Math.round((new Date(r.check_out)-new Date(r.check_in))/86400000);}
 
   var propTabs=S.props.map(function(p){
