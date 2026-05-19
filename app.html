@@ -110,7 +110,7 @@ const DAYS=['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
 
 const CP={"airbnb":"#C8523E","booking.com":"#2E5F9E","booking":"#2E5F9E","direct":"#3D8B78"};
 const CPN={"airbnb":"Airbnb","booking.com":"Booking","booking":"Booking","direct":"Direct"};
-const S={page:'dashboard',props:[],reservations:[],conversations:[],selectedProp:null,currentMonth:new Date(),resFilter:'Toutes',isLive:false,ratesProp:null,ratesMonth:null,ratesPrices:{},ratesMinStay:{},ratesLoaded:{},calView:'single',ratesSelected:{},ratesModified:{},blockedDates:[],cleaning:{'12619011':{base:20,extra:5},'12619012':{base:40,extra:8}},ratesSelMode:false,ratesTab:'cal',ratesRules:{},basePrices:{'12619011':{airWeek:80,bkWeek:70,airWE:95,bkWE:88},'12619012':{airWeek:90,bkWeek:80,airWE:110,bkWE:100}}};
+const S={page:'dashboard',props:[],reservations:[],conversations:[],selectedProp:null,currentMonth:new Date(),resFilter:'Toutes',isLive:false,ratesProp:null,ratesMonth:null,ratesPrices:{},ratesMinStay:{},ratesLoaded:{},calView:'single',ratesSelected:{},ratesModified:{},blockedDates:[],manuallyUnblocked:[],cleaning:{'12619011':{base:20,extra:5},'12619012':{base:40,extra:8}},ratesSelMode:false,ratesTab:'cal',ratesRules:{},basePrices:{'12619011':{airWeek:80,bkWeek:70,airWE:95,bkWE:88},'12619012':{airWeek:90,bkWeek:80,airWE:110,bkWE:100}}};
 
 async function api(path,method='GET',body=null,timeoutMs=6000){
   const ctrl=new AbortController();
@@ -339,6 +339,20 @@ async function _saveBlock(){
 }
 
 async function _unblockDates(propId,from,to){
+  // Mémoriser les dates débloquées pour ne pas les recharger depuis Hostex
+  if(!S.manuallyUnblocked)S.manuallyUnblocked=[];
+  try{
+    var saved=JSON.parse(localStorage.getItem('manuallyUnblocked_'+propId)||'[]');
+    var cur=new Date(from+'T00:00:00');
+    var endD=new Date(to+'T00:00:00');
+    while(cur<=endD){
+      var dd=cur.getFullYear()+'-'+String(cur.getMonth()+1).padStart(2,'0')+'-'+String(cur.getDate()).padStart(2,'0');
+      if(S.manuallyUnblocked.indexOf(dd)<0)S.manuallyUnblocked.push(dd);
+      if(saved.indexOf(dd)<0)saved.push(dd);
+      cur=new Date(cur.getFullYear(),cur.getMonth(),cur.getDate()+1);
+    }
+    localStorage.setItem('manuallyUnblocked_'+propId,JSON.stringify(saved));
+  }catch(ex){}
   var prop=S.props.find(function(p){return p.id===propId;});
   if(!prop)return;
   try{
@@ -2179,8 +2193,9 @@ async function _loadPricesFromAPI(propId){
   var from=dStr(new Date(m.getFullYear(),m.getMonth(),1));
   var to=dStr(new Date(m.getFullYear(),m.getMonth()+12,0));
   showToast('Chargement '+prop.channels.length+' canaux...');
-  // Charger les dates bloquées depuis localStorage
+  // Charger les dates bloquées et débloquées depuis localStorage
   try { S.blockedDates=JSON.parse(localStorage.getItem('blockedDates_'+propId)||'[]'); } catch(e){ S.blockedDates=[]; }
+  try { S.manuallyUnblocked=JSON.parse(localStorage.getItem('manuallyUnblocked_'+propId)||'[]'); } catch(e){ S.manuallyUnblocked=[]; }
   var today=new Date().toISOString().split('T')[0];
   var total=0;
   for(var ci=0;ci<prop.channels.length;ci++){
@@ -2206,7 +2221,8 @@ async function _loadPricesFromAPI(propId){
               var hasRes=S.reservations.some(function(r){
                 return r.prop_id===propId&&r.status!=='cancelled'&&r.check_in<=p.date&&r.check_out>p.date;
               });
-              if(!hasRes&&S.blockedDates.indexOf(p.date)<0){
+              var manualUnblocked=(S.manuallyUnblocked||[]).indexOf(p.date)>=0;
+              if(!hasRes&&!manualUnblocked&&S.blockedDates.indexOf(p.date)<0){
                 S.blockedDates.push(p.date);
               }
             }
