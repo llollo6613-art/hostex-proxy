@@ -195,7 +195,7 @@ function loadFromCSV(){
 async function syncLive(){
   try{
     const controller=new AbortController();
-    const timeout=setTimeout(()=>controller.abort(),8000);
+    const timeout=setTimeout(()=>controller.abort(),20000);
     const rd=await fetch(PROXY+'/all-reservations',{signal:controller.signal});
     clearTimeout(timeout);
     const data=await rd.json();
