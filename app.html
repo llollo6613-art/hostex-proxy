@@ -326,12 +326,15 @@ async function _saveBlock(){
       cur=new Date(cur.getFullYear(),cur.getMonth(),cur.getDate()+1);
     }
     try{localStorage.setItem('blockedDates_'+propId,JSON.stringify(S.blockedDates));}catch(ex){}
-    showToast('✓ '+sel.length+' jour(s) bloqués');
+    showToast('✓ '+sel.length+' jour(s) bloqué(s) sur Airbnb et Booking');
     S.ratesSelected={};
     closeModal();
     S.ratesLoaded={};
     renderRates();
-  }catch(e){showToast('Erreur: '+e.message);}
+  }catch(e){
+    console.error('Block error:',e);
+    showToast('Erreur blocage: '+e.message);
+  }
 }
 
 async function _unblockDates(propId,from,to){
@@ -2160,8 +2163,9 @@ async function _loadPricesFromAPI(propId){
   var from=dStr(new Date(m.getFullYear(),m.getMonth(),1));
   var to=dStr(new Date(m.getFullYear(),m.getMonth()+12,0));
   showToast('Chargement '+prop.channels.length+' canaux...');
-  // Charger les dates bloquées depuis localStorage (persistées localement)
+  // Charger les dates bloquées depuis localStorage
   try { S.blockedDates=JSON.parse(localStorage.getItem('blockedDates_'+propId)||'[]'); } catch(e){ S.blockedDates=[]; }
+  var today=new Date().toISOString().split('T')[0];
   var total=0;
   for(var ci=0;ci<prop.channels.length;ci++){
     var ch=prop.channels[ci];
