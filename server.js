@@ -657,8 +657,15 @@ async function syncHostexToSupabase() {
       if (list.length < 50) break;
     }
     if (allRes.length > 0) {
-      const toSave = allRes.map(r => ({
-        reservation_code: r.reservation_code || r.id,
+      const toSave = allRes.map(r => {
+        // Normaliser le code: supprimer les préfixes 0- et suffixes -icXXXX -idXXXX
+        let code = r.reservation_code || r.id || '';
+        if (code.startsWith('0-')) code = code.split('-')[1]; // 0-HMXXXX-icXXXX -> HMXXXX
+        if (code.match(/-ic[a-z0-9]+$/) || code.match(/-id[a-z0-9]+$/)) {
+          code = code.replace(/-ic[a-z0-9]+$/, '').replace(/-id[a-z0-9]+$/, '');
+        }
+        return {
+        reservation_code: code || r.reservation_code || r.id,
         guest_name: r.guest_name || '',
         check_in_date: r.check_in_date || '',
         check_out_date: r.check_out_date || '',
@@ -672,7 +679,7 @@ async function syncHostexToSupabase() {
         guest_phone: r.guest_phone || '',
         stay_status: r.stay_status || '',
         booked_at: r.created_at || ''
-      })).filter(r => r.reservation_code && r.check_in_date);
+      }}).filter(r => r.reservation_code && r.check_in_date);
       await supaSave(toSave);
       invalidateCache();
       console.log('Auto-sync: ' + toSave.length + ' reservations synced to Supabase');
