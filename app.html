@@ -1730,7 +1730,9 @@ function renderRates(){
     +'<button onclick="S.props.forEach(function(p){_saveClean(p.id);})" style="width:100%;padding:7px;border-radius:8px;border:none;background:#0F6E56;color:#fff;font-size:12px;font-weight:500;cursor:pointer;margin-top:6px;">Enregistrer</button>';
 
   var selCount=Object.keys(window._ratesDragSel||S.ratesSelected||{}).length;
-  var blockBtn='<div style="height:1px;background:#e5e4e0;margin:12px 0;"></div>'    +(selCount>0      ?'<button onclick="_openBlockDates(\''+prop.id+'\')" style="width:100%;padding:8px;border-radius:8px;border:none;background:#ef4444;color:#fff;font-size:12px;font-weight:600;cursor:pointer;">⛔ Bloquer '+selCount+' jour'+(selCount>1?'s':'')+' sur Airbnb & Booking</button>'      :'<button onclick="_openBlockDates(\''+prop.id+'\')" style="width:100%;padding:8px;border-radius:8px;border:1.5px solid #ef4444;background:#fff;color:#ef4444;font-size:12px;font-weight:500;cursor:pointer;">⛔ Bloquer des dates</button>')
+    var blockBtn='<div style="height:1px;background:#e5e4e0;margin:12px 0;"></div>'
+    +(selCount>0?'<button onclick="_openBlockDates(''+prop.id+'')" style="width:100%;padding:8px;border-radius:8px;border:none;background:#ef4444;color:#fff;font-size:12px;font-weight:600;cursor:pointer;margin-bottom:6px;">⛔ Bloquer '+selCount+' jour'+(selCount>1?'s':'')+'</button>':''
+    )+'<a href="https://app.hostex.io/calendar" target="_blank" style="display:block;width:100%;padding:8px;border-radius:8px;border:1.5px solid #6366f1;background:#fff;color:#6366f1;font-size:12px;font-weight:500;text-align:center;text-decoration:none;box-sizing:border-box;">📅 Ouvrir calendrier Hostex</a>'
     +'<div style="font-size:10px;color:#aaa;margin-top:5px;text-align:center;">S\u00e9lectionnez puis bloquez</div>';
 
   var r=S.ratesRules[prop.id]||S.basePrices[prop.id]||{airWeek:80,bkWeek:70,airWE:95,bkWE:88};
