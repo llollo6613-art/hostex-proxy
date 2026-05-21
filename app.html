@@ -129,7 +129,14 @@ function prorataM(r,yr,m){
   var dm=new Date(yr,m,1),fm=new Date(yr,m+1,1);
   var debut=Math.max(ci,dm),fin=Math.min(co,fm);
   var nt=Math.round((co-ci)/86400000),nm=Math.round((fin-debut)/86400000);
-  var net=(r.amount||0)-(r.commission||0);
+  // Soustraire commission réelle ou estimer selon plateforme
+  var brut=r.amount||0;
+  var com=r.commission||0;
+  if(com===0&&brut>0){
+    if(r.platform==='airbnb')com=brut*0.076;
+    else if(r.platform==='booking.com'||r.platform==='booking')com=brut*0.163;
+  }
+  var net=brut-com;
   return nt>0?net*nm/nt:net;
 }
 function prorataY(r,yr){
@@ -137,7 +144,13 @@ function prorataY(r,yr){
   var dm=new Date(yr,0,1),fm=new Date(yr+1,0,1);
   var debut=Math.max(ci,dm),fin=Math.min(co,fm);
   var nt=Math.round((co-ci)/86400000),nm=Math.round((fin-debut)/86400000);
-  var net=(r.amount||0)-(r.commission||0);
+  var brut=r.amount||0;
+  var com=r.commission||0;
+  if(com===0&&brut>0){
+    if(r.platform==='airbnb')com=brut*0.076;
+    else if(r.platform==='booking.com'||r.platform==='booking')com=brut*0.163;
+  }
+  var net=brut-com;
   return nt>0?net*nm/nt:net;
 }
 function revenusProrataMois(reservations, annee, mois) {
@@ -394,7 +407,11 @@ function renderBilan(){
   var selYear=S.bilanYear||now.getFullYear();
   var selProp=S.bilanProp||'all';
 
-  function netRev(r){return (r.amount||0)-(r.commission||0);}
+  function netRev(r){
+  var brut=r.amount||0;var com=r.commission||0;
+  if(com===0&&brut>0){if(r.platform==='airbnb')com=brut*0.076;else if(r.platform==='booking.com'||r.platform==='booking')com=brut*0.163;}
+  return brut-com;
+}
   function commission(r){var isB=r.platform==='booking.com'||r.platform==='booking';return isB?r.commission:0;}
   function cleaning(r){var c=S.cleaning&&S.cleaning[r.prop_id]?S.cleaning[r.prop_id]:{base:20};return c.base;}
 
@@ -616,7 +633,11 @@ async function _downloadBilanPDF(propId){
   var selYear=S.bilanYear||new Date().getFullYear();
   showToast('Pr\u00e9paration du PDF...');
 
-  function netRev(r){return (r.amount||0)-(r.commission||0);}
+  function netRev(r){
+  var brut=r.amount||0;var com=r.commission||0;
+  if(com===0&&brut>0){if(r.platform==='airbnb')com=brut*0.076;else if(r.platform==='booking.com'||r.platform==='booking')com=brut*0.163;}
+  return brut-com;
+}
   function commission(r){var isB=r.platform==='booking.com'||r.platform==='booking';return isB?r.commission:0;}
   function cleaning(r){var c=S.cleaning&&S.cleaning[r.prop_id]?S.cleaning[r.prop_id]:{base:20};return c.base;}
 
