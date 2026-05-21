@@ -125,20 +125,20 @@ async function api(path,method='GET',body=null,timeoutMs=6000){
 }
 
 function prorataM(r,yr,m){
-  if(!r.check_in||!r.check_out) return 1;
   var ci=new Date(r.check_in+'T00:00:00'),co=new Date(r.check_out+'T00:00:00');
   var dm=new Date(yr,m,1),fm=new Date(yr,m+1,1);
   var debut=Math.max(ci,dm),fin=Math.min(co,fm);
   var nt=Math.round((co-ci)/86400000),nm=Math.round((fin-debut)/86400000);
-  return nt>0?nm/nt:1;
+  var net=(r.amount||0)-(r.commission||0);
+  return nt>0?net*nm/nt:net;
 }
 function prorataY(r,yr){
-  if(!r.check_in||!r.check_out) return 1;
   var ci=new Date(r.check_in+'T00:00:00'),co=new Date(r.check_out+'T00:00:00');
   var dm=new Date(yr,0,1),fm=new Date(yr+1,0,1);
   var debut=Math.max(ci,dm),fin=Math.min(co,fm);
   var nt=Math.round((co-ci)/86400000),nm=Math.round((fin-debut)/86400000);
-  return nt>0?nm/nt:1;
+  var net=(r.amount||0)-(r.commission||0);
+  return nt>0?net*nm/nt:net;
 }
 function revenusProrataMois(reservations, annee, mois) {
   var debut_mois = new Date(annee, mois, 1);
@@ -394,7 +394,7 @@ function renderBilan(){
   var selYear=S.bilanYear||now.getFullYear();
   var selProp=S.bilanProp||'all';
 
-  function netRev(r){var isB=r.platform==='booking.com'||r.platform==='booking';return isB?r.amount-r.commission:r.amount;}
+  function netRev(r){return (r.amount||0)-(r.commission||0);}
   function commission(r){var isB=r.platform==='booking.com'||r.platform==='booking';return isB?r.commission:0;}
   function cleaning(r){var c=S.cleaning&&S.cleaning[r.prop_id]?S.cleaning[r.prop_id]:{base:20};return c.base;}
 
@@ -616,7 +616,7 @@ async function _downloadBilanPDF(propId){
   var selYear=S.bilanYear||new Date().getFullYear();
   showToast('Pr\u00e9paration du PDF...');
 
-  function netRev(r){var isB=r.platform==='booking.com'||r.platform==='booking';return isB?r.amount-r.commission:r.amount;}
+  function netRev(r){return (r.amount||0)-(r.commission||0);}
   function commission(r){var isB=r.platform==='booking.com'||r.platform==='booking';return isB?r.commission:0;}
   function cleaning(r){var c=S.cleaning&&S.cleaning[r.prop_id]?S.cleaning[r.prop_id]:{base:20};return c.base;}
 
