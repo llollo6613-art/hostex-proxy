@@ -127,9 +127,10 @@ async function api(path,method='GET',body=null,timeoutMs=6000){
 function prorataM(r,yr,m){
   var ci=new Date(r.check_in+'T00:00:00'),co=new Date(r.check_out+'T00:00:00');
   var dm=new Date(yr,m,1),fm=new Date(yr,m+1,1);
-  var debut=Math.max(ci,dm),fin=Math.min(co,fm);
+  if(co<=dm||ci>=fm)return 0; // hors mois
+  var debut=Math.max(+ci,+dm),fin=Math.min(+co,+fm);
   var nt=Math.round((co-ci)/86400000),nm=Math.round((fin-debut)/86400000);
-  // Soustraire commission réelle ou estimer selon plateforme
+  if(nm<=0||nt<=0)return 0;
   var brut=r.amount||0;
   var com=r.commission||0;
   if(com===0&&brut>0){
@@ -137,13 +138,15 @@ function prorataM(r,yr,m){
     else if(r.platform==='booking.com'||r.platform==='booking')com=brut*0.163;
   }
   var net=brut-com;
-  return nt>0?net*nm/nt:net;
+  return net*nm/nt;
 }
 function prorataY(r,yr){
   var ci=new Date(r.check_in+'T00:00:00'),co=new Date(r.check_out+'T00:00:00');
   var dm=new Date(yr,0,1),fm=new Date(yr+1,0,1);
-  var debut=Math.max(ci,dm),fin=Math.min(co,fm);
+  if(co<=dm||ci>=fm)return 0;
+  var debut=Math.max(+ci,+dm),fin=Math.min(+co,+fm);
   var nt=Math.round((co-ci)/86400000),nm=Math.round((fin-debut)/86400000);
+  if(nm<=0||nt<=0)return 0;
   var brut=r.amount||0;
   var com=r.commission||0;
   if(com===0&&brut>0){
@@ -151,7 +154,7 @@ function prorataY(r,yr){
     else if(r.platform==='booking.com'||r.platform==='booking')com=brut*0.163;
   }
   var net=brut-com;
-  return nt>0?net*nm/nt:net;
+  return net*nm/nt;
 }
 function revenusProrataMois(reservations, annee, mois) {
   var debut_mois = new Date(annee, mois, 1);
