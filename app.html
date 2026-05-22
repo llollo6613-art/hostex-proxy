@@ -2801,6 +2801,13 @@ document.addEventListener("DOMContentLoaded",function(){loadAll();});
 // ===== VIREMENTS =====
 function renderVirements(){
   var el=document.getElementById('main-content');
+  if(!el)return;
+  // Si pas encore chargé, attendre et réessayer
+  if(!S.reservations||S.reservations.length===0){
+    el.innerHTML='<div style="padding:40px;text-align:center;color:#888;">Chargement des données...</div>';
+    setTimeout(renderVirements, 2000);
+    return;
+  }
   var yr=new Date().getFullYear();
   
   // Calculer les virements par mois depuis les réservations (net estimé)
