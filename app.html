@@ -412,7 +412,7 @@ function renderBilan(){
 
   function netRev(r){
   var brut=r.amount||0;var com=r.commission||0;
-  if(com===0&&brut>0){if(r.platform==='airbnb')com=brut*0.076;else if(r.platform==='booking.com'||r.platform==='booking')com=brut*0.163;}
+  if(com===0&&brut>0){if(r.platform==='airbnb')com=brut*0.0488;else if(r.platform==='booking.com'||r.platform==='booking')com=brut*0.164;}
   return brut-com;
 }
   function commission(r){var isB=r.platform==='booking.com'||r.platform==='booking';return isB?r.commission:0;}
@@ -638,7 +638,7 @@ async function _downloadBilanPDF(propId){
 
   function netRev(r){
   var brut=r.amount||0;var com=r.commission||0;
-  if(com===0&&brut>0){if(r.platform==='airbnb')com=brut*0.076;else if(r.platform==='booking.com'||r.platform==='booking')com=brut*0.163;}
+  if(com===0&&brut>0){if(r.platform==='airbnb')com=brut*0.0488;else if(r.platform==='booking.com'||r.platform==='booking')com=brut*0.164;}
   return brut-com;
 }
   function commission(r){var isB=r.platform==='booking.com'||r.platform==='booking';return isB?r.commission:0;}
