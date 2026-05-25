@@ -1410,7 +1410,7 @@ function renderDash(){
   var MFULL=["Janvier","Fevrier","Mars","Avril","Mai","Juin","Juillet","Aout","Septembre","Octobre","Novembre","Decembre"];
   var COLORS=["#FF385C","#003580","#0F6E56","#EF9F27","#6366F1","#E24B4A","#1D9E75"];
   var past=S.reservations.filter(function(r){return r.check_in&&r.status!=="cancelled";});
-  function netRev(r){var isB=r.platform==="booking.com"||r.platform==="booking";return isB?r.amount-r.commission:r.amount;}
+  function netRev(r){var brut=r.amount||0;var com=r.commission||0;if(com===0&&brut>0){if(r.platform==="airbnb")com=brut*0.0488;else if(r.platform==="booking.com"||r.platform==="booking")com=brut*0.164;}return brut-com;}
   function cleanFee(r){var c=S.cleaning&&S.cleaning[r.prop_id]?S.cleaning[r.prop_id]:{base:20};return c.base;}
   function av(name){var i=(name||"?").charAt(0).toUpperCase();return{ini:i,color:COLORS[i.charCodeAt(0)%COLORS.length]};}
   function platBadge(pl,small){var isA=platClass(pl)==="airbnb";var sz=small?"font-size:9px;padding:1px 4px":"font-size:9px;padding:1px 5px";return"<span style=\""+sz+";font-weight:500;background:"+(isA?"#FF385C":"#003580")+";color:#fff;border-radius:3px;\">"+(isA?"AIR":"BK")+"</span>";}
