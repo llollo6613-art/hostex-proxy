@@ -1095,7 +1095,7 @@ function _barClick(i){
   if(box.style.display!=="none"&&box.dataset.idx===String(i)){box.style.display="none";return;}
   box.dataset.idx=String(i);
   var past=window._dashPast||[];
-  function nR(r){var isB=r.platform==="booking.com"||r.platform==="booking";return isB?r.amount-r.commission:r.amount;}
+  function nR(r){var isB=r.platform==="booking.com"||r.platform==="booking";var brut=r.amount||0;var com=r.commission||0;if(com===0&&brut>0){if(r.platform==="airbnb")com=brut*0.0488;else if(r.platform==="booking.com"||r.platform==="booking")com=brut*0.164;}return brut-com;}
   var mr=past.filter(function(r){if(!r.check_in||!r.check_out||r.status==="cancelled")return false;var dm=new Date(m.year,m.month,1),fm=new Date(m.year,m.month+1,1);return new Date(r.check_in+"T00:00:00")<fm&&new Date(r.check_out+"T00:00:00")>dm;});
   function prorataM(r,yr,m){var ci=new Date(r.check_in+'T00:00:00'),co=new Date(r.check_out+'T00:00:00'),dm=new Date(yr,m,1),fm=new Date(yr,m+1,1),debut=Math.max(ci,dm),fin=Math.min(co,fm),nt=Math.round((co-ci)/86400000),nm=Math.round((fin-debut)/86400000);return nt>0?nm/nt:1;}
   var airR=mr.filter(function(r){return platClass(r.platform)==="airbnb";}).reduce(function(s,r){return s+nR(r)*prorataM(r,now.getFullYear(),m.month);},0);
@@ -1123,7 +1123,7 @@ function _barHover(i){
 function _barOut(){
   var past=window._dashPast||[];
   var now=new Date();
-  function nR(r){var isB=r.platform==="booking.com"||r.platform==="booking";return isB?r.amount-r.commission:r.amount;}
+  function nR(r){var isB=r.platform==="booking.com"||r.platform==="booking";var brut=r.amount||0;var com=r.commission||0;if(com===0&&brut>0){if(r.platform==="airbnb")com=brut*0.0488;else if(r.platform==="booking.com"||r.platform==="booking")com=brut*0.164;}return brut-com;}
   function prorataY(r){var ci=new Date(r.check_in+'T00:00:00'),co=new Date(r.check_out+'T00:00:00'),dm=new Date(now.getFullYear(),0,1),fm=new Date(now),debut=Math.max(ci,dm),fin=Math.min(co,fm),nt=Math.round((co-ci)/86400000),nm=Math.round((fin-debut)/86400000);return nt>0?nm/nt:1;}
   var yr=past.filter(function(r){var d=new Date(r.check_in+"T00:00:00");return d.getFullYear()===now.getFullYear()&&d<=now;}).reduce(function(s,r){return s+nR(r)*prorataY(r);},0);
   var tt=document.getElementById("btt");
@@ -1138,7 +1138,7 @@ function _showMonthDetail(type){
   detail.dataset.type=type;
   detail.style.display="block";
   var past=window._dashPast||S.reservations.filter(function(r){return r.check_in&&r.status!=="cancelled";});
-  function nR(r){var isB=r.platform==="booking.com"||r.platform==="booking";return isB?r.amount-r.commission:r.amount;}
+  function nR(r){var isB=r.platform==="booking.com"||r.platform==="booking";var brut=r.amount||0;var com=r.commission||0;if(com===0&&brut>0){if(r.platform==="airbnb")com=brut*0.0488;else if(r.platform==="booking.com"||r.platform==="booking")com=brut*0.164;}return brut-com;}
   var now=new Date();
   var MFULL=["Janvier","Fevrier","Mars","Avril","Mai","Juin","Juillet","Aout","Septembre","Octobre","Novembre","Decembre"];
 
