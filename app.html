@@ -131,13 +131,9 @@ function prorataM(r,yr,m){
   var debut=Math.max(+ci,+dm),fin=Math.min(+co,+fm);
   var nt=Math.round((co-ci)/86400000),nm=Math.round((fin-debut)/86400000);
   if(nm<=0||nt<=0)return 0;
-  var brut=r.amount||0;
-  var com=r.commission||0;
-  if(com===0&&brut>0){
-    if(r.platform==='airbnb')com=brut*0.0488;
-    else if(r.platform==='booking.com'||r.platform==='booking')com=brut*0.164;
-  }
-  var net=brut-com;
+  var net;
+  if(r.net_amount&&r.net_amount>0){net=r.net_amount;}
+  else{var brut=r.amount||0;var com=r.commission||0;if(com===0&&brut>0){if(r.platform==='airbnb')com=brut*0.0488;else if(r.platform==='booking.com'||r.platform==='booking')com=brut*0.164;}net=brut-com;}
   return net*nm/nt;
 }
 function prorataY(r,yr){
@@ -147,13 +143,9 @@ function prorataY(r,yr){
   var debut=Math.max(+ci,+dm),fin=Math.min(+co,+fm);
   var nt=Math.round((co-ci)/86400000),nm=Math.round((fin-debut)/86400000);
   if(nm<=0||nt<=0)return 0;
-  var brut=r.amount||0;
-  var com=r.commission||0;
-  if(com===0&&brut>0){
-    if(r.platform==='airbnb')com=brut*0.0488;
-    else if(r.platform==='booking.com'||r.platform==='booking')com=brut*0.164;
-  }
-  var net=brut-com;
+  var net;
+  if(r.net_amount&&r.net_amount>0){net=r.net_amount;}
+  else{var brut=r.amount||0;var com=r.commission||0;if(com===0&&brut>0){if(r.platform==='airbnb')com=brut*0.0488;else if(r.platform==='booking.com'||r.platform==='booking')com=brut*0.164;}net=brut-com;}
   return net*nm/nt;
 }
 function revenusProrataMois(reservations, annee, mois) {
@@ -197,7 +189,7 @@ function mapRes(r){
   if(r.rates&&r.rates.total_commission&&r.rates.total_commission.amount)com=parseFloat(r.rates.total_commission.amount);
   else if(r.rates&&r.rates.commission&&r.rates.commission.amount)com=parseFloat(r.rates.commission.amount);
   else if(r.c)com=parseFloat(r.c);
-  return{id:String(r.reservation_code||r.id||r.code||''),guest:r.guest_name||r.g||'Voyageur',platform:r.channel_type||r.pl||r.channel||'direct',check_in:r.check_in_date||r.ci||r.check_in||'',check_out:r.check_out_date||r.co||r.check_out||'',amount:amt,currency:'EUR',commission:com,status:r.status||r.st||'confirmed',stay_status:r.stay_status||r.ss||'',guests:r.number_of_guests||r.n||1,phone:r.guest_phone||r.ph||'',email:r.guest_email||r.em||'',prop_id:String(r.property_id||r.pi||''),booked_at:r.booked_at||r.b||''};
+  return{id:String(r.reservation_code||r.id||r.code||''),guest:r.guest_name||r.g||'Voyageur',platform:r.channel_type||r.pl||r.channel||'direct',check_in:r.check_in_date||r.ci||r.check_in||'',check_out:r.check_out_date||r.co||r.check_out||'',amount:amt,net_amount:parseFloat(r.net_amount||0),currency:'EUR',commission:com,status:r.status||r.st||'confirmed',stay_status:r.stay_status||r.ss||'',guests:r.number_of_guests||r.n||1,phone:r.guest_phone||r.ph||'',email:r.guest_email||r.em||'',prop_id:String(r.property_id||r.pi||''),booked_at:r.booked_at||r.b||''};
 }
 function loadFromCSV(){
   const map={};
@@ -1095,7 +1087,7 @@ function _barClick(i){
   if(box.style.display!=="none"&&box.dataset.idx===String(i)){box.style.display="none";return;}
   box.dataset.idx=String(i);
   var past=window._dashPast||[];
-  function nR(r){var isB=r.platform==="booking.com"||r.platform==="booking";var brut=r.amount||0;var com=r.commission||0;if(com===0&&brut>0){if(r.platform==="airbnb")com=brut*0.0488;else if(r.platform==="booking.com"||r.platform==="booking")com=brut*0.164;}return brut-com;}
+  function nR(r){var isB=r.platform==="booking.com"||r.platform==="booking";if(r.net_amount&&r.net_amount>0)return r.net_amount;var brut=r.amount||0;var com=r.commission||0;if(com===0&&brut>0){if(r.platform==="airbnb")com=brut*0.0488;else if(r.platform==="booking.com"||r.platform==="booking")com=brut*0.164;}return brut-com;}
   var mr=past.filter(function(r){if(!r.check_in||!r.check_out||r.status==="cancelled")return false;var dm=new Date(m.year,m.month,1),fm=new Date(m.year,m.month+1,1);return new Date(r.check_in+"T00:00:00")<fm&&new Date(r.check_out+"T00:00:00")>dm;});
   function prorataM(r,yr,m){var ci=new Date(r.check_in+'T00:00:00'),co=new Date(r.check_out+'T00:00:00'),dm=new Date(yr,m,1),fm=new Date(yr,m+1,1),debut=Math.max(ci,dm),fin=Math.min(co,fm),nt=Math.round((co-ci)/86400000),nm=Math.round((fin-debut)/86400000);return nt>0?nm/nt:1;}
   var airR=mr.filter(function(r){return platClass(r.platform)==="airbnb";}).reduce(function(s,r){return s+nR(r)*prorataM(r,now.getFullYear(),m.month);},0);
@@ -1123,7 +1115,7 @@ function _barHover(i){
 function _barOut(){
   var past=window._dashPast||[];
   var now=new Date();
-  function nR(r){var isB=r.platform==="booking.com"||r.platform==="booking";var brut=r.amount||0;var com=r.commission||0;if(com===0&&brut>0){if(r.platform==="airbnb")com=brut*0.0488;else if(r.platform==="booking.com"||r.platform==="booking")com=brut*0.164;}return brut-com;}
+  function nR(r){var isB=r.platform==="booking.com"||r.platform==="booking";if(r.net_amount&&r.net_amount>0)return r.net_amount;var brut=r.amount||0;var com=r.commission||0;if(com===0&&brut>0){if(r.platform==="airbnb")com=brut*0.0488;else if(r.platform==="booking.com"||r.platform==="booking")com=brut*0.164;}return brut-com;}
   function prorataY(r){var ci=new Date(r.check_in+'T00:00:00'),co=new Date(r.check_out+'T00:00:00'),dm=new Date(now.getFullYear(),0,1),fm=new Date(now),debut=Math.max(ci,dm),fin=Math.min(co,fm),nt=Math.round((co-ci)/86400000),nm=Math.round((fin-debut)/86400000);return nt>0?nm/nt:1;}
   var yr=past.filter(function(r){var d=new Date(r.check_in+"T00:00:00");return d.getFullYear()===now.getFullYear()&&d<=now;}).reduce(function(s,r){return s+nR(r)*prorataY(r);},0);
   var tt=document.getElementById("btt");
@@ -1138,7 +1130,7 @@ function _showMonthDetail(type){
   detail.dataset.type=type;
   detail.style.display="block";
   var past=window._dashPast||S.reservations.filter(function(r){return r.check_in&&r.status!=="cancelled";});
-  function nR(r){var isB=r.platform==="booking.com"||r.platform==="booking";var brut=r.amount||0;var com=r.commission||0;if(com===0&&brut>0){if(r.platform==="airbnb")com=brut*0.0488;else if(r.platform==="booking.com"||r.platform==="booking")com=brut*0.164;}return brut-com;}
+  function nR(r){var isB=r.platform==="booking.com"||r.platform==="booking";if(r.net_amount&&r.net_amount>0)return r.net_amount;var brut=r.amount||0;var com=r.commission||0;if(com===0&&brut>0){if(r.platform==="airbnb")com=brut*0.0488;else if(r.platform==="booking.com"||r.platform==="booking")com=brut*0.164;}return brut-com;}
   var now=new Date();
   var MFULL=["Janvier","Fevrier","Mars","Avril","Mai","Juin","Juillet","Aout","Septembre","Octobre","Novembre","Decembre"];
 
@@ -1410,7 +1402,7 @@ function renderDash(){
   var MFULL=["Janvier","Fevrier","Mars","Avril","Mai","Juin","Juillet","Aout","Septembre","Octobre","Novembre","Decembre"];
   var COLORS=["#FF385C","#003580","#0F6E56","#EF9F27","#6366F1","#E24B4A","#1D9E75"];
   var past=S.reservations.filter(function(r){return r.check_in&&r.status!=="cancelled";});
-  function netRev(r){var brut=r.amount||0;var com=r.commission||0;if(com===0&&brut>0){if(r.platform==="airbnb")com=brut*0.0488;else if(r.platform==="booking.com"||r.platform==="booking")com=brut*0.164;}return brut-com;}
+  function netRev(r){if(r.net_amount&&r.net_amount>0)return r.net_amount;var brut=r.amount||0;var com=r.commission||0;if(com===0&&brut>0){if(r.platform==="airbnb")com=brut*0.0488;else if(r.platform==="booking.com"||r.platform==="booking")com=brut*0.164;}return brut-com;}
   function cleanFee(r){var c=S.cleaning&&S.cleaning[r.prop_id]?S.cleaning[r.prop_id]:{base:20};return c.base;}
   function av(name){var i=(name||"?").charAt(0).toUpperCase();return{ini:i,color:COLORS[i.charCodeAt(0)%COLORS.length]};}
   function platBadge(pl,small){var isA=platClass(pl)==="airbnb";var sz=small?"font-size:9px;padding:1px 4px":"font-size:9px;padding:1px 5px";return"<span style=\""+sz+";font-weight:500;background:"+(isA?"#FF385C":"#003580")+";color:#fff;border-radius:3px;\">"+(isA?"AIR":"BK")+"</span>";}
