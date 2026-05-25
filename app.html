@@ -134,8 +134,8 @@ function prorataM(r,yr,m){
   var brut=r.amount||0;
   var com=r.commission||0;
   if(com===0&&brut>0){
-    if(r.platform==='airbnb')com=brut*0.076;
-    else if(r.platform==='booking.com'||r.platform==='booking')com=brut*0.163;
+    if(r.platform==='airbnb')com=brut*0.0488;
+    else if(r.platform==='booking.com'||r.platform==='booking')com=brut*0.164;
   }
   var net=brut-com;
   return net*nm/nt;
@@ -150,8 +150,8 @@ function prorataY(r,yr){
   var brut=r.amount||0;
   var com=r.commission||0;
   if(com===0&&brut>0){
-    if(r.platform==='airbnb')com=brut*0.076;
-    else if(r.platform==='booking.com'||r.platform==='booking')com=brut*0.163;
+    if(r.platform==='airbnb')com=brut*0.0488;
+    else if(r.platform==='booking.com'||r.platform==='booking')com=brut*0.164;
   }
   var net=brut-com;
   return net*nm/nt;
