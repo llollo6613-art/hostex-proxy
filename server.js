@@ -329,6 +329,10 @@ async function doSync() {
 }
 
 // Servir app HTML
+app.get('/mobile', function(req, res) {
+  res.sendFile(__dirname + '/mobile.html');
+});
+
 app.get('/', function(req, res) {
   const htmlPath = path.join(__dirname, 'app.html');
   if (fs.existsSync(htmlPath)) {
