@@ -352,6 +352,9 @@ async function doSync() {
 // Servir app HTML
 
 // Web Push routes
+app.get('/sw.js', (req, res) => { res.setHeader('Content-Type','application/javascript'); res.sendFile(__dirname+'/sw.js'); });
+app.get('/manifest.json', (req, res) => res.sendFile(__dirname+'/manifest.json'));
+app.get('/icon.svg', (req, res) => { res.setHeader('Content-Type','image/svg+xml'); res.sendFile(__dirname+'/icon.svg'); });
 app.get('/vapid-key', (req, res) => res.json({publicKey: VAPID_PUBLIC}));
 
 app.post('/subscribe', (req, res) => {

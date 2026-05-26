@@ -6,6 +6,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#0F6E56">
 <title>Illiberis</title>
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/icon.svg">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#0F6E56;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;}
@@ -176,6 +178,64 @@ function checkMenage() {
     setTimeout(function(){ inp.classList.remove('error'); }, 800);
   }
 }
+
+// Service Worker + Push Notifications
+async function initPush() {
+  if(!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+  try {
+    const reg = await navigator.serviceWorker.register('/sw.js');
+    await navigator.serviceWorker.ready;
+    
+    // Demander permission
+    const perm = await Notification.requestPermission();
+    if(perm !== 'granted') return;
+    
+    // Récupérer clé VAPID
+    const keyRes = await fetch('/vapid-key');
+    const {publicKey} = await keyRes.json();
+    
+    // S'abonner
+    const sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(publicKey)
+    });
+    
+    // Envoyer au serveur
+    await fetch('/subscribe', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(sub)
+    });
+    console.log('Push notifications activées');
+  } catch(e) { console.log('Push error:', e); }
+}
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g,'+').replace(/_/g,'/');
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for(let i=0;i<rawData.length;i++) outputArray[i]=rawData.charCodeAt(i);
+  return outputArray;
+}
+
+// Activer les notifs dès que l'app est installée comme PWA
+if(window.matchMedia('(display-mode: standalone)').matches || navigator.standalone) {
+  initPush();
+}
+
+// Bouton pour activer les notifs manuellement
+document.addEventListener('DOMContentLoaded', function() {
+  var card = document.querySelector('.card');
+  if(card && 'Notification' in window && Notification.permission !== 'granted') {
+    var btn = document.createElement('button');
+    btn.className = 'btn-choice btn-menage';
+    btn.style = 'margin-top:8px;justify-content:center;border-style:dashed;';
+    btn.innerHTML = '<span class="btn-icon">🔔</span><span class="btn-text"><span class="btn-text-main">Activer les notifications</span><span class="btn-text-sub">Nouvelles réservations & ménage</span></span>';
+    btn.onclick = initPush;
+    card.appendChild(btn);
+  }
+});
 </script>
 </body>
 </html>
