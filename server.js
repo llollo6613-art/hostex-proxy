@@ -1,4 +1,25 @@
 
+
+// ===== WEB PUSH NOTIFICATIONS =====
+const webpush = require('web-push');
+const VAPID_PUBLIC = process.env.VAPID_PUBLIC || 'BJFwoHPQF_U65sVAS2s7aawrGceNCsSFxtdIB0Qolxfy2VH4HHm-ukdSCYMaonFKVwQdQvoTS5PGBWJ5IAHygxQ';
+const VAPID_PRIVATE = process.env.VAPID_PRIVATE || 'vPeevLy4yk49Jtl3--Wu2eijo89xP7kV5KI4exgPSy8';
+webpush.setVapidDetails('mailto:contact@illiberis.fr', VAPID_PUBLIC, VAPID_PRIVATE);
+let pushSubscriptions = [];
+try { pushSubscriptions = JSON.parse(require('fs').readFileSync('/tmp/push_subs.json','utf8')); } catch(e) {}
+function saveSubs() { try { require('fs').writeFileSync('/tmp/push_subs.json', JSON.stringify(pushSubscriptions)); } catch(e) {} }
+async function sendPushNotif(title, body, url, tag) {
+  if(!pushSubscriptions.length) return;
+  const payload = JSON.stringify({title:title||'Illiberis', body:body||'', url:url||'/mobile', tag:tag||'notif'});
+  const failed = [];
+  for (const sub of pushSubscriptions) {
+    try { await webpush.sendNotification(sub, payload); }
+    catch(e) { if(e.statusCode===410||e.statusCode===404) failed.push(sub.endpoint); }
+  }
+  if(failed.length) { pushSubscriptions=pushSubscriptions.filter(s=>!failed.includes(s.endpoint)); saveSubs(); }
+  console.log('Push sent:', pushSubscriptions.length, 'subscribers');
+}
+
 // ============ SUPABASE DB ============
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://bdreatiovsfutxkyxxoo.supabase.co';
 const SUPABASE_KEY = process.env.SUPABASE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJkcmVhdGlvdnNmdXR4a3l4eG9vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3OTE1MzA5MywiZXhwIjoyMDk0NzI5MDkzfQ.MqlLVk4pRoZhJ783fBP9dkXTLbXReqz26swE-tbQYFY';
@@ -329,6 +350,19 @@ async function doSync() {
 }
 
 // Servir app HTML
+
+// Web Push routes
+app.get('/vapid-key', (req, res) => res.json({publicKey: VAPID_PUBLIC}));
+
+app.post('/subscribe', (req, res) => {
+  const sub = req.body;
+  if(!sub || !sub.endpoint) return res.status(400).json({error:'Invalid subscription'});
+  const exists = pushSubscriptions.find(s => s.endpoint === sub.endpoint);
+  if(!exists) { pushSubscriptions.push(sub); saveSubs(); }
+  res.json({ok: true, total: pushSubscriptions.length});
+  console.log('New push subscriber, total:', pushSubscriptions.length);
+});
+
 app.get('/mobile', function(req, res) {
   res.sendFile(__dirname + '/mobile.html');
 });
