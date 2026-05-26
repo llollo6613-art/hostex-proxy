@@ -238,6 +238,12 @@ function initApp(){
     .catch(function(){showTab("today");});
 }
 
+function isRealMenage(r, allRes){
+  return !allRes.some(function(other){
+    return other.prop_id === r.prop_id && other.check_in === r.check_out && other.status !== "cancelled";
+  });
+}
+
 function mapRes(r){
   return {
     id: String(r.reservation_code||r.id||""),
@@ -276,7 +282,7 @@ function renderToday(){
   var now = new Date();
   var todayStr = now.toISOString().split("T")[0];
   var past = STATE.reservations.filter(function(r){return r.status!=="cancelled";});
-  var menages = past.filter(function(r){return r.check_out===todayStr;});
+  var menages = past.filter(function(r){return r.check_out===todayStr && isRealMenage(r,past);});
   var arrivals = past.filter(function(r){return r.check_in===todayStr;});
   var h = "";
 
@@ -306,7 +312,7 @@ function renderToday(){
     var d = new Date(now);
     d.setDate(d.getDate()+i);
     var ds = d.toISOString().split("T")[0];
-    past.filter(function(r){return r.check_out===ds;}).forEach(function(r){upcoming.push({r:r,date:ds,d:d});});
+    past.filter(function(r){return r.check_out===ds && isRealMenage(r,past);}).forEach(function(r){upcoming.push({r:r,date:ds,d:d});});
   }
   if(upcoming.length){
     h += "<div class=\"section-card\">";
@@ -368,7 +374,7 @@ function renderCalendar(){
     var ds = y+"-"+(m+1<10?"0":"")+(m+1)+"-"+(day<10?"0":"")+day;
     var isToday = ds===todayStr;
     var dayRes = past.filter(function(r){return r.check_in<=ds&&r.check_out>ds;});
-    var hasMenage = past.some(function(r){return r.check_out===ds;});
+    var hasMenage = past.some(function(r){return r.check_out===ds && isRealMenage(r,past);});
     h += "<div class=\"cal-day"+(isToday?" today":"")+"\" onclick=\"showDayDetail('"+ds+"')\">";
     h += "<div class=\"day-num\">"+day+"</div>";
     dayRes.slice(0,2).forEach(function(r){
