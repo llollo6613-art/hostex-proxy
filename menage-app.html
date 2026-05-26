@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Menage Illiberis">
+<meta name="theme-color" content="#1D9E75">
+<title>Menage Illiberis</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f5f3;min-height:100vh;}
+.header{background:linear-gradient(135deg,#1D9E75,#0F6E56);padding:20px 16px 16px;color:#fff;position:sticky;top:0;z-index:100;}
+.header h1{font-size:20px;font-weight:700;}
+.header p{font-size:13px;opacity:0.8;margin-top:2px;}
+.task-card{background:#fff;margin:10px 12px;border-radius:14px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,0.06);border-left:4px solid #1D9E75;}
+.task-card.urgent{border-left-color:#ef4444;}
+.task-card.done-card{opacity:0.5;border-left-color:#aaa;}
+.task-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;}
+.task-prop{font-size:16px;font-weight:700;color:#1a1a1a;}
+.badge{font-size:10px;padding:3px 8px;border-radius:20px;font-weight:600;flex-shrink:0;}
+.badge-urgent{background:#fef2f2;color:#ef4444;}
+.badge-soon{background:#fff9e6;color:#d97706;}
+.badge-week{background:#f0f9ff;color:#0284c7;}
+.task-info{margin-top:8px;font-size:13px;color:#666;line-height:1.6;}
+.btn-done{width:100%;padding:12px;border:none;border-radius:10px;background:#1D9E75;color:#fff;font-size:14px;font-weight:600;cursor:pointer;margin-top:12px;}
+.btn-done:active{background:#0F6E56;}
+.btn-undone{background:#f0f0ee;color:#888;}
+.section-title{font-size:11px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.05em;margin:16px 16px 6px;}
+.empty{text-align:center;padding:60px 20px;color:#aaa;}
+.empty .icon{font-size:56px;margin-bottom:12px;}
+.login-screen{position:fixed;inset:0;background:linear-gradient(135deg,#1D9E75,#0F6E56);display:flex;align-items:center;justify-content:center;padding:24px;z-index:999;}
+.login-card{background:#fff;border-radius:20px;padding:32px 24px;width:100%;max-width:340px;text-align:center;}
+.login-logo{font-size:48px;margin-bottom:12px;}
+.login-title{font-size:22px;font-weight:700;margin-bottom:4px;}
+.login-sub{font-size:13px;color:#888;margin-bottom:24px;}
+.login-input{width:100%;padding:14px;border:2px solid #e5e4e0;border-radius:12px;font-size:18px;outline:none;margin-bottom:8px;text-align:center;letter-spacing:3px;}
+.login-input:focus{border-color:#1D9E75;}
+.login-input.err{border-color:#ef4444;background:#fef2f2;}
+.login-err{color:#ef4444;font-size:12px;min-height:16px;margin-bottom:8px;}
+.login-btn{width:100%;padding:14px;border:none;border-radius:12px;background:#1D9E75;color:#fff;font-size:16px;font-weight:600;cursor:pointer;}
+.fab{position:fixed;bottom:20px;right:20px;width:52px;height:52px;border-radius:26px;background:#1D9E75;color:#fff;border:none;font-size:22px;box-shadow:0 4px 12px rgba(0,0,0,0.2);cursor:pointer;z-index:99;}
+</style>
+</head>
+<body>
+
+<div id="login" class="login-screen">
+  <div class="login-card">
+    <div class="login-logo">&#x1F9F9;</div>
+    <div class="login-title">Espace Menage</div>
+    <div class="login-sub">Illiberis &mdash; Entrez votre code</div>
+    <input id="inp" class="login-input" type="password" placeholder="Code" autocomplete="off">
+    <div id="err" class="login-err"></div>
+    <button class="login-btn" onclick="doLogin()">Acceder &#x2192;</button>
+  </div>
+</div>
+
+<div id="app" style="display:none;padding-bottom:80px;">
+  <div class="header">
+    <h1>&#x1F9F9; Espace Menage</h1>
+    <p id="hdate"></p>
+  </div>
+  <div id="tasks"></div>
+  <button class="fab" onclick="load()">&#x21BB;</button>
+</div>
+
+<script>
+var CODE = "menageelne";
+var PROXY = "https://hostex-proxy.onrender.com";
+
+function doLogin(){
+  var v = document.getElementById("inp").value;
+  if(v === CODE){
+    localStorage.setItem("mauth","1");
+    document.getElementById("login").style.display = "none";
+    document.getElementById("app").style.display = "block";
+    init();
+  } else {
+    var i = document.getElementById("inp");
+    i.classList.add("err");
+    document.getElementById("err").textContent = "Code incorrect";
+    setTimeout(function(){ i.classList.remove("err"); document.getElementById("err").textContent=""; i.value=""; },1500);
+  }
+}
+document.getElementById("inp").addEventListener("keydown",function(e){ if(e.key==="Enter") doLogin(); });
+if(localStorage.getItem("mauth")==="1"){
+  document.getElementById("login").style.display="none";
+  document.getElementById("app").style.display="block";
+  init();
+}
+
+function init(){
+  var n=new Date();
+  var j=["Dim","Lun","Mar","Mer","Jeu","Ven","Sam"];
+  var m=["jan","fev","mar","avr","mai","jun","jul","aou","sep","oct","nov","dec"];
+  document.getElementById("hdate").textContent = j[n.getDay()]+" "+n.getDate()+" "+m[n.getMonth()]+" "+n.getFullYear();
+  load();
+  setInterval(load, 5*60*1000);
+}
+
+function load(){
+  fetch(PROXY+"/all-reservations").then(function(r){ return r.json(); }).then(function(d){
+    var res = d.data.reservations || [];
+    var today = new Date(); today.setHours(0,0,0,0);
+    var in7 = new Date(today); in7.setDate(today.getDate()+7);
+    var tasks = res.filter(function(r){
+      if(!r.check_out_date || r.status==="cancelled") return false;
+      var co = new Date(r.check_out_date+"T00:00:00");
+      return co >= today && co <= in7;
+    }).sort(function(a,b){ return a.check_out_date.localeCompare(b.check_out_date); });
+    render(tasks, today);
+  }).catch(function(){
+    document.getElementById("tasks").innerHTML = "<div class=\"empty\"><div class=\"icon\">&#x26A0;&#xFE0F;</div><p>Erreur connexion<br>Verifiez votre connexion</p></div>";
+  });
+}
+
+function render(tasks, today){
+  if(!tasks.length){
+    document.getElementById("tasks").innerHTML = "<div class=\"empty\"><div class=\"icon\">&#x2728;</div><p>Aucun depart prevu<br>cette semaine !</p></div>";
+    return;
+  }
+  var done = JSON.parse(localStorage.getItem("mdone")||"{}");
+  var tomorrow = new Date(today); tomorrow.setDate(today.getDate()+1);
+  var sections = {"Aujourd hui":[],"Demain":[],"Cette semaine":[]};
+  tasks.forEach(function(r){
+    var co = new Date(r.check_out_date+"T00:00:00");
+    if(co.getTime()===today.getTime()) sections["Aujourd hui"].push(r);
+    else if(co.getTime()===tomorrow.getTime()) sections["Demain"].push(r);
+    else sections["Cette semaine"].push(r);
+  });
+  var html = "";
+  var icons = {"Aujourd hui":"&#x1F534;","Demain":"&#x1F7E1;","Cette semaine":"&#x1F4C5;"};
+  var badges = {"Aujourd hui":"badge-urgent","Demain":"badge-soon","Cette semaine":"badge-week"};
+  var labels = {"Aujourd hui":"Aujourd hui !","Demain":"Demain","Cette semaine":"Cette semaine"};
+  Object.keys(sections).forEach(function(sec){
+    var arr = sections[sec];
+    if(!arr.length) return;
+    html += "<div class=\"section-title\">"+icons[sec]+" "+sec+"</div>";
+    arr.forEach(function(r){
+      var key = r.reservation_code+"_"+r.check_out_date;
+      var isDone = !!done[key];
+      var prop = r.property_id==="12619011" ? "&#x1F3E0; Suite Illiberis" : "&#x1F3AC; Loft Cinema";
+      var ci = (r.check_in_date||"").split("-").reverse().join("/");
+      var co = (r.check_out_date||"").split("-").reverse().join("/");
+      html += "<div class=\"task-card "+(sec==="Aujourd hui"?"urgent ":"")+(isDone?"done-card":"")+"\">";
+      html += "<div class=\"task-top\"><div class=\"task-prop\">"+prop+"</div><span class=\"badge "+badges[sec]+"\">"+labels[sec]+"</span></div>";
+      html += "<div class=\"task-info\"><strong>"+(r.guest_name||"Client")+"</strong><br>Arrive le <strong>"+ci+"</strong> &bull; Depart le <strong>"+co+"</strong></div>";
+      html += "<button class=\"btn-done "+(isDone?"btn-undone ":"")+"\" onclick=\"markDone('"+key+"','"+r.property_id+"','"+r.check_out_date+"')\">"+(isDone?"&#x2705; Menage effectue":"&#x2705; Marquer comme fait")+"</button>";
+      html += "</div>";
+    });
+  });
+  document.getElementById("tasks").innerHTML = html;
+}
+
+function markDone(key, propId, date){
+  var done = JSON.parse(localStorage.getItem("mdone")||"{}");
+  if(done[key]){ delete done[key]; }
+  else {
+    done[key] = new Date().toISOString();
+    fetch(PROXY+"/menage-done",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prop:propId,date:date})}).catch(function(){});
+  }
+  localStorage.setItem("mdone",JSON.stringify(done));
+  load();
+}
+</script>
+</body>
+</html>

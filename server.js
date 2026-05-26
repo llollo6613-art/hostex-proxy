@@ -399,6 +399,10 @@ app.post('/menage-done', async function(req, res) {
   console.log('Menage done notif sent:', propName);
 });
 
+app.get('/menage-app', function(req, res) {
+  res.sendFile(__dirname + '/menage-app.html');
+});
+
 app.get('/mobile', function(req, res) {
   res.sendFile(__dirname + '/mobile.html');
 });
