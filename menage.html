@@ -2,100 +2,124 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Illiberis — Espace Ménage</title>
 <style>
-*{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#F8F9FA;color:#1a1a1a;min-height:100vh;}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#F8F9FA;color:#1a1a1a;min-height:100vh;font-size:16px;}
 
 /* LOGIN */
 #login-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:20px;background:linear-gradient(135deg,#0F6E56,#1D9E75);}
-.login-card{background:#fff;border-radius:20px;padding:32px;width:100%;max-width:340px;box-shadow:0 20px 60px rgba(0,0,0,.2);}
-.login-logo{text-align:center;margin-bottom:24px;}
-.login-logo .icon{font-size:48px;margin-bottom:8px;}
-.login-logo h1{font-size:20px;font-weight:600;color:#0F6E56;}
-.login-logo p{font-size:13px;color:#888;margin-top:4px;}
-.login-card input{width:100%;border:1.5px solid #e5e4e0;border-radius:12px;padding:12px 16px;font-size:16px;margin-bottom:12px;outline:none;transition:border .2s;}
+.login-card{background:#fff;border-radius:20px;padding:32px 24px;width:100%;max-width:360px;box-shadow:0 20px 60px rgba(0,0,0,.2);}
+.login-logo{text-align:center;margin-bottom:28px;}
+.login-logo .icon{font-size:52px;margin-bottom:10px;}
+.login-logo h1{font-size:22px;font-weight:700;color:#0F6E56;}
+.login-logo p{font-size:14px;color:#888;margin-top:6px;}
+.login-card input{width:100%;border:1.5px solid #e5e4e0;border-radius:14px;padding:16px;font-size:17px;margin-bottom:14px;outline:none;transition:border .2s;}
 .login-card input:focus{border-color:#0F6E56;}
-.login-card button{width:100%;border:none;background:#0F6E56;color:#fff;border-radius:12px;padding:14px;font-size:15px;font-weight:600;cursor:pointer;transition:background .2s;}
-.login-card button:hover{background:#0A5A47;}
-.login-error{color:#E24B4A;font-size:12px;text-align:center;margin-top:8px;display:none;}
+.login-card button{width:100%;border:none;background:#0F6E56;color:#fff;border-radius:14px;padding:16px;font-size:17px;font-weight:600;cursor:pointer;transition:background .2s;}
+.login-card button:active{background:#0A5A47;}
+.login-error{color:#E24B4A;font-size:13px;text-align:center;margin-top:10px;display:none;}
 
 /* APP */
 #app-screen{display:none;}
-.header{background:#0F6E56;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
-.header h1{font-size:16px;font-weight:600;color:#fff;}
-.header-sub{font-size:11px;color:rgba(255,255,255,.7);margin-top:2px;}
-.logout-btn{background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:20px;padding:6px 14px;font-size:12px;cursor:pointer;}
-.content{padding:16px;max-width:600px;margin:0 auto;}
+.header{background:#0F6E56;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+.header h1{font-size:17px;font-weight:600;color:#fff;}
+.header-sub{font-size:12px;color:rgba(255,255,255,.75);margin-top:2px;}
+.logout-btn{background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:20px;padding:8px 16px;font-size:13px;cursor:pointer;min-height:40px;}
+.content{padding:12px;max-width:600px;margin:0 auto;}
 
-/* TABS */
-.tabs{display:flex;gap:6px;margin-bottom:16px;background:#fff;border-radius:14px;padding:6px;border:1px solid #e5e4e0;}
-.tab{flex:1;padding:8px;border-radius:10px;border:none;background:transparent;font-size:13px;font-weight:500;cursor:pointer;color:#888;transition:all .2s;}
+/* TABS — icônes + label, espacement touch */
+.tabs{display:flex;gap:4px;margin-bottom:14px;background:#fff;border-radius:16px;padding:5px;border:1px solid #e5e4e0;}
+.tab{flex:1;padding:10px 4px;border-radius:12px;border:none;background:transparent;font-size:11px;font-weight:500;cursor:pointer;color:#888;transition:all .2s;display:flex;flex-direction:column;align-items:center;gap:3px;min-height:52px;justify-content:center;line-height:1.2;}
+.tab .tab-icon{font-size:18px;}
 .tab.active{background:#0F6E56;color:#fff;}
 
 /* TODAY BANNER */
-.today-banner{background:linear-gradient(135deg,#E1F5EE,#f0fdf8);border:1.5px solid #1D9E75;border-radius:16px;padding:16px;margin-bottom:16px;}
-.today-banner h2{font-size:14px;font-weight:600;color:#0F6E56;margin-bottom:12px;display:flex;align-items:center;gap:6px;}
-.menage-item{background:#fff;border-radius:12px;padding:12px;margin-bottom:8px;border:1px solid #e5e4e0;display:flex;align-items:center;gap:12px;}
+.today-banner{background:#E1F5EE;border:1.5px solid #1D9E75;border-radius:16px;padding:14px;margin-bottom:14px;}
+.today-banner h2{font-size:15px;font-weight:700;color:#0F6E56;margin-bottom:12px;display:flex;align-items:center;gap:6px;}
+.menage-item{background:#fff;border-radius:14px;padding:14px 12px;margin-bottom:10px;border:1px solid #e5e4e0;display:flex;align-items:center;gap:12px;}
 .menage-item.done{opacity:.5;background:#f5f5f5;}
-.menage-item.done .check-btn{background:#ccc;}
-.apt-badge{font-size:10px;font-weight:600;padding:3px 8px;border-radius:6px;color:#fff;flex-shrink:0;}
+.apt-badge{font-size:11px;font-weight:700;padding:5px 9px;border-radius:8px;color:#fff;flex-shrink:0;text-align:center;line-height:1.2;}
 .menage-info{flex:1;min-width:0;}
-.menage-info .guest{font-size:13px;font-weight:500;}
-.menage-info .details{font-size:11px;color:#888;margin-top:2px;}
-.check-btn{width:36px;height:36px;border-radius:50%;border:none;background:#0F6E56;color:#fff;font-size:18px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+.menage-info .guest{font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.menage-info .details{font-size:12px;color:#888;margin-top:3px;}
+.check-btn{width:44px;height:44px;border-radius:50%;border:none;background:#0F6E56;color:#fff;font-size:20px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+.menage-item.done .check-btn{background:#ccc;}
+
+/* UPCOMING CARD */
+.section-card{background:#fff;border-radius:16px;padding:14px;border:1px solid #e5e4e0;margin-bottom:12px;}
+.section-card h3{font-size:14px;font-weight:700;margin-bottom:10px;color:#0F6E56;}
+.note-item{display:flex;align-items:flex-start;gap:10px;padding:11px 0;border-bottom:0.5px solid #f0efe9;}
+.note-item:last-child{border:none;padding-bottom:0;}
+.note-apt{font-size:10px;font-weight:700;padding:4px 8px;border-radius:7px;color:#fff;flex-shrink:0;margin-top:2px;}
+.note-text{font-size:13px;color:#444;line-height:1.5;flex:1;}
+.note-date{font-size:11px;color:#aaa;margin-top:2px;}
 
 /* CALENDAR */
-.cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
-.cal-header h3{font-size:15px;font-weight:600;}
-.cal-nav{background:#fff;border:1px solid #e5e4e0;border-radius:8px;padding:6px 12px;font-size:13px;cursor:pointer;}
-.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;background:#fff;border-radius:16px;padding:14px;border:1px solid #e5e4e0;}
-.cal-day-hdr{text-align:center;font-size:11px;color:#888;font-weight:500;padding:4px 0;}
-.cal-day{min-height:56px;border-radius:10px;padding:4px;cursor:pointer;position:relative;transition:background .15s;}
-.cal-day:hover{background:#f5f5f5;}
+.cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.cal-header h3{font-size:16px;font-weight:700;}
+.cal-nav{background:#fff;border:1.5px solid #e5e4e0;border-radius:10px;padding:10px 16px;font-size:15px;cursor:pointer;min-width:48px;min-height:44px;display:flex;align-items:center;justify-content:center;}
+.cal-wrap{background:#fff;border-radius:16px;padding:12px;border:1px solid #e5e4e0;}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;}
+.cal-day-hdr{text-align:center;font-size:12px;color:#888;font-weight:600;padding:6px 0 8px;}
+.cal-day{min-height:64px;border-radius:10px;padding:5px 4px;cursor:pointer;position:relative;transition:background .15s;}
+.cal-day:active{background:#f0f0f0;}
 .cal-day.today{background:#E1F5EE;border:1.5px solid #1D9E75;}
-.cal-day.other-month{opacity:.3;}
-.cal-day .day-num{font-size:11px;font-weight:500;color:#444;}
-.cal-day.today .day-num{color:#0F6E56;font-weight:700;}
-.cal-day .res-bar{font-size:8px;border-radius:4px;padding:2px 4px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500;}
+.cal-day.other-month{opacity:.25;}
+.cal-day .day-num{font-size:12px;font-weight:600;color:#444;text-align:center;}
+.cal-day.today .day-num{color:#0F6E56;font-weight:800;}
+.cal-day .res-bar{font-size:9px;border-radius:4px;padding:2px 3px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600;text-align:center;}
 .cal-day .res-bar.air{background:#FEE2E2;color:#DC2626;}
 .cal-day .res-bar.bk{background:#DBEAFE;color:#1D4ED8;}
-.cal-day .menage-icon{position:absolute;bottom:3px;right:3px;font-size:14px;}
+.cal-day .menage-icon{position:absolute;bottom:3px;right:3px;font-size:15px;}
+.cal-legend{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px;padding:10px 12px;background:#fff;border-radius:10px;border:1px solid #e5e4e0;}
+.cal-legend-item{display:flex;align-items:center;gap:5px;font-size:12px;color:#666;}
+.cal-legend-dot{width:12px;height:12px;border-radius:3px;}
 
-/* DETAIL MODAL */
+/* MODAL */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:flex;align-items:flex-end;justify-content:center;}
-.modal-sheet{background:#fff;border-radius:20px 20px 0 0;padding:24px 20px;width:100%;max-width:480px;max-height:85vh;overflow-y:auto;}
-.modal-sheet h3{font-size:16px;font-weight:600;margin-bottom:16px;}
-.info-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:0.5px solid #f0efe9;}
+.modal-sheet{background:#fff;border-radius:24px 24px 0 0;padding:24px 20px 36px;width:100%;max-width:500px;max-height:88vh;overflow-y:auto;}
+.modal-handle{width:40px;height:4px;background:#e0e0e0;border-radius:2px;margin:0 auto 20px;}
+.modal-sheet h3{font-size:18px;font-weight:700;margin-bottom:16px;}
+.info-row{display:flex;align-items:center;gap:12px;padding:13px 0;border-bottom:0.5px solid #f0efe9;}
 .info-row:last-child{border:none;}
-.info-icon{font-size:18px;width:28px;text-align:center;flex-shrink:0;}
-.info-label{font-size:11px;color:#888;margin-bottom:2px;}
-.info-val{font-size:13px;font-weight:500;}
-.close-btn{width:100%;padding:14px;border:none;background:#f5f5f5;border-radius:12px;font-size:14px;font-weight:500;cursor:pointer;margin-top:16px;}
-
-/* NOTES */
-.notes-card{background:#fff;border-radius:16px;padding:16px;border:1px solid #e5e4e0;margin-bottom:12px;}
-.notes-card h3{font-size:14px;font-weight:600;margin-bottom:10px;color:#0F6E56;}
-.note-item{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:0.5px solid #f0efe9;}
-.note-item:last-child{border:none;}
-.note-apt{font-size:10px;font-weight:600;padding:2px 7px;border-radius:6px;color:#fff;flex-shrink:0;margin-top:2px;}
-.note-text{font-size:12px;color:#444;line-height:1.5;flex:1;}
-.note-date{font-size:10px;color:#aaa;margin-top:2px;}
+.info-icon{font-size:20px;width:32px;text-align:center;flex-shrink:0;}
+.info-label{font-size:12px;color:#888;margin-bottom:2px;}
+.info-val{font-size:14px;font-weight:600;}
+.close-btn{width:100%;padding:16px;border:none;background:#f5f5f5;border-radius:14px;font-size:15px;font-weight:600;cursor:pointer;margin-top:20px;}
 
 /* CHECKLIST */
+.prop-select-row{display:flex;gap:8px;margin-bottom:14px;}
+.prop-btn{flex:1;padding:13px 8px;border-radius:14px;border:1.5px solid #e5e4e0;background:#fff;font-size:14px;font-weight:600;cursor:pointer;color:#888;transition:all .2s;text-align:center;}
+.prop-btn.active-suite{border-color:#0F6E56;background:#E1F5EE;color:#0F6E56;}
+.prop-btn.active-loft{border-color:#6366F1;background:#EEF2FF;color:#4F46E5;}
 .checklist-card{background:#fff;border-radius:16px;padding:16px;border:1px solid #e5e4e0;margin-bottom:12px;}
-.checklist-card h3{font-size:14px;font-weight:600;margin-bottom:12px;}
-.check-item{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:0.5px solid #f0efe9;cursor:pointer;}
+.checklist-card h3{font-size:15px;font-weight:700;margin-bottom:4px;}
+.progress-bar-wrap{background:#f0f0f0;border-radius:8px;height:8px;margin:12px 0;overflow:hidden;}
+.progress-bar{height:8px;background:#0F6E56;border-radius:8px;transition:width .3s;}
+.progress-text{font-size:12px;color:#0F6E56;font-weight:600;margin-bottom:12px;}
+.check-item{display:flex;align-items:center;gap:12px;padding:13px 0;border-bottom:0.5px solid #f0efe9;cursor:pointer;-webkit-user-select:none;user-select:none;}
 .check-item:last-child{border:none;}
-.check-box{width:22px;height:22px;border-radius:6px;border:1.5px solid #ccc;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;transition:all .2s;}
+.check-box{width:26px;height:26px;border-radius:8px;border:1.5px solid #ccc;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;transition:all .2s;}
 .check-box.checked{background:#0F6E56;border-color:#0F6E56;color:#fff;}
-.check-label{font-size:13px;flex:1;}
+.check-label{font-size:15px;flex:1;line-height:1.3;}
 .check-label.checked{text-decoration:line-through;color:#aaa;}
+.reset-btn{width:100%;padding:14px;border-radius:14px;border:1.5px solid #e5e4e0;background:#fff;font-size:14px;cursor:pointer;color:#888;font-weight:500;}
 
-/* EMPTY */
-.empty{text-align:center;padding:32px;color:#aaa;}
-.empty .emoji{font-size:40px;margin-bottom:8px;}
+/* NOTES */
+.notes-form-card{background:#fff;border-radius:16px;padding:16px;border:1px solid #e5e4e0;margin-bottom:12px;}
+.notes-form-card h3{font-size:15px;font-weight:700;margin-bottom:12px;color:#0F6E56;}
+.notes-form-card select{width:100%;padding:13px;border:1.5px solid #e5e4e0;border-radius:12px;margin-bottom:10px;font-size:15px;background:#fff;-webkit-appearance:none;appearance:none;outline:none;}
+.notes-form-card textarea{width:100%;border:1.5px solid #e5e4e0;border-radius:12px;padding:13px;font-size:15px;resize:none;height:100px;font-family:inherit;outline:none;line-height:1.5;}
+.notes-form-card textarea:focus,.notes-form-card select:focus{border-color:#0F6E56;}
+.add-note-btn{width:100%;margin-top:10px;padding:15px;border:none;background:#0F6E56;color:#fff;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;}
+.note-delete-btn{border:none;background:none;color:#ccc;cursor:pointer;font-size:22px;padding:4px 8px;line-height:1;min-width:36px;min-height:36px;display:flex;align-items:center;justify-content:center;}
+
+/* EMPTY STATE */
+.empty{text-align:center;padding:40px 20px;color:#aaa;}
+.empty .emoji{font-size:48px;margin-bottom:12px;}
+.empty p{font-size:14px;}
 </style>
 </head>
 <body>
@@ -108,7 +132,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
       <h1>Illiberis Ménage</h1>
       <p>Espace équipe de ménage</p>
     </div>
-    <input type="password" id="pwd-input" placeholder="Mot de passe" onkeydown="if(event.key==='Enter')doLogin()">
+    <input type="password" id="pwd-input" placeholder="Mot de passe" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
     <button onclick="doLogin()">Se connecter</button>
     <div class="login-error" id="login-error">Mot de passe incorrect</div>
   </div>
@@ -125,10 +149,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
   </div>
   <div class="content">
     <div class="tabs">
-      <button class="tab active" onclick="showTab('today')">Aujourd'hui</button>
-      <button class="tab" onclick="showTab('calendar')">Calendrier</button>
-      <button class="tab" onclick="showTab('checklist')">Check-list</button>
-      <button class="tab" onclick="showTab('notes')">Notes</button>
+      <button class="tab active" onclick="showTab('today')"><span class="tab-icon">📋</span>Aujourd'hui</button>
+      <button class="tab" onclick="showTab('calendar')"><span class="tab-icon">📅</span>Calendrier</button>
+      <button class="tab" onclick="showTab('checklist')"><span class="tab-icon">✅</span>Check-list</button>
+      <button class="tab" onclick="showTab('notes')"><span class="tab-icon">📝</span>Notes</button>
     </div>
     <div id="tab-today"></div>
     <div id="tab-calendar" style="display:none;"></div>
@@ -140,6 +164,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 <!-- MODAL -->
 <div class="modal-overlay" id="modal" style="display:none;" onclick="closeModal()">
   <div class="modal-sheet" onclick="event.stopPropagation()">
+    <div class="modal-handle"></div>
     <div id="modal-content"></div>
     <button class="close-btn" onclick="closeModal()">Fermer</button>
   </div>
@@ -157,7 +182,8 @@ var STATE = {
   calMonth: new Date(),
   done: {},
   notes: [],
-  checks: {}
+  checks: {},
+  checkProp: "12619011"
 };
 var DEFAULT_CHECKS = [
   "Changer les draps et taies",
@@ -200,11 +226,9 @@ function initApp(){
   var days = ["Dimanche","Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi"];
   var months = ["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"];
   document.getElementById("header-date").textContent = days[now.getDay()]+" "+now.getDate()+" "+months[now.getMonth()]+" "+now.getFullYear();
-  // Charger done depuis localStorage
   try{STATE.done = JSON.parse(localStorage.getItem("menage_done")||"{}");}catch(e){STATE.done={};}
   try{STATE.notes = JSON.parse(localStorage.getItem("menage_notes")||"[]");}catch(e){STATE.notes=[];}
   try{STATE.checks = JSON.parse(localStorage.getItem("menage_checks")||"{}");}catch(e){STATE.checks={};}
-  // Charger réservations
   fetch(PROXY+"/all-reservations")
     .then(function(r){return r.json();})
     .then(function(d){
@@ -252,15 +276,13 @@ function renderToday(){
   var now = new Date();
   var todayStr = now.toISOString().split("T")[0];
   var past = STATE.reservations.filter(function(r){return r.status!=="cancelled";});
-  // Ménages du jour = checkouts aujourd'hui
   var menages = past.filter(function(r){return r.check_out===todayStr;});
-  // Arrivées du jour
   var arrivals = past.filter(function(r){return r.check_in===todayStr;});
   var h = "";
 
   if(menages.length){
     h += "<div class=\"today-banner\">";
-    h += "<h2>🧹 Ménages à effectuer aujourd'hui ("+menages.length+")</h2>";
+    h += "<h2>🧹 Ménages aujourd'hui ("+menages.length+")</h2>";
     menages.forEach(function(r){
       var prop = PROPS[r.prop_id]||{name:"Appartement",color:"#888",short:"Apt"};
       var isDone = STATE.done[todayStr+"_"+r.id];
@@ -268,48 +290,46 @@ function renderToday(){
       h += "<span class=\"apt-badge\" style=\"background:"+prop.color+"\">"+prop.short+"</span>";
       h += "<div class=\"menage-info\">";
       h += "<div class=\"guest\">"+r.guest+"</div>";
-      h += "<div class=\"details\">"+r.guests+" pers. · Check-out "+dFmt(r.check_out)+"</div>";
+      h += "<div class=\"details\">"+r.guests+" pers. · Départ "+dFmt(r.check_out)+"</div>";
       h += "</div>";
       h += "<button class=\"check-btn\" onclick=\"toggleDone('"+todayStr+"_"+r.id+"')\">"+(isDone?"✓":"🧹")+"</button>";
       h += "</div>";
     });
     h += "</div>";
   } else {
-    h += "<div class=\"today-banner\"><h2>✅ Aucun ménage aujourd'hui</h2><div style=\"font-size:13px;color:#0F6E56;\">Bonne journée !</div></div>";
+    h += "<div class=\"today-banner\"><h2>✅ Aucun ménage aujourd'hui</h2><div style=\"font-size:14px;color:#0F6E56;margin-top:4px;\">Bonne journée !</div></div>";
   }
 
-  // Prochains ménages (3 jours)
+  // Prochains ménages
   var upcoming = [];
   for(var i=1;i<=7;i++){
     var d = new Date(now);
     d.setDate(d.getDate()+i);
     var ds = d.toISOString().split("T")[0];
-    var m = past.filter(function(r){return r.check_out===ds;});
-    m.forEach(function(r){upcoming.push({r:r,date:ds,d:d});});
+    past.filter(function(r){return r.check_out===ds;}).forEach(function(r){upcoming.push({r:r,date:ds,d:d});});
   }
   if(upcoming.length){
-    h += "<div class=\"notes-card\">";
+    h += "<div class=\"section-card\">";
     h += "<h3>📅 Prochains ménages</h3>";
     var DAYS = ["Dim","Lun","Mar","Mer","Jeu","Ven","Sam"];
     upcoming.slice(0,5).forEach(function(item){
       var prop = PROPS[item.r.prop_id]||{name:"Appartement",color:"#888",short:"Apt"};
       h += "<div class=\"note-item\">";
       h += "<span class=\"note-apt\" style=\"background:"+prop.color+"\">"+prop.short+"</span>";
-      h += "<div class=\"note-text\"><b>"+DAYS[item.d.getDay()]+" "+dFmt(item.date)+"</b> · "+item.r.guest+" · "+item.r.guests+" pers.</div>";
+      h += "<div class=\"note-text\"><b>"+DAYS[item.d.getDay()]+" "+dFmt(item.date)+"</b><br>"+item.r.guest+" · "+item.r.guests+" pers.</div>";
       h += "</div>";
     });
     h += "</div>";
   }
 
-  // Arrivées du jour
   if(arrivals.length){
-    h += "<div class=\"notes-card\">";
+    h += "<div class=\"section-card\">";
     h += "<h3>🏠 Arrivées aujourd'hui</h3>";
     arrivals.forEach(function(r){
       var prop = PROPS[r.prop_id]||{name:"Appartement",color:"#888",short:"Apt"};
       h += "<div class=\"note-item\">";
       h += "<span class=\"note-apt\" style=\"background:"+prop.color+"\">"+prop.short+"</span>";
-      h += "<div class=\"note-text\">"+r.guest+" · "+r.guests+" pers. · Check-in aujourd'hui</div>";
+      h += "<div class=\"note-text\">"+r.guest+"<br><span style=\"color:#888;\">"+r.guests+" pers. · Check-in aujourd'hui</span></div>";
       h += "</div>";
     });
     h += "</div>";
@@ -336,10 +356,11 @@ function renderCalendar(){
   var todayStr = now.toISOString().split("T")[0];
 
   var h = "<div class=\"cal-header\">";
-  h += "<button class=\"cal-nav\" onclick=\"calPrev()\">‹ Prev</button>";
+  h += "<button class=\"cal-nav\" onclick=\"calPrev()\">‹</button>";
   h += "<h3>"+MONTHS_FR[m]+" "+y+"</h3>";
-  h += "<button class=\"cal-nav\" onclick=\"calNext()\">Suiv ›</button>";
+  h += "<button class=\"cal-nav\" onclick=\"calNext()\">›</button>";
   h += "</div>";
+  h += "<div class=\"cal-wrap\">";
   h += "<div class=\"cal-grid\">";
   DAYS_FR.forEach(function(d){h += "<div class=\"cal-day-hdr\">"+d+"</div>";});
   for(var e=0;e<firstDay;e++) h += "<div class=\"cal-day other-month\"></div>";
@@ -358,11 +379,11 @@ function renderCalendar(){
     if(hasMenage) h += "<div class=\"menage-icon\">🧹</div>";
     h += "</div>";
   }
-  h += "</div>";
-  h += "<div style=\"display:flex;gap:12px;margin-top:10px;padding:10px;background:#fff;border-radius:10px;border:1px solid #e5e4e0;\">";
-  h += "<div style=\"display:flex;align-items:center;gap:4px;font-size:11px;color:#888;\"><div style=\"width:10px;height:10px;background:#FEE2E2;border-radius:3px;\"></div>Airbnb</div>";
-  h += "<div style=\"display:flex;align-items:center;gap:4px;font-size:11px;color:#888;\"><div style=\"width:10px;height:10px;background:#DBEAFE;border-radius:3px;\"></div>Booking</div>";
-  h += "<div style=\"display:flex;align-items:center;gap:4px;font-size:11px;color:#888;\">🧹 Ménage à faire</div>";
+  h += "</div></div>";
+  h += "<div class=\"cal-legend\">";
+  h += "<div class=\"cal-legend-item\"><div class=\"cal-legend-dot\" style=\"background:#FEE2E2;\"></div><span>Airbnb</span></div>";
+  h += "<div class=\"cal-legend-item\"><div class=\"cal-legend-dot\" style=\"background:#DBEAFE;\"></div><span>Booking</span></div>";
+  h += "<div class=\"cal-legend-item\"><span>🧹 Ménage</span></div>";
   h += "</div>";
 
   document.getElementById("tab-calendar").innerHTML = h;
@@ -386,18 +407,16 @@ function showDayDetail(ds){
   var dateLabel = p[2]+"/"+p[1]+"/"+p[0];
   var h = "<h3>"+dateLabel+"</h3>";
   if(checkouts.length){
-    h += "<div style=\"font-size:12px;font-weight:600;color:#E24B4A;margin:12px 0 8px;\">🧹 Ménages à effectuer</div>";
+    h += "<div style=\"font-size:13px;font-weight:700;color:#E24B4A;margin:14px 0 8px;\">🧹 Ménages à effectuer</div>";
     checkouts.forEach(function(r){
       var prop = PROPS[r.prop_id]||{name:"Appartement",color:"#888"};
-      h += "<div class=\"info-row\">";
-      h += "<div class=\"info-icon\">🏠</div>";
-      h += "<div><div class=\"info-label\">Logement</div><div class=\"info-val\">"+prop.name+"</div></div></div>";
+      h += "<div class=\"info-row\"><div class=\"info-icon\">🏠</div><div><div class=\"info-label\">Logement</div><div class=\"info-val\">"+prop.name+"</div></div></div>";
       h += "<div class=\"info-row\"><div class=\"info-icon\">👤</div><div><div class=\"info-label\">Voyageur partant</div><div class=\"info-val\">"+r.guest+" ("+r.guests+" pers.)</div></div></div>";
       h += "<div class=\"info-row\"><div class=\"info-icon\">📅</div><div><div class=\"info-label\">Séjour</div><div class=\"info-val\">"+dFmt(r.check_in)+" → "+dFmt(r.check_out)+"</div></div></div>";
     });
   }
   if(checkins.length){
-    h += "<div style=\"font-size:12px;font-weight:600;color:#0F6E56;margin:12px 0 8px;\">🏠 Arrivées</div>";
+    h += "<div style=\"font-size:13px;font-weight:700;color:#0F6E56;margin:14px 0 8px;\">🏠 Arrivées</div>";
     checkins.forEach(function(r){
       var prop = PROPS[r.prop_id]||{name:"Appartement",color:"#888"};
       h += "<div class=\"info-row\"><div class=\"info-icon\">🏠</div><div><div class=\"info-label\">Logement</div><div class=\"info-val\">"+prop.name+"</div></div></div>";
@@ -405,14 +424,14 @@ function showDayDetail(ds){
     });
   }
   if(staying.length){
-    h += "<div style=\"font-size:12px;font-weight:600;color:#6366F1;margin:12px 0 8px;\">🛏 En séjour</div>";
+    h += "<div style=\"font-size:13px;font-weight:700;color:#6366F1;margin:14px 0 8px;\">🛏 En séjour</div>";
     staying.forEach(function(r){
       var prop = PROPS[r.prop_id]||{name:"Appartement",color:"#888"};
       h += "<div class=\"info-row\"><div class=\"info-icon\">🏠</div><div><div class=\"info-label\">"+prop.name+"</div><div class=\"info-val\">"+r.guest+" · départ le "+dFmt(r.check_out)+"</div></div></div>";
     });
   }
   if(!checkouts.length&&!checkins.length&&!staying.length){
-    h += "<div class=\"empty\"><div class=\"emoji\">📅</div><div>Aucune réservation ce jour</div></div>";
+    h += "<div class=\"empty\"><div class=\"emoji\">📅</div><p>Aucune réservation ce jour</p></div>";
   }
   document.getElementById("modal-content").innerHTML = h;
   document.getElementById("modal").style.display = "flex";
@@ -424,23 +443,26 @@ function closeModal(){
 
 function renderChecklist(){
   var h = "";
-  // Sélection du logement
-  h += "<div style=\"display:flex;gap:8px;margin-bottom:12px;\">";
+  h += "<div class=\"prop-select-row\">";
   ["12619011","12619012"].forEach(function(pid){
     var prop = PROPS[pid];
     var active = (STATE.checkProp||"12619011")===pid;
-    h += "<button onclick=\"STATE.checkProp='"+pid+"';renderChecklist()\" style=\"flex:1;padding:10px;border-radius:12px;border:1.5px solid "+(active?prop.color:"#e5e4e0")+";background:"+(active?prop.color+"22":"#fff")+";font-size:12px;font-weight:500;cursor:pointer;color:"+(active?prop.color:"#888")+"\">"+prop.short+"</button>";
+    var cls = active ? (pid==="12619011"?"active-suite":"active-loft") : "";
+    h += "<button class=\"prop-btn "+cls+"\" onclick=\"STATE.checkProp='"+pid+"';renderChecklist()\">"+prop.short+"</button>";
   });
   h += "</div>";
   var prop = STATE.checkProp||"12619011";
   var today = new Date().toISOString().split("T")[0];
   var key = prop+"_"+today;
   if(!STATE.checks[key]) STATE.checks[key] = {};
-  h += "<div class=\"checklist-card\">";
-  h += "<h3>✅ Check-list ménage — "+(PROPS[prop]||{short:"Apt"}).short+"</h3>";
-  h += "<div style=\"font-size:11px;color:#888;margin-bottom:10px;\">"+today.split("-").reverse().join("/")+"</div>";
   var checked = Object.values(STATE.checks[key]).filter(Boolean).length;
-  h += "<div style=\"background:#E1F5EE;border-radius:8px;padding:8px 12px;margin-bottom:12px;font-size:12px;color:#0F6E56;font-weight:500;\">"+checked+" / "+DEFAULT_CHECKS.length+" tâches effectuées</div>";
+  var total = DEFAULT_CHECKS.length;
+  var pct = Math.round(checked/total*100);
+  h += "<div class=\"checklist-card\">";
+  h += "<h3>✅ Check-list — "+(PROPS[prop]||{short:"Apt"}).short+"</h3>";
+  h += "<div style=\"font-size:12px;color:#888;margin-top:2px;\">"+today.split("-").reverse().join("/")+"</div>";
+  h += "<div class=\"progress-bar-wrap\"><div class=\"progress-bar\" style=\"width:"+pct+"%\"></div></div>";
+  h += "<div class=\"progress-text\">"+checked+" / "+total+" tâches · "+pct+"%</div>";
   DEFAULT_CHECKS.forEach(function(task,i){
     var done = STATE.checks[key][i];
     h += "<div class=\"check-item\" onclick=\"toggleCheck('"+key+"',"+i+")\">";
@@ -449,7 +471,7 @@ function renderChecklist(){
     h += "</div>";
   });
   h += "</div>";
-  h += "<button onclick=\"resetChecklist('"+key+"')\" style=\"width:100%;padding:12px;border-radius:12px;border:1px solid #e5e4e0;background:#fff;font-size:13px;cursor:pointer;color:#888;\">Réinitialiser la liste</button>";
+  h += "<button class=\"reset-btn\" onclick=\"resetChecklist('"+key+"')\">Réinitialiser la liste</button>";
   document.getElementById("tab-checklist").innerHTML = h;
 }
 
@@ -468,29 +490,29 @@ function resetChecklist(key){
 
 function renderNotes(){
   var h = "";
-  h += "<div class=\"notes-card\">";
+  h += "<div class=\"notes-form-card\">";
   h += "<h3>📝 Ajouter une note</h3>";
-  h += "<select id=\"note-prop\" style=\"width:100%;padding:10px;border:1px solid #e5e4e0;border-radius:8px;margin-bottom:8px;font-size:13px;\">";
+  h += "<select id=\"note-prop\">";
   h += "<option value=\"12619011\">Suite Illiberis</option>";
   h += "<option value=\"12619012\">Loft Cinéma</option>";
   h += "</select>";
-  h += "<textarea id=\"note-text\" placeholder=\"Ex: Ampoule à changer dans la salle de bain...\" style=\"width:100%;border:1px solid #e5e4e0;border-radius:8px;padding:10px;font-size:13px;resize:none;height:80px;font-family:inherit;\"></textarea>";
-  h += "<button onclick=\"addNote()\" style=\"width:100%;margin-top:8px;padding:12px;border:none;background:#0F6E56;color:#fff;border-radius:10px;font-size:13px;font-weight:500;cursor:pointer;\">Ajouter la note</button>";
+  h += "<textarea id=\"note-text\" placeholder=\"Ex: Ampoule à changer dans la salle de bain...\"></textarea>";
+  h += "<button class=\"add-note-btn\" onclick=\"addNote()\">Ajouter la note</button>";
   h += "</div>";
   if(STATE.notes.length){
-    h += "<div class=\"notes-card\">";
-    h += "<h3>📋 Notes enregistrées</h3>";
+    h += "<div class=\"section-card\">";
+    h += "<h3>📋 Notes enregistrées ("+STATE.notes.length+")</h3>";
     STATE.notes.slice().reverse().forEach(function(n,i){
       var prop = PROPS[n.prop]||{short:"Apt",color:"#888"};
       h += "<div class=\"note-item\">";
       h += "<span class=\"note-apt\" style=\"background:"+prop.color+"\">"+prop.short+"</span>";
       h += "<div style=\"flex:1;\"><div class=\"note-text\">"+n.text+"</div><div class=\"note-date\">"+n.date+"</div></div>";
-      h += "<button onclick=\"deleteNote("+( STATE.notes.length-1-i)+")\" style=\"border:none;background:none;color:#ccc;cursor:pointer;font-size:16px;\">×</button>";
+      h += "<button class=\"note-delete-btn\" onclick=\"deleteNote("+(STATE.notes.length-1-i)+")\" aria-label=\"Supprimer\">×</button>";
       h += "</div>";
     });
     h += "</div>";
   } else {
-    h += "<div class=\"empty\"><div class=\"emoji\">📝</div><div>Aucune note pour le moment</div></div>";
+    h += "<div class=\"empty\"><div class=\"emoji\">📝</div><p>Aucune note pour le moment</p></div>";
   }
   document.getElementById("tab-notes").innerHTML = h;
 }
@@ -499,8 +521,7 @@ function addNote(){
   var prop = document.getElementById("note-prop").value;
   var text = document.getElementById("note-text").value.trim();
   if(!text)return;
-  var now = new Date();
-  STATE.notes.push({prop:prop,text:text,date:now.toLocaleDateString("fr-FR")});
+  STATE.notes.push({prop:prop,text:text,date:new Date().toLocaleDateString("fr-FR")});
   try{localStorage.setItem("menage_notes",JSON.stringify(STATE.notes));}catch(e){}
   renderNotes();
 }
@@ -511,7 +532,6 @@ function deleteNote(i){
   renderNotes();
 }
 
-// Auto-login si déjà connecté
 try{
   if(localStorage.getItem("menage_auth")==="1"){
     document.getElementById("login-screen").style.display="none";
