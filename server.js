@@ -754,9 +754,29 @@ async function syncHostexToSupabase() {
         stay_status: r.stay_status || '',
         booked_at: r.created_at || ''
       }}).filter(r => r.reservation_code && r.check_in_date);
+      // Détecter les nouvelles réservations
+      const existing = await getDB();
+      const existingCodes = new Set(existing.map(r => r.reservation_code));
+      const newRes = toSave.filter(r => !existingCodes.has(r.reservation_code) && r.status !== 'cancelled');
+
       await supaSave(toSave);
       invalidateCache();
-      console.log('Auto-sync: ' + toSave.length + ' reservations synced to Supabase');
+      console.log('Auto-sync: ' + toSave.length + ' synced, ' + newRes.length + ' new');
+
+      // Notifs pour les nouvelles réservations
+      for (const r of newRes) {
+        const prop = r.property_id === '12619011' ? 'Suite Illiberis' : 'Loft Cinema';
+        const ch = r.channel_type === 'airbnb' ? 'Airbnb' : 'Booking';
+        const price = r.total_price ? Math.round(r.total_price) + 'EUR' : '';
+        const msg = prop + ' - ' + ch + '\n' + (r.guest_name||'') + '\n' + (r.check_in_date||'') + ' au ' + (r.check_out_date||'') + ' - ' + price;
+        await sendNtfy(NTFY_RESA, '🏠 Nouvelle reservation !', msg, 'high');
+        // Alerter ménage si départ dans moins de 3 jours
+        const coDate = new Date((r.check_out_date||'') + 'T12:00:00');
+        const diff = Math.round((coDate - new Date()) / 86400000);
+        if(diff >= 0 && diff <= 2) {
+          await sendNtfy(NTFY_MENAGE, '🧹 Depart dans ' + diff + 'j - ' + prop, (r.guest_name||'') + ' quitte le ' + (r.check_out_date||''), 'urgent');
+        }
+      }
     }
   } catch(e) {
     console.error('Auto-sync error:', e.message);
