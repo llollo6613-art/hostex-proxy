@@ -20,6 +20,28 @@ async function sendPushNotif(title, body, url, tag) {
   console.log('Push sent:', pushSubscriptions.length, 'subscribers');
 }
 
+
+// ===== NOTIFICATIONS NTFY.SH (fonctionne sur tous les telephones) =====
+const NTFY_BASE = 'https://ntfy.sh';
+const NTFY_RESA = 'illiberis-reservations-2026';   // Pour toi - nouvelles resas
+const NTFY_MENAGE = 'illiberis-menage-2026';        // Pour ta femme de menage
+
+async function sendNtfy(topic, title, message, priority) {
+  try {
+    const resp = await fetch(NTFY_BASE + '/' + topic, {
+      method: 'POST',
+      headers: {
+        'Title': encodeURIComponent(title),
+        'Priority': priority || 'high',
+        'Tags': 'house',
+        'Content-Type': 'text/plain; charset=utf-8'
+      },
+      body: message
+    });
+    console.log('Ntfy sent [' + topic + ']:', title, '- status:', resp.status);
+  } catch(e) { console.error('Ntfy error:', e.message); }
+}
+
 // ============ SUPABASE DB ============
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://bdreatiovsfutxkyxxoo.supabase.co';
 const SUPABASE_KEY = process.env.SUPABASE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJkcmVhdGlvdnNmdXR4a3l4eG9vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3OTE1MzA5MywiZXhwIjoyMDk0NzI5MDkzfQ.MqlLVk4pRoZhJ783fBP9dkXTLbXReqz26swE-tbQYFY';
@@ -364,6 +386,17 @@ app.post('/subscribe', (req, res) => {
   if(!exists) { pushSubscriptions.push(sub); saveSubs(); }
   res.json({ok: true, total: pushSubscriptions.length});
   console.log('New push subscriber, total:', pushSubscriptions.length);
+});
+
+
+// Notification quand femme de ménage valide un ménage
+app.post('/menage-done', async function(req, res) {
+  const { prop, date } = req.body || {};
+  const propName = prop === '12619011' ? 'Suite Illiberis' : 'Loft Cinema Illiberis';
+  const msg = propName + ' - Ménage effectué le ' + (date || new Date().toLocaleDateString('fr-FR'));
+  await sendNtfy(NTFY_RESA, '✅ Ménage terminé !', msg, 'default');
+  res.json({ ok: true });
+  console.log('Menage done notif sent:', propName);
 });
 
 app.get('/mobile', function(req, res) {
