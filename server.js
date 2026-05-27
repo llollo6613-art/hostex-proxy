@@ -274,7 +274,50 @@ async function syncFromICal() {
     }
   }
   console.log('iCal done added:', added, 'total:', Object.keys(db.reservations).length);
-  console.log('iCal done added:', added, 'total:', db.total);
+
+  // Détecter annulations Booking : résas futures absentes du iCal → cancelled
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    // Collecter toutes les dates présentes dans le iCal Booking par prop
+    const icalBookingKeys = {};
+    for(const {url, prop, channel} of icalUrls) {
+      if(channel !== 'booking.com') continue;
+      try {
+        const r2 = await fetch(url, {headers:{'User-Agent':'Mozilla/5.0','Accept':'text/calendar,*/*'}});
+        const raw2 = await r2.text();
+        const text2 = raw2.replace(/\r\n[ \t]/g, '').replace(/\r/g, '');
+        const events2 = text2.split('BEGIN:VEVENT').slice(1);
+        if(!icalBookingKeys[prop]) icalBookingKeys[prop] = new Set();
+        for(const ev2 of events2) {
+          const dtstart2 = (ev2.match(/DTSTART[^:\n]*:(\d+)/) || [])[1];
+          const dtend2 = (ev2.match(/DTEND[^:\n]*:(\d+)/) || [])[1];
+          if(!dtstart2 || !dtend2) continue;
+          const ci2 = dtstart2.slice(0,4)+'-'+dtstart2.slice(4,6)+'-'+dtstart2.slice(6,8);
+          icalBookingKeys[prop].add(ci2);
+        }
+      } catch(e2) { console.log('iCal cancel check error:', e2.message); }
+    }
+    // Marquer cancelled les résas Booking futures absentes du iCal
+    let cancelledCount = 0;
+    for(const key of Object.keys(db.reservations)) {
+      const r = db.reservations[key];
+      if(!r || r.status === 'cancelled') continue;
+      if(r.channel_type !== 'booking.com') continue;
+      if(!r.check_in_date || r.check_in_date < today) continue;
+      const propKeys = icalBookingKeys[r.property_id];
+      if(propKeys && !propKeys.has(r.check_in_date)) {
+        db.reservations[key].status = 'cancelled';
+        cancelledCount++;
+        console.log('Auto-cancelled:', key, r.guest_name, r.check_in_date);
+        // Mettre à jour dans Supabase aussi
+        try {
+          await supaFetch('reservations?reservation_code=eq.'+encodeURIComponent(key), 'PATCH', {status:'cancelled'});
+        } catch(e3) { console.log('Supabase cancel error:', e3.message); }
+      }
+    }
+    console.log('Auto-cancelled Booking:', cancelledCount, 'reservations');
+  } catch(e) { console.log('Cancel detection error:', e.message); }
+
   return db;
 }
 
