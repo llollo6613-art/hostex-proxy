@@ -871,6 +871,7 @@ async function syncHostexToSupabase() {
         const ch = r.channel_type === 'airbnb' ? 'Airbnb' : 'Booking';
         const price = r.total_price ? Math.round(r.total_price) + 'EUR' : '';
         const msg = prop + ' - ' + ch + '\n' + (r.guest_name||'') + '\n' + (r.check_in_date||'') + ' au ' + (r.check_out_date||'') + ' - ' + price;
+        await sendPushNotif('🏠 Nouvelle réservation !', msg, '/mobile', 'new-resa');
         await sendNtfy(NTFY_RESA, '🏠 Nouvelle reservation !', msg, 'high');
         // Alerter ménage si départ dans moins de 3 jours
         const coDate = new Date((r.check_out_date||'') + 'T12:00:00');
