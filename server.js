@@ -421,6 +421,9 @@ app.get('/sw.js', (req, res) => { res.setHeader('Content-Type','application/java
 app.get('/manifest.json', (req, res) => res.sendFile(__dirname+'/manifest.json'));
 app.get('/icon.svg', (req, res) => { res.setHeader('Content-Type','image/svg+xml'); res.sendFile(__dirname+'/icon.svg'); });
 app.get('/vapid-key', (req, res) => res.json({publicKey: VAPID_PUBLIC}));
+app.get('/manifest-menage.json', (req, res) => res.sendFile(__dirname+'/manifest-menage.json'));
+app.get('/icon-menage-192.png', (req, res) => res.sendFile(__dirname+'/icon-menage-192.png'));
+app.get('/icon-menage-512.png', (req, res) => res.sendFile(__dirname+'/icon-menage-512.png'));
 
 app.post('/subscribe', (req, res) => {
   const sub = req.body;
