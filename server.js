@@ -326,6 +326,25 @@ async function syncFromICal() {
       }
     }
     console.log('Auto-cancelled Booking:', cancelledCount, 'reservations');
+
+    // Synchroniser le statut des doublons (-id... -bk...) avec la résa principale
+    let syncedCount = 0;
+    for(const key of Object.keys(db.reservations)) {
+      const r = db.reservations[key];
+      if(!r) continue;
+      // Trouver si c'est un doublon (contient -id ou -bk dans le code)
+      const baseKey = key.replace(/-id[a-z0-9]+$/, '').replace(/-bk$/, '');
+      if(baseKey === key) continue; // pas un doublon
+      const base = db.reservations[baseKey];
+      if(base && base.status === 'cancelled' && r.status !== 'cancelled') {
+        db.reservations[key].status = 'cancelled';
+        syncedCount++;
+        try {
+          await supaFetch('reservations?reservation_code=eq.'+encodeURIComponent(key), 'PATCH', {status:'cancelled'});
+        } catch(e) {}
+      }
+    }
+    if(syncedCount > 0) console.log('Synced duplicate statuses:', syncedCount);
   } catch(e) { console.log('Cancel detection error:', e.message); }
 
   return db;
