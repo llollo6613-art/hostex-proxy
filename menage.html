@@ -351,8 +351,22 @@ function renderToday(){
 }
 
 function toggleDone(key){
+  var wasDone = STATE.done[key];
   STATE.done[key] = !STATE.done[key];
   try{localStorage.setItem("menage_done",JSON.stringify(STATE.done));}catch(e){}
+  // Si on vient de valider (pas de dévalider), notifier le propriétaire
+  if(!wasDone && STATE.done[key]){
+    var parts = key.split('_');
+    var todayStr = parts[0];
+    var resId = parts.slice(1).join('_');
+    var res = STATE.reservations.find(function(r){return r.id===resId;});
+    var propId = res ? res.prop_id : '';
+    fetch('/menage-done', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({prop: propId, date: todayStr})
+    }).catch(function(){});
+  }
   renderToday();
 }
 

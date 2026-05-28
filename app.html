@@ -281,6 +281,16 @@ function render(){
   const titles={dashboard:'Tableau de bord',reservations:'Réservations',calendar:'Calendrier',rates:'Tarifs & Prix',properties:'Mes biens',messages:'Messages voyageurs'};
   document.getElementById('page-title').textContent=titles[S.page]||'';
   const ta=document.getElementById('topbar-actions');
+  // Bouton notifications
+  if('Notification' in window && !document.getElementById('dash-notif-btn')){
+    const nb=document.createElement('button');
+    nb.id='dash-notif-btn';
+    nb.textContent='🔔 Notifs';
+    nb.style.cssText='background:#0F6E56;color:#fff;border:none;border-radius:10px;padding:8px 14px;font-size:12px;font-weight:600;cursor:pointer;';
+    nb.onclick=initDashPush;
+    ta.appendChild(nb);
+    checkDashNotifStatus();
+  }
   ta.innerHTML='';
   if(S.page==='reservations')ta.innerHTML=`<button class="btn btn-green" onclick="openAddRes()">+ Nouvelle réservation</button><button class="btn" onclick="_syncHostexDirect()" style="margin-left:8px;">🔄 Sync Hostex</button><button class="btn" onclick="_importCSVDialog()" style="margin-left:8px;">📥 CSV</button>`;
   if(S.page==='calendar')ta.innerHTML=`<button class="btn" onclick="openBlock()">Bloquer dates</button>`;
@@ -692,7 +702,51 @@ async function _downloadBilanPDF(propId){
     var n=Math.round((new Date(r.check_out)-new Date(r.check_in))/86400000);
     html+='<tr><td>'+r.check_in+'</td><td>'+r.guest+'</td><td>'+platLabel(r.platform)+'</td><td>'+(prop2?prop2.name.split(' ')[0]:'')+'</td><td>'+n+'</td><td>'+Math.round(r.amount)+' \u20ac</td><td style="color:#0F6E56;">'+Math.round(netRev(r)-cleaning(r))+' \u20ac</td></tr>';
   });
-  html+='</table></body></html>';
+  html+='</table>
+<!-- WEB PUSH pour dashboard -->
+<script>
+function urlBase64ToUint8Array(b){
+  const pad='='.repeat((4-b.length%4)%4);
+  const base64=(b+pad).replace(/-/g,'+').replace(/_/g,'/');
+  const raw=window.atob(base64);
+  const arr=new Uint8Array(raw.length);
+  for(let i=0;i<raw.length;i++) arr[i]=raw.charCodeAt(i);
+  return arr;
+}
+async function initDashPush(){
+  if(!('serviceWorker' in navigator)||!('PushManager' in window)) return;
+  try{
+    const reg=await navigator.serviceWorker.register('/sw.js');
+    await navigator.serviceWorker.ready;
+    const perm=await Notification.requestPermission();
+    if(perm!=='granted') return;
+    const {publicKey}=await (await fetch('/vapid-key')).json();
+    const sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:urlBase64ToUint8Array(publicKey)});
+    await fetch('/subscribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(sub)});
+    updateDashNotifBtn(true);
+    alert('✅ Notifications activées sur le dashboard !');
+  }catch(e){console.log('Push error:',e);}
+}
+function updateDashNotifBtn(active){
+  var btn=document.getElementById('dash-notif-btn');
+  if(!btn)return;
+  if(active){
+    btn.textContent='🔔 Activées ✓';
+    btn.style.opacity='0.7';
+    btn.onclick=null;
+    btn.style.cursor='default';
+  }
+}
+async function checkDashNotifStatus(){
+  if(!('Notification' in window)||Notification.permission!=='granted') return;
+  try{
+    const reg=await navigator.serviceWorker.getRegistration('/sw.js');
+    if(reg){const sub=await reg.pushManager.getSubscription();if(sub) updateDashNotifBtn(true);}
+  }catch(e){}
+}
+document.addEventListener('DOMContentLoaded', checkDashNotifStatus);
+</script>
+</body></html>';
 
   var blob=new Blob([html],{type:'text/html'});
   var url=URL.createObjectURL(blob);
@@ -2835,6 +2889,50 @@ function renderVirements(){
   el.innerHTML=html;
 }
 
+</script>
+
+<!-- WEB PUSH pour dashboard -->
+<script>
+function urlBase64ToUint8Array(b){
+  const pad='='.repeat((4-b.length%4)%4);
+  const base64=(b+pad).replace(/-/g,'+').replace(/_/g,'/');
+  const raw=window.atob(base64);
+  const arr=new Uint8Array(raw.length);
+  for(let i=0;i<raw.length;i++) arr[i]=raw.charCodeAt(i);
+  return arr;
+}
+async function initDashPush(){
+  if(!('serviceWorker' in navigator)||!('PushManager' in window)) return;
+  try{
+    const reg=await navigator.serviceWorker.register('/sw.js');
+    await navigator.serviceWorker.ready;
+    const perm=await Notification.requestPermission();
+    if(perm!=='granted') return;
+    const {publicKey}=await (await fetch('/vapid-key')).json();
+    const sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:urlBase64ToUint8Array(publicKey)});
+    await fetch('/subscribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(sub)});
+    updateDashNotifBtn(true);
+    alert('✅ Notifications activées sur le dashboard !');
+  }catch(e){console.log('Push error:',e);}
+}
+function updateDashNotifBtn(active){
+  var btn=document.getElementById('dash-notif-btn');
+  if(!btn)return;
+  if(active){
+    btn.textContent='🔔 Activées ✓';
+    btn.style.opacity='0.7';
+    btn.onclick=null;
+    btn.style.cursor='default';
+  }
+}
+async function checkDashNotifStatus(){
+  if(!('Notification' in window)||Notification.permission!=='granted') return;
+  try{
+    const reg=await navigator.serviceWorker.getRegistration('/sw.js');
+    if(reg){const sub=await reg.pushManager.getSubscription();if(sub) updateDashNotifBtn(true);}
+  }catch(e){}
+}
+document.addEventListener('DOMContentLoaded', checkDashNotifStatus);
 </script>
 </body>
 </html><!-- v6 -->// redeploy Jeu 21 mai 2026 10:56:19 CEST
