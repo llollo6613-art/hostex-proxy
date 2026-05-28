@@ -294,7 +294,7 @@ function showTab(tab){
   if(tab==="today") renderToday();
   else if(tab==="calendar") renderCalendar();
   else if(tab==="checklist") renderChecklist();
-  else if(tab==="notes") renderNotes();
+  else if(tab==="notes") loadNotesFromSupabase();
 }
 
 function renderToday(){
@@ -561,6 +561,20 @@ function resetChecklist(key){
   renderChecklist();
 }
 
+async function loadNotesFromSupabase(){
+  try{
+    var r = await fetch("/notes-list");
+    var d = await r.json();
+    if(d.notes && d.notes.length){
+      STATE.notes = d.notes.map(function(n){
+        return {prop:n.prop_id,text:n.text,date:new Date(n.created_at).toLocaleDateString("fr-FR"),author:n.author||"menage",id:n.id};
+      });
+      try{localStorage.setItem("menage_notes",JSON.stringify(STATE.notes));}catch(e){}
+    }
+  }catch(e){}
+  renderNotes();
+}
+
 function renderNotes(){
   var h = "";
   h += "<div class=\"notes-form-card\">";
@@ -574,13 +588,14 @@ function renderNotes(){
   h += "</div>";
   if(STATE.notes.length){
     h += "<div class=\"section-card\">";
-    h += "<h3>📋 Notes enregistrées ("+STATE.notes.length+")</h3>";
+    h += "<h3>📋 Notes ("+STATE.notes.length+")</h3>";
     STATE.notes.slice().reverse().forEach(function(n,i){
-      var prop = PROPS[n.prop]||{short:"Apt",color:"#888"};
+      var prop = PROPS[n.prop||n.prop_id]||{short:"Apt",color:"#888"};
+      var authorBadge = n.author==="owner" ? "<span style=\"font-size:10px;background:#6366F1;color:#fff;border-radius:4px;padding:1px 5px;margin-left:4px;\">Propriétaire</span>" : "";
       h += "<div class=\"note-item\">";
       h += "<span class=\"note-apt\" style=\"background:"+prop.color+"\">"+prop.short+"</span>";
-      h += "<div style=\"flex:1;\"><div class=\"note-text\">"+n.text+"</div><div class=\"note-date\">"+n.date+"</div></div>";
-      h += "<button class=\"note-delete-btn\" onclick=\"deleteNote("+(STATE.notes.length-1-i)+")\" aria-label=\"Supprimer\">×</button>";
+      h += "<div style=\"flex:1;\"><div class=\"note-text\">"+n.text+authorBadge+"</div><div class=\"note-date\">"+n.date+"</div></div>";
+      h += "<button class=\"note-delete-btn\" onclick=\"deleteNote("+i+")\" aria-label=\"Supprimer\">×</button>";
       h += "</div>";
     });
     h += "</div>";
@@ -590,12 +605,18 @@ function renderNotes(){
   document.getElementById("tab-notes").innerHTML = h;
 }
 
-function addNote(){
+async function addNote(){
   var prop = document.getElementById("note-prop").value;
   var text = document.getElementById("note-text").value.trim();
   if(!text)return;
-  STATE.notes.push({prop:prop,text:text,date:new Date().toLocaleDateString("fr-FR")});
+  var now = new Date();
+  var note = {prop:prop,text:text,date:now.toLocaleDateString("fr-FR"),author:"menage"};
+  STATE.notes.push(note);
   try{localStorage.setItem("menage_notes",JSON.stringify(STATE.notes));}catch(e){}
+  // Sauvegarder dans Supabase
+  try{
+    await fetch("/note-add",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prop_id:prop,text:text,author:"menage"})});
+  }catch(e){}
   renderNotes();
 }
 

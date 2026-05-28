@@ -486,6 +486,32 @@ app.post('/menage-done', async function(req, res) {
   console.log('Menage done notif sent:', propName);
 });
 
+// Notes ménage
+app.get('/notes-list', async function(req, res) {
+  try {
+    const notes = await supaFetch('menage_notes?select=*&order=created_at.desc&limit=50');
+    res.json({ok:true, notes});
+  } catch(e) { res.json({ok:false, notes:[]}); }
+});
+
+app.post('/note-add', async function(req, res) {
+  try {
+    const {prop_id, text, author, reservation_code} = req.body;
+    if(!prop_id || !text) return res.status(400).json({error:'Missing fields'});
+    await supaFetch('menage_notes', 'POST', [{prop_id, text, author: author||'menage', reservation_code: reservation_code||null}]);
+    // Notifier
+    const propName = prop_id==='12619011' ? 'Suite Illiberis' : 'Loft Cinema';
+    if(author==='owner'){
+      // Propriétaire → notifier femme de ménage via push
+      await sendPushNotif('📝 Note propriétaire', propName+': '+text, '/menage', 'note-owner');
+    } else {
+      // Femme de ménage → notifier propriétaire via push
+      await sendPushNotif('📝 Note ménage', propName+': '+text, '/mobile', 'note-menage');
+    }
+    res.json({ok:true});
+  } catch(e) { res.status(500).json({error:e.message}); }
+});
+
 app.get('/menage-app', function(req, res) {
   res.sendFile(__dirname + '/menage-app.html');
 });
