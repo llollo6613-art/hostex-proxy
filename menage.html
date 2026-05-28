@@ -75,14 +75,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 .cal-bar.suite-bk{background:#DBEAFE;color:#1E40AF;}
 .cal-bar.loft-air{background:#FEE9D6;color:#C2530A;}
 .cal-bar.loft-bk{background:#EDE9FE;color:#5B21B6;}
-/* start: commence à 50% de la case */
+/* start: commence à 50% → bord gauche arrondi */
 .cal-bar.start{left:50%;right:0;border-radius:6px 0 0 6px;}
-/* end: finit à 50% de la case */
+/* end: de 0 à 50% → bord droit arrondi */
 .cal-bar.end{left:0;right:50%;border-radius:0 6px 6px 0;}
-/* middle: toute la case */
+/* middle: toute la case, pas d'arrondi */
 .cal-bar.middle{left:0;right:0;border-radius:0;}
-/* alone: commence et finit dans la même case (séjour 1 nuit) */
-.cal-bar.alone{left:50%;right:50%;min-width:4px;border-radius:6px;}
+/* alone: séjour 1 nuit — cylindre complet centré */
+.cal-bar.alone{left:10%;right:10%;border-radius:6px;}
 .cal-day .menage-emoji{text-align:center;font-size:12px;margin-top:2px;line-height:1;}
 .cal-legend{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px;padding:10px 12px;background:#fff;border-radius:10px;border:1px solid #e5e4e0;}
 .cal-legend-item{display:flex;align-items:center;gap:5px;font-size:12px;color:#666;}
@@ -361,6 +361,11 @@ function toggleDone(key){
   renderToday();
 }
 
+function nextDay(ds){
+  var d = new Date(ds+'T00:00:00');
+  d.setDate(d.getDate()+1);
+  return d.toISOString().split('T')[0];
+}
 function renderCalendar(){
   var now = new Date();
   var y = STATE.calMonth.getFullYear();
@@ -416,9 +421,11 @@ function renderCalendar(){
         var cls = (isSuite?"suite":"loft")+"-"+(isAir?"air":"bk");
         var lbl = isSuite?"Suite":"Loft";
         var isStart = r.check_in===ds;
-        propBars[r.prop_id] = {cls:cls, lbl:lbl, type: isStart?"start":"middle"};
+        // Vérifier si c'est aussi un jour checkout d'une autre resa (séjour 1 nuit)
+        var isAlone = isStart && r.check_out===nextDay(ds);
+        propBars[r.prop_id] = {cls:cls, lbl:lbl, type: isAlone?"alone":(isStart?"start":"middle")};
       });
-      // Résas qui finissent ce jour (check_out = ds)
+      // Résas qui finissent ce jour (check_out = ds) — demi-barre droite
       dedupedCheckout.forEach(function(r){
         if(!propBars[r.prop_id]){
           var isSuite = r.prop_id==="12619011";
