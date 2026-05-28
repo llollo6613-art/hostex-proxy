@@ -858,6 +858,9 @@ async function syncHostexToSupabase() {
   }
 }
 
+// Charger les abonnements push au démarrage
+loadSubs().catch(console.error);
+
 // Sync 10s après démarrage puis toutes les 15 min
 setTimeout(() => syncHostexToSupabase().catch(console.error), 10000);
 setInterval(() => syncHostexToSupabase().catch(console.error), 15 * 60 * 1000);
