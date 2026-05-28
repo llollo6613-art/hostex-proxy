@@ -850,10 +850,16 @@ async function syncHostexToSupabase() {
         stay_status: r.stay_status || '',
         booked_at: r.created_at || ''
       }}).filter(r => r.reservation_code && r.check_in_date);
-      // Détecter les nouvelles réservations
+      // Détecter les nouvelles réservations — bookées dans les 30 dernières minutes
       const existing = await getDB();
       const existingCodes = new Set(existing.map(r => r.reservation_code));
-      const newRes = toSave.filter(r => !existingCodes.has(r.reservation_code) && r.status !== 'cancelled');
+      const thirtyMinAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+      const newRes = toSave.filter(r => {
+        // Nouvelle si pas dans Supabase OU bookée récemment
+        const isNew = !existingCodes.has(r.reservation_code);
+        const isRecent = r.booked_at && r.booked_at > thirtyMinAgo;
+        return (isNew || isRecent) && r.status !== 'cancelled';
+      });
 
       await supaSave(toSave);
       invalidateCache();
