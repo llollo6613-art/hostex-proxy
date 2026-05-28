@@ -75,13 +75,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 .cal-bar.suite-bk{background:#DBEAFE;color:#1E40AF;}
 .cal-bar.loft-air{background:#FEE9D6;color:#C2530A;}
 .cal-bar.loft-bk{background:#EDE9FE;color:#5B21B6;}
-/* start: commence à 50% → bord gauche arrondi */
+/* start: check_in → commence au milieu, va jusqu'au bout à droite */
 .cal-bar.start{left:50%;right:0;border-radius:6px 0 0 6px;}
-/* end: de 0 à 50% → bord droit arrondi */
+/* end: check_out → commence au bord gauche, finit au milieu */
 .cal-bar.end{left:0;right:50%;border-radius:0 6px 6px 0;}
-/* middle: toute la case, pas d'arrondi */
+/* middle: occupe toute la case */
 .cal-bar.middle{left:0;right:0;border-radius:0;}
-/* alone: séjour 1 nuit — cylindre complet centré */
+/* alone: 1 nuit → cylindre complet de milieu à milieu */
 .cal-bar.alone{left:10%;right:10%;border-radius:6px;}
 .cal-day .menage-emoji{text-align:center;font-size:12px;margin-top:2px;line-height:1;}
 .cal-legend{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px;padding:10px 12px;background:#fff;border-radius:10px;border:1px solid #e5e4e0;}
@@ -393,54 +393,52 @@ function renderCalendar(){
     var hasMenage = past.some(function(r){return r.check_out===ds && isRealMenage(r,past);});
     h += "<div class=\"cal-day"+(isToday?" today":"")+"\" onclick=\"showDayDetail('"+ds+"')\">";
     h += "<div class=\"day-num\">"+day+"</div>";
-    // Dédupliquer : 1 seule barre par bien (prop_id)
-    var seen = {};
-    var deduped = dayRes.filter(function(r){
-      if(seen[r.prop_id]) return false;
-      seen[r.prop_id] = true;
-      return true;
-    });
-    // Résas qui finissent ce jour (check_out = ds) — demi-barre gauche
-    var checkoutRes = past.filter(function(r){
-      return r.check_out===ds && r.status!=="cancelled";
-    });
-    var checkoutSeen = {};
-    var dedupedCheckout = checkoutRes.filter(function(r){
-      if(checkoutSeen[r.prop_id]) return false;
-      checkoutSeen[r.prop_id] = true;
-      return true;
-    });
+    // Construire barres dans l'ordre fixe : Suite toujours en haut, Loft en bas
+    var PROP_ORDER = ["12619011","12619012"];
+    PROP_ORDER.forEach(function(pid){
+      var prop = PROPS[pid];
+      // Chercher si ce bien a une résa ce jour
+      // 1. Résa en cours (check_in <= ds < check_out) — on inclut aussi check_in = ds
+      var activeRes = past.filter(function(r){
+        return r.prop_id===pid && r.check_in<=ds && r.check_out>ds;
+      });
+      // Dédupliquer
+      var r = activeRes[0];
+      // 2. Résa qui se termine ce jour (check_out = ds, pas check_in = ds)
+      var endRes = past.filter(function(r2){
+        return r2.prop_id===pid && r2.check_out===ds && r2.check_in!==ds;
+      })[0];
 
-    if(deduped.length>0 || dedupedCheckout.length>0){
-      // Construire les barres par bien
-      var propBars = {};
-      // Résas en cours (check_in <= ds < check_out)
-      deduped.forEach(function(r){
-        var isSuite = r.prop_id==="12619011";
-        var isAir = platClass(r.platform)==="air";
-        var cls = (isSuite?"suite":"loft")+"-"+(isAir?"air":"bk");
-        var lbl = isSuite?"Suite":"Loft";
-        var isStart = r.check_in===ds;
-        // Vérifier si c'est aussi un jour checkout d'une autre resa (séjour 1 nuit)
-        var isAlone = isStart && r.check_out===nextDay(ds);
-        propBars[r.prop_id] = {cls:cls, lbl:lbl, type: isAlone?"alone":(isStart?"start":"middle")};
-      });
-      // Résas qui finissent ce jour (check_out = ds) — demi-barre droite
-      dedupedCheckout.forEach(function(r){
-        if(!propBars[r.prop_id]){
-          var isSuite = r.prop_id==="12619011";
-          var isAir = platClass(r.platform)==="air";
-          var cls = (isSuite?"suite":"loft")+"-"+(isAir?"air":"bk");
-          var lbl = isSuite?"Suite":"Loft";
-          propBars[r.prop_id] = {cls:cls, lbl:lbl, type:"end"};
-        }
-      });
-      Object.values(propBars).forEach(function(bar){
-        h += "<div class=\"cal-bar-wrap\">";
-        h += "<div class=\"cal-bar "+bar.cls+" "+bar.type+"\">"+bar.lbl+"</div>";
+      var isAir = r ? platClass(r.platform)==="air" : (endRes ? platClass(endRes.platform)==="air" : false);
+      var isSuite = pid==="12619011";
+      var cls = (isSuite?"suite":"loft")+"-"+(isAir?"air":"bk");
+      var lbl = isSuite?"Suite":"Loft";
+
+      if(r && endRes){
+        // Deux résas ce jour : fin d'une + début d'une autre → 2 demi-barres
+        var isAirEnd = platClass(endRes.platform)==="air";
+        var clsEnd = (isSuite?"suite":"loft")+"-"+(isAirEnd?"air":"bk");
+        h += "<div class=\"cal-bar-wrap\" style=\"position:relative;height:18px;margin-top:2px;\">";
+        h += "<div class=\"cal-bar "+clsEnd+" end\" style=\"position:absolute;\">"+lbl+"</div>";
+        h += "<div class=\"cal-bar "+cls+" start\" style=\"position:absolute;\">"+lbl+"</div>";
         h += "</div>";
-      });
-    }
+      } else if(r){
+        var isStart = r.check_in===ds;
+        var type = isStart ? "start" : "middle";
+        h += "<div class=\"cal-bar-wrap\">";
+        h += "<div class=\"cal-bar "+cls+" "+type+"\">"+lbl+"</div>";
+        h += "</div>";
+      } else if(endRes){
+        var isAirE = platClass(endRes.platform)==="air";
+        var clsE = (isSuite?"suite":"loft")+"-"+(isAirE?"air":"bk");
+        h += "<div class=\"cal-bar-wrap\">";
+        h += "<div class=\"cal-bar "+clsE+" end\">"+lbl+"</div>";
+        h += "</div>";
+      } else {
+        // Aucune résa ce jour pour ce bien — espace vide pour garder l'alignement
+        h += "<div class=\"cal-bar-wrap\"></div>";
+      }
+    });
     if(hasMenage) h += "<div class=\"menage-emoji\">🧹</div>";
     h += "</div>";
   }
