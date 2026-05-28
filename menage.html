@@ -328,7 +328,7 @@ function renderToday(){
   // Prochains ménages — 1 prochain par bien
   var DAYS = ["Dim","Lun","Mar","Mer","Jeu","Ven","Sam"];
   var upcomingByProp = {};
-  for(var i=1;i<=60;i++){
+  for(var i=1;i<=180;i++){
     var d = new Date(now);
     d.setDate(d.getDate()+i);
     var ds = d.toISOString().split("T")[0];
