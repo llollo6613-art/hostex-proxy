@@ -63,18 +63,21 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 .cal-wrap{background:#fff;border-radius:16px;padding:12px;border:1px solid #e5e4e0;}
 .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;}
 .cal-day-hdr{text-align:center;font-size:12px;color:#888;font-weight:600;padding:6px 0 8px;}
-.cal-day{min-height:68px;border-radius:10px;padding:5px 3px 4px;cursor:pointer;position:relative;transition:background .15s;display:flex;flex-direction:column;align-items:stretch;}
+.cal-day{min-height:72px;border-radius:10px;padding:5px 0 4px;cursor:pointer;position:relative;transition:background .15s;display:flex;flex-direction:column;align-items:stretch;overflow:hidden;}
 .cal-day:active{background:#f0f0f0;}
 .cal-day.today{background:#E1F5EE;border:1.5px solid #1D9E75;}
 .cal-day.other-month{opacity:.2;}
-.cal-day .day-num{font-size:12px;font-weight:600;color:#333;text-align:center;line-height:1.4;margin-bottom:2px;}
+.cal-day .day-num{font-size:12px;font-weight:600;color:#333;text-align:center;line-height:1.4;margin-bottom:3px;}
 .cal-day.today .day-num{color:#0F6E56;font-weight:800;}
-.cal-pill{font-size:8px;font-weight:700;border-radius:20px;padding:2px 4px;margin-top:2px;text-align:center;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.cal-pill.suite-air{background:#FF385C;}
-.cal-pill.suite-bk{background:#003580;}
-.cal-pill.loft-air{background:#f97316;}
-.cal-pill.loft-bk{background:#6366F1;}
-.cal-day .menage-emoji{text-align:center;font-size:13px;margin-top:2px;line-height:1;}
+.cal-bar{font-size:8px;font-weight:700;padding:3px 2px;margin-top:2px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:100%;}
+.cal-bar.suite-air{background:#FFE4E8;color:#CC2030;}
+.cal-bar.suite-bk{background:#DBEAFE;color:#1E40AF;}
+.cal-bar.loft-air{background:#FEE9D6;color:#C2530A;}
+.cal-bar.loft-bk{background:#EDE9FE;color:#5B21B6;}
+.cal-bar.start{border-radius:8px 0 0 8px;margin-left:2px;}
+.cal-bar.end{border-radius:0 8px 8px 0;margin-right:2px;}
+.cal-bar.alone{border-radius:8px;margin:0 2px;}
+.cal-day .menage-emoji{text-align:center;font-size:12px;margin-top:2px;line-height:1;}
 .cal-legend{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px;padding:10px 12px;background:#fff;border-radius:10px;border:1px solid #e5e4e0;}
 .cal-legend-item{display:flex;align-items:center;gap:5px;font-size:12px;color:#666;}
 .cal-legend-dot{width:12px;height:12px;border-radius:3px;}
@@ -379,22 +382,33 @@ function renderCalendar(){
     var hasMenage = past.some(function(r){return r.check_out===ds && isRealMenage(r,past);});
     h += "<div class=\"cal-day"+(isToday?" today":"")+"\" onclick=\"showDayDetail('"+ds+"')\">";
     h += "<div class=\"day-num\">"+day+"</div>";
-    dayRes.forEach(function(r){
+    // Dédupliquer : 1 seule barre par bien (prop_id)
+    var seen = {};
+    var deduped = dayRes.filter(function(r){
+      if(seen[r.prop_id]) return false;
+      seen[r.prop_id] = true;
+      return true;
+    });
+    deduped.forEach(function(r){
       var isSuite = r.prop_id==="12619011";
       var isAir = platClass(r.platform)==="air";
       var cls = (isSuite?"suite":"loft")+"-"+(isAir?"air":"bk");
-      var lbl = (isSuite?"Suite":"Loft")+" "+(isAir?"Air":"Bk");
-      h += "<div class=\"cal-pill "+cls+"\">"+lbl+"</div>";
+      var lbl = isSuite?"Suite":"Loft";
+      // Déterminer si début, fin ou milieu
+      var isStart = r.check_in===ds;
+      var isEnd = r.check_out===ds;
+      var barCls = cls + (isStart&&isEnd?" alone":isStart?" start":isEnd?" end":"");
+      h += "<div class=\"cal-bar "+barCls+"\">"+lbl+"</div>";
     });
     if(hasMenage) h += "<div class=\"menage-emoji\">🧹</div>";
     h += "</div>";
   }
   h += "</div></div>";
   h += "<div class=\"cal-legend\">";
-  h += "<div class=\"cal-legend-item\"><div class=\"cal-pill suite-air\" style=\"display:inline-block;padding:2px 8px;\">Suite Air</div></div>";
-  h += "<div class=\"cal-legend-item\"><div class=\"cal-pill suite-bk\" style=\"display:inline-block;padding:2px 8px;\">Suite Bk</div></div>";
-  h += "<div class=\"cal-legend-item\"><div class=\"cal-pill loft-air\" style=\"display:inline-block;padding:2px 8px;\">Loft Air</div></div>";
-  h += "<div class=\"cal-legend-item\"><div class=\"cal-pill loft-bk\" style=\"display:inline-block;padding:2px 8px;\">Loft Bk</div></div>";
+  h += "<div class=\"cal-legend-item\"><div class=\"cal-bar suite-air alone\" style=\"display:inline-block;padding:3px 8px;\">Suite Air</div></div>";
+  h += "<div class=\"cal-legend-item\"><div class=\"cal-bar suite-bk alone\" style=\"display:inline-block;padding:3px 8px;\">Suite Bk</div></div>";
+  h += "<div class=\"cal-legend-item\"><div class=\"cal-bar loft-air alone\" style=\"display:inline-block;padding:3px 8px;\">Loft Air</div></div>";
+  h += "<div class=\"cal-legend-item\"><div class=\"cal-bar loft-bk alone\" style=\"display:inline-block;padding:3px 8px;\">Loft Bk</div></div>";
   h += "<div class=\"cal-legend-item\"><span>🧹 Ménage</span></div>";
   h += "</div>";
 
