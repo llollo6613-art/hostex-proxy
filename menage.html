@@ -398,7 +398,7 @@ function renderCalendar(){
     var ds = y+"-"+(m+1<10?"0":"")+(m+1)+"-"+(day<10?"0":"")+day;
     var isToday = ds===todayStr;
     var dayRes = past.filter(function(r){return r.check_in<=ds&&r.check_out>ds;});
-    var hasMenage = past.some(function(r){return r.check_out===ds && isRealMenage(r,past);});
+    var hasMenage = past.some(function(r){return r.check_out===ds;});
     h += "<div class=\"cal-day"+(isToday?" today":"")+"\" onclick=\"showDayDetail('"+ds+"')\">";
     h += "<div class=\"day-num\">"+day+"</div>";
     // Construire barres dans l'ordre fixe : Suite toujours en haut, Loft en bas
