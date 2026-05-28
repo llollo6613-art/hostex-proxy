@@ -351,8 +351,15 @@ function renderToday(){
 }
 
 function toggleDone(key){
+  var wasDone = STATE.done[key];
   STATE.done[key] = !STATE.done[key];
   try{localStorage.setItem("menage_done",JSON.stringify(STATE.done));}catch(e){}
+  if(!wasDone && STATE.done[key]){
+    var res = STATE.reservations.find(function(r){return key.indexOf(r.id)>-1;});
+    var propId = res ? res.prop_id : '';
+    var date = key.split('_')[0];
+    fetch('/menage-done',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prop:propId,date:date})}).catch(function(){});
+  }
   renderToday();
 }
 
