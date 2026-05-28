@@ -6,8 +6,18 @@ const VAPID_PUBLIC = process.env.VAPID_PUBLIC || 'BJFwoHPQF_U65sVAS2s7aawrGceNCs
 const VAPID_PRIVATE = process.env.VAPID_PRIVATE || 'vPeevLy4yk49Jtl3--Wu2eijo89xP7kV5KI4exgPSy8';
 webpush.setVapidDetails('mailto:contact@illiberis.fr', VAPID_PUBLIC, VAPID_PRIVATE);
 let pushSubscriptions = [];
-try { pushSubscriptions = JSON.parse(require('fs').readFileSync('/tmp/push_subs.json','utf8')); } catch(e) {}
-function saveSubs() { try { require('fs').writeFileSync('/tmp/push_subs.json', JSON.stringify(pushSubscriptions)); } catch(e) {} }
+// Charger les abonnements depuis Supabase au démarrage
+async function loadSubs() {
+  try {
+    const rows = await supaFetch('push_subscriptions?select=subscription');
+    pushSubscriptions = rows.map(r => JSON.parse(r.subscription));
+    console.log('Push subs loaded:', pushSubscriptions.length);
+  } catch(e) { console.log('loadSubs error:', e.message); }
+}
+async function saveSubs() {
+  // Sauvegarder aussi en fichier comme backup
+  try { require('fs').writeFileSync('/tmp/push_subs.json', JSON.stringify(pushSubscriptions)); } catch(e) {}
+}
 async function sendPushNotif(title, body, url, tag) {
   if(!pushSubscriptions.length) return;
   const payload = JSON.stringify({title:title||'Illiberis', body:body||'', url:url||'/mobile', tag:tag||'notif'});
@@ -425,11 +435,21 @@ app.get('/manifest-menage.json', (req, res) => res.sendFile(__dirname+'/manifest
 app.get('/icon-menage-192.png', (req, res) => res.sendFile(__dirname+'/icon-menage-192.png'));
 app.get('/icon-menage-512.png', (req, res) => res.sendFile(__dirname+'/icon-menage-512.png'));
 
-app.post('/subscribe', (req, res) => {
+app.post('/subscribe', async (req, res) => {
   const sub = req.body;
   if(!sub || !sub.endpoint) return res.status(400).json({error:'Invalid subscription'});
   const exists = pushSubscriptions.find(s => s.endpoint === sub.endpoint);
-  if(!exists) { pushSubscriptions.push(sub); saveSubs(); }
+  if(!exists) {
+    pushSubscriptions.push(sub);
+    saveSubs();
+    // Sauvegarder dans Supabase
+    try {
+      await supaFetch('push_subscriptions?on_conflict=endpoint', 'POST', [{
+        endpoint: sub.endpoint,
+        subscription: JSON.stringify(sub)
+      }]);
+    } catch(e) { console.log('Supabase sub save error:', e.message); }
+  }
   res.json({ok: true, total: pushSubscriptions.length});
   console.log('New push subscriber, total:', pushSubscriptions.length);
 });
