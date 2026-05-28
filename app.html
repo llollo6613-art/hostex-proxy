@@ -692,7 +692,43 @@ async function _downloadBilanPDF(propId){
     var n=Math.round((new Date(r.check_out)-new Date(r.check_in))/86400000);
     html+='<tr><td>'+r.check_in+'</td><td>'+r.guest+'</td><td>'+platLabel(r.platform)+'</td><td>'+(prop2?prop2.name.split(' ')[0]:'')+'</td><td>'+n+'</td><td>'+Math.round(r.amount)+' \u20ac</td><td style="color:#0F6E56;">'+Math.round(netRev(r)-cleaning(r))+' \u20ac</td></tr>';
   });
-  html+='</table></body></html>';
+  html+='</table><script>
+function urlBase64ToUint8ArrayDash(b){var pad='='.repeat((4-b.length%4)%4);var base64=(b+pad).replace(/-/g,'+').replace(/_/g,'/');var raw=window.atob(base64);var arr=new Uint8Array(raw.length);for(var i=0;i<raw.length;i++)arr[i]=raw.charCodeAt(i);return arr;}
+async function initDashPush(){
+  if(!('serviceWorker' in navigator)||!('PushManager' in window)){alert('Non supporté.');return;}
+  try{
+    var reg=await navigator.serviceWorker.register('/sw.js');
+    await navigator.serviceWorker.ready;
+    var perm=await Notification.requestPermission();
+    if(perm!=='granted'){alert('Permission refusée.');return;}
+    var kd=await fetch('/vapid-key');var kj=await kd.json();
+    var sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:urlBase64ToUint8ArrayDash(kj.publicKey)});
+    await fetch('/subscribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(sub)});
+    var btn=document.getElementById('dash-notif-btn');
+    if(btn){btn.textContent='🔔 ✓';btn.style.opacity='0.6';btn.onclick=null;}
+    alert('✅ Notifications activées !');
+  }catch(e){alert('Erreur push: '+e.message);}
+}
+window.addEventListener('load',function(){
+  if(!('Notification' in window))return;
+  var ta=document.getElementById('topbar-actions');
+  if(!ta||document.getElementById('dash-notif-btn'))return;
+  var btn=document.createElement('button');
+  btn.id='dash-notif-btn';
+  btn.textContent='🔔 Notifs';
+  btn.style.cssText='background:#0F6E56;color:#fff;border:none;border-radius:10px;padding:8px 14px;font-size:12px;font-weight:600;cursor:pointer;';
+  btn.onclick=initDashPush;
+  ta.appendChild(btn);
+  if(Notification.permission==='granted'){
+    navigator.serviceWorker.getRegistration('/sw.js').then(function(reg){
+      if(reg)reg.pushManager.getSubscription().then(function(sub){
+        if(sub){btn.textContent='🔔 ✓';btn.style.opacity='0.6';btn.onclick=null;}
+      });
+    });
+  }
+});
+</script>
+</body></html>';
 
   var blob=new Blob([html],{type:'text/html'});
   var url=URL.createObjectURL(blob);
@@ -2835,6 +2871,42 @@ function renderVirements(){
   el.innerHTML=html;
 }
 
+</script>
+<script>
+function urlBase64ToUint8ArrayDash(b){var pad='='.repeat((4-b.length%4)%4);var base64=(b+pad).replace(/-/g,'+').replace(/_/g,'/');var raw=window.atob(base64);var arr=new Uint8Array(raw.length);for(var i=0;i<raw.length;i++)arr[i]=raw.charCodeAt(i);return arr;}
+async function initDashPush(){
+  if(!('serviceWorker' in navigator)||!('PushManager' in window)){alert('Non supporté.');return;}
+  try{
+    var reg=await navigator.serviceWorker.register('/sw.js');
+    await navigator.serviceWorker.ready;
+    var perm=await Notification.requestPermission();
+    if(perm!=='granted'){alert('Permission refusée.');return;}
+    var kd=await fetch('/vapid-key');var kj=await kd.json();
+    var sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:urlBase64ToUint8ArrayDash(kj.publicKey)});
+    await fetch('/subscribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(sub)});
+    var btn=document.getElementById('dash-notif-btn');
+    if(btn){btn.textContent='🔔 ✓';btn.style.opacity='0.6';btn.onclick=null;}
+    alert('✅ Notifications activées !');
+  }catch(e){alert('Erreur push: '+e.message);}
+}
+window.addEventListener('load',function(){
+  if(!('Notification' in window))return;
+  var ta=document.getElementById('topbar-actions');
+  if(!ta||document.getElementById('dash-notif-btn'))return;
+  var btn=document.createElement('button');
+  btn.id='dash-notif-btn';
+  btn.textContent='🔔 Notifs';
+  btn.style.cssText='background:#0F6E56;color:#fff;border:none;border-radius:10px;padding:8px 14px;font-size:12px;font-weight:600;cursor:pointer;';
+  btn.onclick=initDashPush;
+  ta.appendChild(btn);
+  if(Notification.permission==='granted'){
+    navigator.serviceWorker.getRegistration('/sw.js').then(function(reg){
+      if(reg)reg.pushManager.getSubscription().then(function(sub){
+        if(sub){btn.textContent='🔔 ✓';btn.style.opacity='0.6';btn.onclick=null;}
+      });
+    });
+  }
+});
 </script>
 </body>
 </html><!-- v6 -->// redeploy Jeu 21 mai 2026 10:56:19 CEST
