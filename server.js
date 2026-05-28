@@ -479,6 +479,8 @@ app.post('/menage-done', async function(req, res) {
   const { prop, date } = req.body || {};
   const propName = prop === '12619011' ? 'Suite Illiberis' : 'Loft Cinema Illiberis';
   const msg = propName + ' - Ménage effectué le ' + (date || new Date().toLocaleDateString('fr-FR'));
+  // Web Push + ntfy
+  await sendPushNotif('✅ Ménage terminé !', msg, '/mobile', 'menage-done');
   await sendNtfy(NTFY_RESA, '✅ Ménage terminé !', msg, 'default');
   res.json({ ok: true });
   console.log('Menage done notif sent:', propName);
