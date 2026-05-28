@@ -724,6 +724,11 @@ app.post('/sync-from-browser', async function(req, res) {
   } catch(e) { res.status(500).json({error: e.message}); }
 });
 
+app.post('/test-push', async function(req, res) {
+  await sendPushNotif('🧹 Test notification', 'Ça fonctionne ! Vous recevrez les alertes ménage ici.', '/menage', 'test');
+  res.json({ok: true, subscribers: pushSubscriptions.length});
+});
+
 app.get('/health', async function(req, res) {
   const db = loadDB();
   res.json({ status: 'ok', token_set: !!HOSTEX_TOKEN, reservations_stored: (await getDB()).length || db.total || 0, last_sync: db.last_sync, timestamp: new Date().toISOString(), webhook_url: 'https://hostex-proxy.onrender.com/webhook' });
