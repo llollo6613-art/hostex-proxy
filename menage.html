@@ -325,19 +325,23 @@ function renderToday(){
     h += "<div class=\"today-banner\"><h2>✅ Aucun ménage aujourd'hui</h2><div style=\"font-size:14px;color:#0F6E56;margin-top:4px;\">Bonne journée !</div></div>";
   }
 
-  // Prochains ménages
-  var upcoming = [];
-  for(var i=1;i<=7;i++){
+  // Prochains ménages — 1 prochain par bien
+  var DAYS = ["Dim","Lun","Mar","Mer","Jeu","Ven","Sam"];
+  var upcomingByProp = {};
+  for(var i=1;i<=60;i++){
     var d = new Date(now);
     d.setDate(d.getDate()+i);
     var ds = d.toISOString().split("T")[0];
-    past.filter(function(r){return r.check_out===ds && isRealMenage(r,past);}).forEach(function(r){upcoming.push({r:r,date:ds,d:d});});
+    past.filter(function(r){return r.check_out===ds && isRealMenage(r,past);}).forEach(function(r){
+      if(!upcomingByProp[r.prop_id]) upcomingByProp[r.prop_id] = {r:r,date:ds,d:d};
+    });
+    if(Object.keys(upcomingByProp).length===2) break;
   }
-  if(upcoming.length){
+  var upcomingList = Object.values(upcomingByProp).sort(function(a,b){return a.date.localeCompare(b.date);});
+  if(upcomingList.length){
     h += "<div class=\"section-card\">";
     h += "<h3>📅 Prochains ménages</h3>";
-    var DAYS = ["Dim","Lun","Mar","Mer","Jeu","Ven","Sam"];
-    upcoming.slice(0,5).forEach(function(item){
+    upcomingList.forEach(function(item){
       var prop = PROPS[item.r.prop_id]||{name:"Appartement",color:"#888",short:"Apt"};
       h += "<div class=\"note-item\">";
       h += "<span class=\"note-apt\" style=\"background:"+prop.color+"\">"+prop.short+"</span>";
