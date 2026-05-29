@@ -258,8 +258,12 @@ function initApp(){
 }
 
 function isRealMenage(r, allRes){
+  // Faux ménage seulement si c'est le MÊME voyageur qui continue (résa scindée)
   return !allRes.some(function(other){
-    return other.prop_id === r.prop_id && other.check_in === r.check_out && other.status !== "cancelled";
+    return other.prop_id === r.prop_id 
+      && other.check_in === r.check_out 
+      && other.status !== "cancelled"
+      && other.guest_name === r.guest_name;
   });
 }
 
