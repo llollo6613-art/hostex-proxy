@@ -333,11 +333,13 @@ function renderToday(){
   var DAYS = ["Dim","Lun","Mar","Mer","Jeu","Ven","Sam"];
   var upcomingByProp = {};
   for(var i=1;i<=180;i++){
-    var d = new Date(now);
-    d.setDate(d.getDate()+i);
-    var ds = d.toISOString().split("T")[0];
-    past.filter(function(r){return r.check_out===ds && isRealMenage(r,past);}).forEach(function(r){
-      if(!upcomingByProp[r.prop_id]) upcomingByProp[r.prop_id] = {r:r,date:ds,d:d};
+    var d2 = new Date(now);
+    d2.setDate(d2.getDate()+i);
+    var ds2 = d2.toISOString().split("T")[0];
+    past.filter(function(r){
+      return r.check_out===ds2 && isRealMenage(r,past);
+    }).forEach(function(r){
+      if(!upcomingByProp[r.prop_id]) upcomingByProp[r.prop_id] = {r:r,date:ds2,d:d2};
     });
     if(Object.keys(upcomingByProp).length===2) break;
   }
