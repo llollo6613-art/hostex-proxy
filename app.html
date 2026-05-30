@@ -1973,6 +1973,29 @@ function renderRates(){
   });
   document.addEventListener('mouseup',function(){isDragging=false;});
 
+  // Mobile: activer ratesSelMode par défaut + bouton toggle
+  if(window.innerWidth<=768){
+    // Injecter bouton "Sélectionner" dans header tarifs
+    function _injectMobSelBtn(){
+      if(document.getElementById('mob-sel-btn')) return;
+      var topbar = document.querySelector('.topbar');
+      if(!topbar) return;
+      var btn = document.createElement('button');
+      btn.id = 'mob-sel-btn';
+      btn.innerHTML = '☑ Sélection';
+      btn.style.cssText = 'border:none;border-radius:10px;padding:8px 12px;font-size:12px;font-weight:600;cursor:pointer;background:#f0efe9;color:#444;margin-left:4px;';
+      btn.onclick = function(){
+        _toggleSelMode();
+        btn.innerHTML = S.ratesSelMode ? '✓ Terminer' : '☑ Sélection';
+        btn.style.background = S.ratesSelMode ? '#0F6E56' : '#f0efe9';
+        btn.style.color = S.ratesSelMode ? '#fff' : '#444';
+      };
+      topbar.appendChild(btn);
+    }
+    setTimeout(_injectMobSelBtn, 500);
+    document.addEventListener('render', _injectMobSelBtn);
+  }
+
   // Mobile: tap simple uniquement
   if(window.innerWidth<=768){
     rc.addEventListener('touchend',function(e){
