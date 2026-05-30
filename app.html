@@ -1979,46 +1979,88 @@ function renderRates(){
     }
   });
 
-  // ===== TOUCH EVENTS pour sélection mobile =====
+  // ===== TOUCH EVENTS mobile - sélection fluide =====
+  var touchDragEnd = null;
+  var rafPending = false;
+
+  function updateSelectionVisual(from, to){
+    var all = rc.querySelectorAll('[data-ds]');
+    var newSel = {};
+    all.forEach(function(c){
+      var ds = c.dataset.ds;
+      var inRange = ds>=from && ds<=to && c.dataset.past!=='1' && c.dataset.booked!=='1';
+      if(inRange) newSel[ds]=true;
+      var shouldHighlight = newSel[ds] || (!inRange && S.ratesSelected[ds]);
+      c.style.outline = shouldHighlight ? '2px solid #0F6E56' : '';
+      c.style.background = shouldHighlight ? 'rgba(15,110,86,0.15)' : '';
+    });
+    return newSel;
+  }
+
   rc.addEventListener('touchstart',function(e){
-    var el=document.elementFromPoint(e.touches[0].clientX,e.touches[0].clientY);
-    el=el&&el.closest('[data-ds]');
-    if(!el||el.dataset.past==='1'||el.dataset.booked==='1')return;
-    isDragging=true;hasDragged=false;dragStart=el.dataset.ds;
+    var touch = e.touches[0];
+    var el = document.elementFromPoint(touch.clientX, touch.clientY);
+    el = el && el.closest('[data-ds]');
+    if(!el || el.dataset.past==='1' || el.dataset.booked==='1') return;
+    isDragging=true; hasDragged=false; dragStart=el.dataset.ds; touchDragEnd=dragStart;
   },{passive:true});
 
   rc.addEventListener('touchmove',function(e){
-    if(!isDragging||!dragStart)return;
-    var el=document.elementFromPoint(e.touches[0].clientX,e.touches[0].clientY);
-    el=el&&el.closest('[data-ds]');
-    if(!el||el.dataset.past==='1'||el.dataset.booked==='1')return;
-    if(el.dataset.ds!==dragStart&&!hasDragged){hasDragged=true;}
-    if(hasDragged&&dragStart<=el.dataset.ds){
-      e.preventDefault();
-      var all=rc.querySelectorAll('[data-ds]');
-      S.ratesSelected={};
-      all.forEach(function(c){
-        if(c.dataset.ds>=dragStart&&c.dataset.ds<=el.dataset.ds&&c.dataset.past!=='1'&&c.dataset.booked!=='1'){
-          S.ratesSelected[c.dataset.ds]=true;
-          c.style.outline='2px solid #0F6E56';
-          c.style.background='rgba(15,110,86,0.15)';
-        } else {
-          c.style.outline='';
-          c.style.background='';
-        }
+    if(!isDragging||!dragStart) return;
+    var touch = e.touches[0];
+    var el = document.elementFromPoint(touch.clientX, touch.clientY);
+    el = el && el.closest('[data-ds]');
+    if(!el || el.dataset.past==='1' || el.dataset.booked==='1') return;
+    var ds = el.dataset.ds;
+    if(ds !== dragStart) hasDragged = true;
+    touchDragEnd = ds;
+    if(hasDragged && !rafPending){
+      rafPending = true;
+      requestAnimationFrame(function(){
+        rafPending = false;
+        var from = dragStart < touchDragEnd ? dragStart : touchDragEnd;
+        var to = dragStart < touchDragEnd ? touchDragEnd : dragStart;
+        var all = rc.querySelectorAll('[data-ds]');
+        all.forEach(function(c){
+          var inRange = c.dataset.ds>=from && c.dataset.ds<=to && c.dataset.past!=='1' && c.dataset.booked!=='1';
+          c.style.outline = inRange ? '2px solid #0F6E56' : '';
+          c.style.background = inRange ? 'rgba(15,110,86,0.15)' : '';
+        });
       });
-      window._ratesDragSel=Object.assign({},S.ratesSelected);
     }
+    e.preventDefault();
   },{passive:false});
 
   rc.addEventListener('touchend',function(e){
-    if(!hasDragged&&dragStart){
-      _rcClick(dragStart);
-    } else if(hasDragged){
+    if(!hasDragged && dragStart){
+      // Tap simple — toggle la date dans/hors sélection sans re-render
+      if(S.ratesSelected[dragStart]){
+        delete S.ratesSelected[dragStart];
+        var el2 = rc.querySelector('[data-ds="'+dragStart+'"]');
+        if(el2){el2.style.outline='';el2.style.background='';}
+      } else {
+        S.ratesSelected[dragStart]=true;
+        var el3 = rc.querySelector('[data-ds="'+dragStart+'"]');
+        if(el3){el3.style.outline='2px solid #0F6E56';el3.style.background='rgba(15,110,86,0.15)';}
+      }
+      window._ratesDragSel = Object.assign({},S.ratesSelected);
+      // Mettre à jour le compteur seulement
+      var cnt = document.getElementById('rates-sel-count');
+      var n = Object.keys(S.ratesSelected).length;
+      if(cnt) cnt.textContent = n + ' jour'+(n>1?'s':'');
+    } else if(hasDragged && touchDragEnd){
+      var from = dragStart<touchDragEnd?dragStart:touchDragEnd;
+      var to = dragStart<touchDragEnd?touchDragEnd:dragStart;
+      var all2 = rc.querySelectorAll('[data-ds]');
+      all2.forEach(function(c){
+        if(c.dataset.ds>=from&&c.dataset.ds<=to&&c.dataset.past!=='1'&&c.dataset.booked!=='1'){
+          S.ratesSelected[c.dataset.ds]=true;
+        }
+      });
       window._ratesDragSel=Object.assign({},S.ratesSelected);
       renderRates();
     }
-    isDragging=false;hasDragged=false;dragStart=null;
+    isDragging=false;hasDragged=false;dragStart=null;touchDragEnd=null;
   },{passive:true});
 }
 function _renderRules(prop){window._rpropId=prop.id;
