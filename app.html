@@ -2208,20 +2208,10 @@ function _aiSuggestPrice(date, propId){
 function _rcClick(ds){
   var n=Object.keys(S.ratesSelected).filter(function(k){return S.ratesSelected[k];}).length;
   if(S.ratesSelMode){
-    // Mode selection : toggle visuel sans re-render
-    var cell=document.querySelector('[data-ds="'+ds+'"]');
-    if(S.ratesSelected[ds]){
-      delete S.ratesSelected[ds];
-      if(cell){cell.style.outline='';cell.style.background='';}
-    } else {
-      S.ratesSelected[ds]=true;
-      if(cell){cell.style.outline='2px solid #0F6E56';cell.style.background='rgba(15,110,86,0.15)';}
-    }
-    window._ratesDragSel=Object.assign({},S.ratesSelected);
-    // Mettre à jour compteur seulement
-    var n=Object.keys(S.ratesSelected).length;
-    var cnt=document.querySelector('[id*="sel-count"],[class*="sel-count"]');
-    if(cnt)cnt.textContent=n+' jour'+(n>1?'s':'');
+    // Mode selection : clic simple = toggle case
+    if(S.ratesSelected[ds]){delete S.ratesSelected[ds];}
+    else{S.ratesSelected[ds]=true;}
+    renderRates();
     return;
   }
   if(S.ratesSelected[ds]){
