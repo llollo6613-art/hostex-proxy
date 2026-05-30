@@ -259,11 +259,12 @@ function initApp(){
 
 function isRealMenage(r, allRes){
   // Faux ménage seulement si c'est le MÊME voyageur qui continue (résa scindée)
+  // Après mapRes les champs sont: guest (pas guest_name), check_in, check_out, prop_id
   return !allRes.some(function(other){
     return other.prop_id === r.prop_id 
       && other.check_in === r.check_out 
       && other.status !== "cancelled"
-      && other.guest_name === r.guest_name;
+      && other.guest === r.guest;
   });
 }
 
