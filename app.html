@@ -1972,6 +1972,21 @@ function renderRates(){
     isDragging=false;hasDragged=false;
   });
   document.addEventListener('mouseup',function(){isDragging=false;});
+
+  // Touch = simuler les events souris
+  rc.addEventListener('touchstart',function(e){
+    var t=e.touches[0];
+    rc.dispatchEvent(new MouseEvent('mousedown',{bubbles:true,clientX:t.clientX,clientY:t.clientY}));
+  },{passive:true});
+  rc.addEventListener('touchmove',function(e){
+    var t=e.touches[0];
+    rc.dispatchEvent(new MouseEvent('mousemove',{bubbles:true,clientX:t.clientX,clientY:t.clientY}));
+    e.preventDefault();
+  },{passive:false});
+  rc.addEventListener('touchend',function(e){
+    var t=e.changedTouches[0];
+    rc.dispatchEvent(new MouseEvent('mouseup',{bubbles:true,clientX:t.clientX,clientY:t.clientY}));
+  },{passive:true});
   // Désélectionner en cliquant à côté des cases
   rc.addEventListener('mousedown',function(e){
     if(!e.target.closest('[data-ds]')&&!e.target.closest('[onclick*="_openBlockDates"]')&&!e.target.closest('[onclick*="_saveBlock"]')&&Object.keys(S.ratesSelected||{}).length>0){
