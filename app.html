@@ -1972,6 +1972,18 @@ function renderRates(){
     isDragging=false;hasDragged=false;
   });
   document.addEventListener('mouseup',function(){isDragging=false;});
+
+  // Mobile: tap simple uniquement
+  if(window.innerWidth<=768){
+    rc.addEventListener('touchend',function(e){
+      var t=e.changedTouches[0];
+      var el=document.elementFromPoint(t.clientX,t.clientY);
+      el=el&&el.closest('[data-ds]');
+      if(!el||el.dataset.past==='1'||el.dataset.booked==='1')return;
+      e.preventDefault();
+      _rcClick(el.dataset.ds);
+    },{passive:false});
+  }
   // Désélectionner en cliquant à côté des cases
   rc.addEventListener('mousedown',function(e){
     if(!e.target.closest('[data-ds]')&&!e.target.closest('[onclick*="_openBlockDates"]')&&!e.target.closest('[onclick*="_saveBlock"]')&&Object.keys(S.ratesSelected||{}).length>0){
