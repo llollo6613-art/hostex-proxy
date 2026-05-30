@@ -1974,11 +1974,52 @@ function renderRates(){
   document.addEventListener('mouseup',function(){isDragging=false;});
   // Désélectionner en cliquant à côté des cases
   rc.addEventListener('mousedown',function(e){
-    // Ne pas vider si on clique sur le bouton Bloquer
     if(!e.target.closest('[data-ds]')&&!e.target.closest('[onclick*="_openBlockDates"]')&&!e.target.closest('[onclick*="_saveBlock"]')&&Object.keys(S.ratesSelected||{}).length>0){
       S.ratesSelected={};window._ratesDragSel={};renderRates();
     }
   });
+
+  // ===== TOUCH EVENTS pour sélection mobile =====
+  rc.addEventListener('touchstart',function(e){
+    var el=document.elementFromPoint(e.touches[0].clientX,e.touches[0].clientY);
+    el=el&&el.closest('[data-ds]');
+    if(!el||el.dataset.past==='1'||el.dataset.booked==='1')return;
+    isDragging=true;hasDragged=false;dragStart=el.dataset.ds;
+  },{passive:true});
+
+  rc.addEventListener('touchmove',function(e){
+    if(!isDragging||!dragStart)return;
+    var el=document.elementFromPoint(e.touches[0].clientX,e.touches[0].clientY);
+    el=el&&el.closest('[data-ds]');
+    if(!el||el.dataset.past==='1'||el.dataset.booked==='1')return;
+    if(el.dataset.ds!==dragStart&&!hasDragged){hasDragged=true;}
+    if(hasDragged&&dragStart<=el.dataset.ds){
+      e.preventDefault();
+      var all=rc.querySelectorAll('[data-ds]');
+      S.ratesSelected={};
+      all.forEach(function(c){
+        if(c.dataset.ds>=dragStart&&c.dataset.ds<=el.dataset.ds&&c.dataset.past!=='1'&&c.dataset.booked!=='1'){
+          S.ratesSelected[c.dataset.ds]=true;
+          c.style.outline='2px solid #0F6E56';
+          c.style.background='rgba(15,110,86,0.15)';
+        } else {
+          c.style.outline='';
+          c.style.background='';
+        }
+      });
+      window._ratesDragSel=Object.assign({},S.ratesSelected);
+    }
+  },{passive:false});
+
+  rc.addEventListener('touchend',function(e){
+    if(!hasDragged&&dragStart){
+      _rcClick(dragStart);
+    } else if(hasDragged){
+      window._ratesDragSel=Object.assign({},S.ratesSelected);
+      renderRates();
+    }
+    isDragging=false;hasDragged=false;dragStart=null;
+  },{passive:true});
 }
 function _renderRules(prop){window._rpropId=prop.id;
   if(!S.ratesRules)S.ratesRules={};
