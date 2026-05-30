@@ -2836,5 +2836,81 @@ function renderVirements(){
 }
 
 </script>
+<style>
+@media(max-width:768px){
+  .sidebar{transform:translateX(-100%);transition:transform .3s ease;z-index:1000;width:260px!important;box-shadow:4px 0 24px rgba(0,0,0,.15);}
+  .sidebar.mob-open{transform:translateX(0);}
+  .mob-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:999;}
+  .mob-overlay.on{display:block;}
+  .main-content,[class*="main"]{margin-left:0!important;width:100%!important;}
+  .topbar{padding:10px 12px!important;}
+  .mob-burger{display:flex!important;width:40px;height:40px;border:none;background:#f0efe9;border-radius:10px;cursor:pointer;font-size:20px;align-items:center;justify-content:center;flex-shrink:0;margin-right:8px;}
+  .mob-nav{display:flex!important;position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #e5e4e0;z-index:998;padding:4px 0 max(4px,env(safe-area-inset-bottom));box-shadow:0 -2px 12px rgba(0,0,0,.08);}
+  .mob-nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:5px 2px;border:none;background:none;color:#888;font-size:9px;font-weight:500;cursor:pointer;position:relative;min-height:48px;justify-content:center;}
+  .mob-nav-btn .ni{font-size:20px;line-height:1.2;}
+  .mob-nav-btn.on{color:#0F6E56;}
+  .mob-badge{position:absolute;top:3px;right:14%;background:#E24B4A;color:#fff;border-radius:8px;font-size:8px;padding:1px 4px;font-weight:700;}
+  body{padding-bottom:68px!important;}
+}
+@media(min-width:769px){.mob-burger{display:none!important;}.mob-nav{display:none!important;}.mob-overlay{display:none!important;}}
+</style>
+<script>
+(function(){
+  if(window.innerWidth>768)return;
+  var ov=document.createElement('div');
+  ov.className='mob-overlay';
+  ov.onclick=close;
+  document.body.appendChild(ov);
+  function close(){
+    var s=document.querySelector('.sidebar');
+    if(s)s.classList.remove('mob-open');
+    ov.classList.remove('on');
+  }
+  function init(){
+    var tb=document.querySelector('.topbar');
+    if(tb&&!document.getElementById('mob-burger')){
+      var b=document.createElement('button');
+      b.id='mob-burger';b.className='mob-burger';b.innerHTML='&#9776;';
+      b.onclick=function(){
+        var s=document.querySelector('.sidebar');
+        if(!s)return;
+        s.classList.toggle('mob-open');
+        ov.classList.toggle('on');
+      };
+      tb.insertBefore(b,tb.firstChild);
+    }
+    if(!document.querySelector('.mob-nav')){
+      var nav=document.createElement('div');
+      nav.className='mob-nav';
+      var items=[
+        {i:'🏠',l:'Accueil',k:['tableau','bord']},
+        {i:'📋',l:'Résa',k:['réservation','reservation']},
+        {i:'🗓',l:'Calendrier',k:['calendrier']},
+        {i:'💬',l:'Messages',k:['message']},
+        {i:'💰',l:'Bilan',k:['bilan']}
+      ];
+      items.forEach(function(it,idx){
+        var btn=document.createElement('button');
+        btn.className='mob-nav-btn'+(idx===0?' on':'');
+        btn.innerHTML='<span class="ni">'+it.i+'</span>'+it.l;
+        btn.onclick=function(){
+          document.querySelectorAll('.mob-nav-btn').forEach(function(b){b.classList.remove('on');});
+          btn.classList.add('on');
+          var links=document.querySelectorAll('.sidebar [onclick],.sidebar a,.sidebar li');
+          for(var i=0;i<links.length;i++){
+            var txt=(links[i].textContent||'').toLowerCase();
+            if(it.k.some(function(k){return txt.includes(k);})){links[i].click();break;}
+          }
+          close();
+        };
+        nav.appendChild(btn);
+      });
+      document.body.appendChild(nav);
+    }
+  }
+  if(document.readyState==='complete')init();
+  else window.addEventListener('load',init);
+})();
+</script>
 </body>
 </html>
