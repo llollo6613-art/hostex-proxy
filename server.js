@@ -901,7 +901,7 @@ async function syncHostexToSupabase() {
         const prop = r.property_id === '12619011' ? 'Suite Illiberis' : 'Loft Cinema';
         const ch = r.channel_type === 'airbnb' ? 'Airbnb' : 'Booking';
         const price = r.total_price ? Math.round(r.total_price) + 'EUR' : '';
-        const msg = prop + ' - ' + ch + '\n' + (r.guest_name||'') + '\n' + (r.check_in_date||'') + ' au ' + (r.check_out_date||'') + ' - ' + price;
+        const msg = prop + ' - ' + ch + '\n' + (r.guest_name||'') + '\n' + (r.check_in_date||'') + ' → ' + (r.check_out_date||'');
         await sendPushNotif('🏠 Nouvelle réservation !', msg, '/mobile', 'new-resa');
         await sendNtfy(NTFY_RESA, '🏠 Nouvelle reservation !', msg, 'high');
         // Alerter ménage si départ dans moins de 3 jours
