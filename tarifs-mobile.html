@@ -171,8 +171,8 @@ function toggleSel(){
 
 function clearSel(){
   sel={};
-  document.querySelectorAll(".cday.sel").forEach(function(c){c.classList.remove("sel");});
   updateAbar();
+  renderCal();
 }
 
 function updateAbar(){
@@ -188,16 +188,10 @@ function updateAbar(){
 
 function tap(ds){
   if(selMode){
-    var cell=document.querySelector(".cday[data-ds='"+ds+"']");
-    if(!cell)return;
-    if(sel[ds]){
-      delete sel[ds];
-      cell.classList.remove("sel");
-    } else {
-      sel[ds]=true;
-      cell.classList.add("sel");
-    }
+    if(sel[ds]) delete sel[ds];
+    else sel[ds]=true;
     updateAbar();
+    renderCal();
   } else {
     sel={};sel[ds]=true;
     openModal();
@@ -242,16 +236,6 @@ async function save(){
     });
   }catch(e){}
   closeMov();
-  // Mettre à jour visuellement sans re-render complet
-  dates.forEach(function(ds){
-    var cell=document.querySelector(".cday[data-ds='"+ds+"']");
-    if(cell){
-      var ap=cell.querySelector(".ap");
-      var bp=cell.querySelector(".bp");
-      if(a){if(ap)ap.textContent=Math.round(a)+"€";else{var d=document.createElement("div");d.className="ap";d.textContent=Math.round(a)+"€";cell.appendChild(d);}}
-      if(b){if(bp)bp.textContent=Math.round(b)+"€";else{var d2=document.createElement("div");d2.className="bp";d2.textContent=Math.round(b)+"€";cell.appendChild(d2);}}
-    }
-  });
   clearSel();
   var t=document.createElement("div");t.className="toast";t.textContent="✅ "+dates.length+" date"+(dates.length>1?"s":"")+" mise"+(dates.length>1?"s":"")+" à jour !";document.body.appendChild(t);setTimeout(function(){t.remove();},2500);
 }
