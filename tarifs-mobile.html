@@ -188,10 +188,19 @@ function updateAbar(){
 
 function tap(ds){
   if(selMode){
+    // Toggle
     if(sel[ds]) delete sel[ds];
     else sel[ds]=true;
+    // Mise à jour visuelle immédiate
+    var cell=document.querySelector(".cday[data-ds='"+ds+"']");
+    if(cell){
+      if(sel[ds]) cell.classList.add("sel");
+      else cell.classList.remove("sel");
+    }
     updateAbar();
-    renderCal();
+    // Re-render différé pour éviter double-tap iOS
+    clearTimeout(window._rt);
+    window._rt=setTimeout(renderCal,500);
   } else {
     sel={};sel[ds]=true;
     openModal();
