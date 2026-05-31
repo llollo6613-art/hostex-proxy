@@ -8,243 +8,283 @@
 <title>Illiberis — Tarifs</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
-body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#F8F9FA;color:#1a1a1a;min-height:100vh;padding-bottom:80px;}
-.header{background:#0F6E56;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
-.header h1{font-size:17px;font-weight:700;color:#fff;}
-.header-sub{font-size:11px;color:rgba(255,255,255,.7);margin-top:1px;}
-.back-btn{background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:20px;padding:8px 14px;font-size:13px;cursor:pointer;}
-.prop-bar{display:flex;gap:8px;padding:12px 16px;background:#fff;border-bottom:1px solid #e5e4e0;}
-.prop-btn{flex-shrink:0;padding:8px 16px;border-radius:20px;border:1.5px solid #e5e4e0;background:#fff;font-size:13px;font-weight:600;cursor:pointer;color:#888;}
-.prop-btn.active{background:#0F6E56;border-color:#0F6E56;color:#fff;}
-.month-nav{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:#fff;border-bottom:1px solid #e5e4e0;}
-.month-nav h2{font-size:16px;font-weight:700;}
-.nav-btn{width:40px;height:40px;border:1.5px solid #e5e4e0;border-radius:10px;background:#fff;font-size:18px;cursor:pointer;}
-.mode-bar{padding:10px 16px;background:#fff;border-bottom:1px solid #e5e4e0;display:flex;align-items:center;gap:10px;}
-.mode-toggle{background:#f0efe9;color:#444;border:none;border-radius:10px;padding:10px 16px;font-size:13px;font-weight:600;cursor:pointer;}
-.mode-toggle.on{background:#0F6E56;color:#fff;}
-.mode-hint{font-size:12px;color:#888;}
-.sel-bar{display:none;position:sticky;top:57px;z-index:99;background:#0F6E56;padding:12px 16px;align-items:center;justify-content:space-between;}
-.sel-bar.show{display:flex;}
-.sel-count{color:#fff;font-size:14px;font-weight:600;}
-.sel-actions{display:flex;gap:8px;}
-.sel-clear{background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:8px;padding:8px 12px;font-size:12px;cursor:pointer;}
-.sel-apply{background:#fff;border:none;color:#0F6E56;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer;}
-.cal-wrap{padding:8px;}
-.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;}
-.cal-hdr{text-align:center;font-size:11px;color:#888;font-weight:600;padding:6px 0;}
-.cal-day{border-radius:10px;padding:5px 3px;cursor:pointer;min-height:72px;display:flex;flex-direction:column;border:1.5px solid #e5e4e0;background:#fff;align-items:center;}
-.cal-day.other{opacity:.2;pointer-events:none;}
-.cal-day.past{opacity:.4;pointer-events:none;}
-.cal-day.booked{background:#FFF5F5;}
-.cal-day.today{border-color:#0F6E56;background:#E1F5EE;}
-.cal-day.selected{border-color:#0F6E56 !important;background:rgba(15,110,86,0.15) !important;outline:2px solid #0F6E56;}
-.dn{font-size:13px;font-weight:700;color:#333;margin-bottom:2px;}
-.cal-day.today .dn{color:#0F6E56;}
-.ap{font-size:10px;color:#FF385C;font-weight:600;}
-.bp{font-size:10px;color:#003580;font-weight:600;}
-.rt{font-size:8px;font-weight:700;border-radius:4px;padding:1px 4px;color:#fff;margin-top:2px;}
-.rt.air{background:#FF385C;}
-.rt.bk{background:#003580;}
-.loading{text-align:center;padding:40px;color:#888;font-size:15px;}
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:none;align-items:flex-end;justify-content:center;}
-.modal-overlay.show{display:flex;}
-.modal-sheet{background:#fff;border-radius:24px 24px 0 0;padding:24px 20px 48px;width:100%;max-width:500px;}
-.modal-handle{width:40px;height:4px;background:#e0e0e0;border-radius:2px;margin:0 auto 20px;}
-.modal-sheet h3{font-size:18px;font-weight:700;margin-bottom:16px;}
-.field{margin-bottom:14px;}
-.field label{font-size:12px;color:#888;margin-bottom:6px;display:block;}
-.field input{width:100%;border:1.5px solid #e5e4e0;border-radius:12px;padding:14px;font-size:17px;outline:none;}
-.field input:focus{border-color:#0F6E56;}
-.modal-btns{display:flex;gap:10px;margin-top:20px;}
-.mbtn{flex:1;padding:15px;border:none;border-radius:14px;font-size:15px;font-weight:600;cursor:pointer;}
-.mbtn.cancel{background:#f5f5f5;color:#444;}
-.mbtn.save{background:#0F6E56;color:#fff;}
-.legend{display:flex;gap:14px;padding:10px 16px;background:#fff;border-top:1px solid #e5e4e0;flex-wrap:wrap;}
-.li{display:flex;align-items:center;gap:5px;font-size:11px;color:#666;}
+body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#F8F9FA;color:#1a1a1a;padding-bottom:140px;}
+.hdr{background:#0F6E56;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;}
+.hdr-left h1{font-size:17px;font-weight:700;color:#fff;}
+.hdr-left p{font-size:11px;color:rgba(255,255,255,.7);margin-top:1px;}
+.back{background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:20px;padding:8px 14px;font-size:13px;cursor:pointer;}
+.bar{background:#fff;border-bottom:1px solid #e5e4e0;padding:10px 14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.pbtn{padding:8px 14px;border-radius:20px;border:1.5px solid #e5e4e0;background:#fff;font-size:13px;font-weight:600;cursor:pointer;color:#888;}
+.pbtn.on{background:#0F6E56;border-color:#0F6E56;color:#fff;}
+.mnav{background:#fff;border-bottom:1px solid #e5e4e0;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;}
+.mnav h2{font-size:16px;font-weight:700;}
+.nbtn{width:40px;height:40px;border:1.5px solid #e5e4e0;border-radius:10px;background:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.mbar{background:#fff;border-bottom:1px solid #e5e4e0;padding:10px 16px;display:flex;align-items:center;gap:10px;}
+.mtgl{border:none;border-radius:10px;padding:10px 16px;font-size:13px;font-weight:600;cursor:pointer;background:#f0efe9;color:#444;}
+.mtgl.on{background:#0F6E56;color:#fff;}
+.mhint{font-size:12px;color:#888;}
+/* Grille */
+.cgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;padding:8px;}
+.chdr{text-align:center;font-size:11px;color:#888;font-weight:600;padding:5px 0 7px;}
+.cday{border-radius:10px;padding:5px 2px;min-height:70px;display:flex;flex-direction:column;align-items:center;border:1.5px solid #e5e4e0;background:#fff;cursor:pointer;user-select:none;-webkit-user-select:none;}
+.cday.other{opacity:.2;pointer-events:none;}
+.cday.past{opacity:.35;pointer-events:none;}
+.cday.booked{background:#FFF0F0;}
+.cday.today{border-color:#1D9E75;background:#E8F8F2;}
+.cday.sel{border-color:#0F6E56 !important;background:#D4EDDA !important;}
+.dn{font-size:13px;font-weight:700;color:#222;margin-bottom:1px;}
+.cday.today .dn{color:#0F6E56;}
+.cday.sel .dn{color:#0F6E56;}
+.ap{font-size:10px;color:#E8230A;font-weight:600;}
+.bp{font-size:10px;color:#00368C;font-weight:600;}
+.rt{font-size:8px;font-weight:700;border-radius:3px;padding:1px 3px;color:#fff;margin-top:1px;}
+.rt.a{background:#E8230A;}
+.rt.b{background:#00368C;}
+/* Barre action bas fixe */
+.abar{position:fixed;bottom:0;left:0;right:0;background:#0F6E56;padding:14px 16px calc(14px + env(safe-area-inset-bottom));display:none;align-items:center;justify-content:space-between;z-index:100;}
+.abar.show{display:flex;}
+.acnt{color:#fff;font-size:14px;font-weight:600;}
+.aclear{background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:8px;padding:10px 14px;font-size:13px;cursor:pointer;}
+.amod{background:#fff;border:none;color:#0F6E56;border-radius:8px;padding:10px 16px;font-size:14px;font-weight:700;cursor:pointer;}
+/* Legend */
+.leg{display:flex;gap:12px;padding:8px 16px;background:#fff;border-top:1px solid #e5e4e0;flex-wrap:wrap;}
+.li{display:flex;align-items:center;gap:4px;font-size:11px;color:#666;}
 .ld{width:10px;height:10px;border-radius:3px;}
-.toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;padding:10px 20px;border-radius:20px;font-size:14px;z-index:999;white-space:nowrap;}
+/* Modal */
+.mov{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:none;align-items:flex-end;justify-content:center;}
+.mov.show{display:flex;}
+.msh{background:#fff;border-radius:24px 24px 0 0;padding:20px 20px 44px;width:100%;}
+.mhd{width:40px;height:4px;background:#ddd;border-radius:2px;margin:0 auto 18px;}
+.msh h3{font-size:17px;font-weight:700;margin-bottom:14px;}
+.fld{margin-bottom:12px;}
+.fld label{font-size:12px;color:#888;margin-bottom:5px;display:block;}
+.fld input{width:100%;border:1.5px solid #e5e4e0;border-radius:12px;padding:13px;font-size:16px;outline:none;}
+.fld input:focus{border-color:#0F6E56;}
+.mbtns{display:flex;gap:10px;margin-top:18px;}
+.mb{flex:1;padding:14px;border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;}
+.mb.c{background:#f5f5f5;color:#444;}
+.mb.s{background:#0F6E56;color:#fff;}
+.toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#111;color:#fff;padding:10px 20px;border-radius:20px;font-size:14px;z-index:999;}
 </style>
 </head>
 <body>
 
-<div class="header">
-  <div>
+<div class="hdr">
+  <div class="hdr-left">
     <h1>💶 Tarifs & Prix</h1>
-    <div class="header-sub" id="header-sub">Chargement...</div>
+    <p id="hsub">Chargement...</p>
   </div>
-  <button class="back-btn" onclick="history.back()">← Retour</button>
+  <button class="back" onclick="history.back()">← Retour</button>
 </div>
 
-<div class="prop-bar" id="prop-bar"></div>
+<div class="bar" id="pbar"></div>
 
-<div class="month-nav">
-  <button class="nav-btn" onclick="changeMonth(-1)">‹</button>
-  <h2 id="month-title">...</h2>
-  <button class="nav-btn" onclick="changeMonth(1)">›</button>
+<div class="mnav">
+  <button class="nbtn" onclick="cm(-1)">‹</button>
+  <h2 id="mtitle">...</h2>
+  <button class="nbtn" onclick="cm(1)">›</button>
 </div>
 
-<div class="mode-bar">
-  <button class="mode-toggle" id="mode-btn" onclick="toggleSelMode()">☑ Sélection multiple</button>
-  <span class="mode-hint" id="mode-hint">Tap = ouvrir / modifier</span>
-</div>
-
-<div class="sel-bar" id="sel-bar">
-  <span class="sel-count" id="sel-count">0 sélectionné</span>
-  <div class="sel-actions">
-    <button class="sel-clear" onclick="clearSel()">✕ Vider</button>
-    <button class="sel-apply" onclick="openModal()">Modifier →</button>
-  </div>
+<div class="mbar">
+  <button class="mtgl" id="mbtn" onclick="toggleSel()">☑ Multi-sélection</button>
+  <span class="mhint" id="mhint">Tap = modifier une date</span>
 </div>
 
 <div id="cal"></div>
 
-<div class="legend">
-  <div class="li"><div class="ld" style="background:#FF385C"></div>Airbnb</div>
-  <div class="li"><div class="ld" style="background:#003580"></div>Booking</div>
-  <div class="li"><div class="ld" style="background:#FFF5F5;border:1px solid #FF385C"></div>Réservé</div>
+<div class="leg">
+  <div class="li"><div class="ld" style="background:#E8230A"></div>Airbnb</div>
+  <div class="li"><div class="ld" style="background:#00368C"></div>Booking</div>
+  <div class="li"><div class="ld" style="background:#D4EDDA;border:1px solid #0F6E56"></div>Sélectionné</div>
 </div>
 
-<div class="modal-overlay" id="modal" onclick="if(event.target===this)closeModal()">
-  <div class="modal-sheet">
-    <div class="modal-handle"></div>
-    <h3 id="modal-title">Modifier le prix</h3>
-    <div class="field"><label>Prix Airbnb (€/nuit)</label><input type="number" id="inp-air" placeholder="90"></div>
-    <div class="field"><label>Prix Booking (€/nuit)</label><input type="number" id="inp-bk" placeholder="100"></div>
-    <div class="modal-btns">
-      <button class="mbtn cancel" onclick="closeModal()">Annuler</button>
-      <button class="mbtn save" onclick="savePrices()">✓ Enregistrer</button>
+<div class="abar" id="abar">
+  <span class="acnt" id="acnt">0 date</span>
+  <div style="display:flex;gap:8px;">
+    <button class="aclear" onclick="clearSel()">✕ Vider</button>
+    <button class="amod" onclick="openModal()">Modifier →</button>
+  </div>
+</div>
+
+<div class="mov" id="mov" onclick="if(event.target===this)closeMov()">
+  <div class="msh">
+    <div class="mhd"></div>
+    <h3 id="mtit">Modifier</h3>
+    <div class="fld"><label>Prix Airbnb (€/nuit)</label><input type="number" id="iair" placeholder="ex: 90"></div>
+    <div class="fld"><label>Prix Booking (€/nuit)</label><input type="number" id="ibk" placeholder="ex: 100"></div>
+    <div class="mbtns">
+      <button class="mb c" onclick="closeMov()">Annuler</button>
+      <button class="mb s" onclick="save()">✓ Enregistrer</button>
     </div>
   </div>
 </div>
 
 <script>
-var PROPS={"12619011":{name:"Suite Illiberis",short:"Suite"},"12619012":{name:"Loft Cinema",short:"Loft"}};
-var MONTHS=["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
-var S={prop:"12619011",month:new Date(),prices:{},reservations:[],sel:{},selMode:false};
+var PR={"12619011":{n:"Suite Illiberis",s:"Suite"},"12619012":{n:"Loft Cinema",s:"Loft"}};
+var MO=["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
+var prop="12619011", month=new Date(), prices={}, reservations=[], sel={}, selMode=false;
 
 async function init(){
-  renderProps();
-  await loadRes();
-  await loadPrices();
+  renderPbar();
+  try{var r=await fetch("/all-reservations");var d=await r.json();reservations=(d.data&&d.data.reservations)||[];}catch(e){}
+  await loadP();
   renderCal();
 }
 
-function renderProps(){
-  document.getElementById("prop-bar").innerHTML=Object.keys(PROPS).map(function(pid){
-    return "<button class='prop-btn"+(S.prop===pid?" active":"")+"' onclick='setProp(\""+pid+"\")'>"+PROPS[pid].short+"</button>";
+function renderPbar(){
+  document.getElementById("pbar").innerHTML=Object.keys(PR).map(function(p){
+    return "<button class='pbtn"+(prop===p?" on":"")+"' onclick='setProp(\""+p+"\")'>"+PR[p].s+"</button>";
   }).join("");
+  document.getElementById("hsub").textContent=PR[prop].n;
 }
 
-function setProp(pid){S.prop=pid;S.sel={};renderProps();updateSelBar();loadPrices().then(renderCal);}
+function setProp(p){prop=p;sel={};renderPbar();updateAbar();loadP().then(renderCal);}
 
-async function loadRes(){
-  try{var r=await fetch("/all-reservations");var d=await r.json();S.reservations=(d.data&&d.data.reservations)||[];}catch(e){}
-}
-
-async function loadPrices(){
-  document.getElementById("header-sub").textContent=PROPS[S.prop].name+" — chargement...";
+async function loadP(){
+  var y=month.getFullYear(),m=month.getMonth()+1;
+  var from=y+"-"+(m<10?"0":"")+m+"-01",to=y+"-"+(m<10?"0":"")+m+"-31";
   try{
-    var y=S.month.getFullYear(),m=S.month.getMonth()+1;
-    var from=y+"-"+(m<10?"0":"")+m+"-01",to=y+"-"+(m<10?"0":"")+m+"-31";
-    var r=await fetch("/api/prices?property_id="+S.prop+"&start_date="+from+"&end_date="+to);
+    var r=await fetch("/api/prices?property_id="+prop+"&start_date="+from+"&end_date="+to);
     var d=await r.json();
     if(d&&d.data&&d.data.prices){
-      d.data.prices.forEach(function(p){
-        S.prices[S.prop+"_"+p.date]={air:p.airbnb_price||p.price||0,bk:p.booking_price||p.price||0};
-      });
+      d.data.prices.forEach(function(p){prices[prop+"_"+p.date]={a:p.airbnb_price||p.price||0,b:p.booking_price||p.price||0};});
     }
   }catch(e){}
-  document.getElementById("header-sub").textContent=PROPS[S.prop].name;
 }
 
-function changeMonth(d){
-  S.month=new Date(S.month.getFullYear(),S.month.getMonth()+d,1);
-  S.sel={};updateSelBar();
-  loadPrices().then(renderCal);
+function cm(delta){
+  month=new Date(month.getFullYear(),month.getMonth()+delta,1);
+  sel={};updateAbar();
+  loadP().then(renderCal);
 }
 
-function toggleSelMode(){
-  S.selMode=!S.selMode;S.sel={};
-  var btn=document.getElementById("mode-btn");
-  var hint=document.getElementById("mode-hint");
-  btn.textContent=S.selMode?"✓ Quitter sélection":"☑ Sélection multiple";
-  btn.className="mode-toggle"+(S.selMode?" on":"");
-  hint.textContent=S.selMode?"Tap = ajouter/retirer des dates":"Tap = ouvrir / modifier";
-  updateSelBar();
+function toggleSel(){
+  selMode=!selMode;sel={};
+  var btn=document.getElementById("mbtn");
+  btn.textContent=selMode?"✓ Quitter multi":"☑ Multi-sélection";
+  btn.className="mtgl"+(selMode?" on":"");
+  document.getElementById("mhint").textContent=selMode?"Tap = ajouter / retirer des dates":"Tap = modifier une date";
+  updateAbar();
+  // Retirer visuellement toutes les sélections
+  document.querySelectorAll(".cday.sel").forEach(function(c){c.classList.remove("sel");});
 }
 
-function clearSel(){S.sel={};updateSelBar();document.querySelectorAll(".cal-day.selected").forEach(function(c){c.classList.remove("selected");});}
-
-function updateSelBar(){
-  var n=Object.keys(S.sel).length;
-  var bar=document.getElementById("sel-bar");
-  if(n>0&&S.selMode){bar.classList.add("show");document.getElementById("sel-count").textContent=n+" jour"+(n>1?"s":"")+" sélectionné"+(n>1?"s":"");}
-  else bar.classList.remove("show");
+function clearSel(){
+  sel={};
+  document.querySelectorAll(".cday.sel").forEach(function(c){c.classList.remove("sel");});
+  updateAbar();
 }
 
-function tapDay(ds){
-  if(S.selMode){
-    var cell=document.querySelector("[data-ds='"+ds+"']");
-    if(S.sel[ds]){delete S.sel[ds];if(cell)cell.classList.remove("selected");}
-    else{S.sel[ds]=true;if(cell)cell.classList.add("selected");}
-    updateSelBar();
+function updateAbar(){
+  var n=Object.keys(sel).length;
+  var bar=document.getElementById("abar");
+  if(n>0&&selMode){
+    bar.classList.add("show");
+    document.getElementById("acnt").textContent=n+" date"+(n>1?"s":"")+" sélectionnée"+(n>1?"s":"");
   } else {
-    S.sel={};S.sel[ds]=true;
-    openModal(ds);
+    bar.classList.remove("show");
   }
 }
 
-function openModal(ds){
-  var n=Object.keys(S.sel).length;
-  if(n===0)return;
-  var title=n===1?"Prix du "+Object.keys(S.sel)[0].split("-").reverse().slice(0,2).join("/"):n+" jours sélectionnés";
-  document.getElementById("modal-title").textContent=title;
-  if(n===1){var p=S.prices[S.prop+"_"+Object.keys(S.sel)[0]]||{};document.getElementById("inp-air").value=p.air||"";document.getElementById("inp-bk").value=p.bk||"";}
-  else{document.getElementById("inp-air").value="";document.getElementById("inp-bk").value="";}
-  document.getElementById("modal").classList.add("show");
+function tap(ds){
+  if(selMode){
+    var cell=document.querySelector(".cday[data-ds='"+ds+"']");
+    if(!cell)return;
+    if(sel[ds]){
+      delete sel[ds];
+      cell.classList.remove("sel");
+    } else {
+      sel[ds]=true;
+      cell.classList.add("sel");
+    }
+    updateAbar();
+  } else {
+    sel={};sel[ds]=true;
+    openModal();
+  }
 }
 
-function closeModal(){document.getElementById("modal").classList.remove("show");}
+function openModal(){
+  var n=Object.keys(sel).length;
+  if(n===0)return;
+  var keys=Object.keys(sel);
+  document.getElementById("mtit").textContent=n===1?"Prix du "+keys[0].split("-").reverse().slice(0,2).join("/"):n+" dates sélectionnées";
+  if(n===1){
+    var p=prices[prop+"_"+keys[0]]||{a:"",b:""};
+    document.getElementById("iair").value=p.a||"";
+    document.getElementById("ibk").value=p.b||"";
+  } else {
+    document.getElementById("iair").value="";
+    document.getElementById("ibk").value="";
+  }
+  document.getElementById("mov").classList.add("show");
+  setTimeout(function(){document.getElementById("iair").focus();},300);
+}
 
-async function savePrices(){
-  var air=parseFloat(document.getElementById("inp-air").value);
-  var bk=parseFloat(document.getElementById("inp-bk").value);
-  if(!air&&!bk){alert("Entrez au moins un prix.");return;}
-  var dates=Object.keys(S.sel);
-  dates.forEach(function(ds){var k=S.prop+"_"+ds;if(!S.prices[k])S.prices[k]={};if(air)S.prices[k].air=air;if(bk)S.prices[k].bk=bk;});
+function closeMov(){document.getElementById("mov").classList.remove("show");}
+
+async function save(){
+  var a=parseFloat(document.getElementById("iair").value);
+  var b=parseFloat(document.getElementById("ibk").value);
+  if(!a&&!b){alert("Entrez au moins un prix.");return;}
+  var dates=Object.keys(sel);
+  dates.forEach(function(ds){
+    var k=prop+"_"+ds;
+    if(!prices[k])prices[k]={a:0,b:0};
+    if(a)prices[k].a=a;
+    if(b)prices[k].b=b;
+  });
   try{
-    await fetch("/api/prices",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({property_id:S.prop,prices:dates.map(function(ds){return{date:ds,airbnb_price:air||0,booking_price:bk||0};})})});
+    await fetch("/api/prices",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({property_id:prop,prices:dates.map(function(ds){return{date:ds,airbnb_price:a||0,booking_price:b||0};})})
+    });
   }catch(e){}
-  closeModal();S.sel={};updateSelBar();renderCal();
-  var t=document.createElement("div");t.className="toast";t.textContent="✅ Tarifs enregistrés !";document.body.appendChild(t);setTimeout(function(){t.remove();},2500);
+  closeMov();
+  // Mettre à jour visuellement sans re-render complet
+  dates.forEach(function(ds){
+    var cell=document.querySelector(".cday[data-ds='"+ds+"']");
+    if(cell){
+      var ap=cell.querySelector(".ap");
+      var bp=cell.querySelector(".bp");
+      if(a){if(ap)ap.textContent=Math.round(a)+"€";else{var d=document.createElement("div");d.className="ap";d.textContent=Math.round(a)+"€";cell.appendChild(d);}}
+      if(b){if(bp)bp.textContent=Math.round(b)+"€";else{var d2=document.createElement("div");d2.className="bp";d2.textContent=Math.round(b)+"€";cell.appendChild(d2);}}
+    }
+  });
+  clearSel();
+  var t=document.createElement("div");t.className="toast";t.textContent="✅ "+dates.length+" date"+(dates.length>1?"s":"")+" mise"+(dates.length>1?"s":"")+" à jour !";document.body.appendChild(t);setTimeout(function(){t.remove();},2500);
 }
 
 function renderCal(){
-  var y=S.month.getFullYear(),m=S.month.getMonth();
+  var y=month.getFullYear(),m=month.getMonth();
   var today=new Date().toISOString().split("T")[0];
-  document.getElementById("month-title").textContent=MONTHS[m]+" "+y;
-  var firstDay=(new Date(y,m,1).getDay()+6)%7;
-  var days=new Date(y,m+1,0).getDate();
-  var DAYS=["L","M","M","J","V","S","D"];
-  var h="<div class='cal-wrap'><div class='cal-grid'>";
-  DAYS.forEach(function(d){h+="<div class='cal-hdr'>"+d+"</div>";});
-  for(var i=0;i<firstDay;i++)h+="<div class='cal-day other'></div>";
-  for(var day=1;day<=days;day++){
+  document.getElementById("mtitle").textContent=MO[m]+" "+y;
+  var fd=(new Date(y,m,1).getDay()+6)%7;
+  var nd=new Date(y,m+1,0).getDate();
+  var DN=["L","M","M","J","V","S","D"];
+  var h="<div class='cgrid'>";
+  DN.forEach(function(d){h+="<div class='chdr'>"+d+"</div>";});
+  for(var i=0;i<fd;i++)h+="<div class='cday other'></div>";
+  for(var day=1;day<=nd;day++){
     var ds=y+"-"+(m+1<10?"0":"")+(m+1)+"-"+(day<10?"0":"")+day;
-    var isPast=ds<today,isToday=ds===today;
-    var key=S.prop+"_"+ds;
-    var price=S.prices[key]||null;
-    var res=S.reservations.filter(function(r){return String(r.property_id)===S.prop&&(r.check_in_date||r.check_in)<=ds&&(r.check_out_date||r.check_out)>ds&&r.status!=="cancelled";})[0];
-    var isSel=S.sel[ds]||false;
-    var cls="cal-day"+(isPast?" past":"")+(isToday?" today":"")+(res?" booked":"")+(isSel?" selected":"");
-    h+="<div class='"+cls+"' data-ds='"+ds+"' onclick=\"tapDay('"+ds+"')\">";
+    var isPast=ds<today,isTod=ds===today;
+    var px=prices[prop+"_"+ds]||null;
+    var rv=null;
+    for(var ri=0;ri<reservations.length;ri++){
+      var r=reservations[ri];
+      if(String(r.property_id)===prop&&(r.check_in_date||r.check_in)<=ds&&(r.check_out_date||r.check_out)>ds&&r.status!=="cancelled"){rv=r;break;}
+    }
+    var isSel=sel[ds]||false;
+    var cls="cday"+(isPast?" past":"")+(isTod?" today":"")+(rv?" booked":"")+(isSel?" sel":"");
+    h+="<div class='"+cls+"' data-ds='"+ds+"' onclick=\"tap('"+ds+"')\">";
     h+="<div class='dn'>"+day+"</div>";
-    if(price&&price.air)h+="<div class='ap'>"+Math.round(price.air)+"€</div>";
-    if(price&&price.bk)h+="<div class='bp'>"+Math.round(price.bk)+"€</div>";
-    if(res){var isAir=(res.channel_type||"").toLowerCase().includes("airbnb");h+="<div class='rt "+(isAir?"air":"bk")+"'>"+(isAir?"AIR":"BK")+"</div>";}
+    if(px&&px.a)h+="<div class='ap'>"+Math.round(px.a)+"€</div>";
+    if(px&&px.b)h+="<div class='bp'>"+Math.round(px.b)+"€</div>";
+    if(rv){var ia=(rv.channel_type||"").toLowerCase().includes("airbnb");h+="<div class='rt "+(ia?"a":"b")+"'>"+(ia?"AIR":"BK")+"</div>";}
     h+="</div>";
   }
-  h+="</div></div>";
+  h+="</div>";
   document.getElementById("cal").innerHTML=h;
 }
 
