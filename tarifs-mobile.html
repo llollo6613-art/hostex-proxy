@@ -275,7 +275,7 @@ function renderCal(){
     }
     var isSel=sel[ds]||false;
     var cls="cday"+(isPast?" past":"")+(isTod?" today":"")+(rv?" booked":"")+(isSel?" sel":"");
-    h+="<div class='"+cls+"' data-ds='"+ds+"'>";
+    h+="<div class='"+cls+"' data-ds='"+ds+"' onclick='tap(\""+ds+"\")'>"; 
     h+="<div class='dn'>"+day+"</div>";
     if(px&&px.a)h+="<div class='ap'>"+Math.round(px.a)+"€</div>";
     if(px&&px.b)h+="<div class='bp'>"+Math.round(px.b)+"€</div>";
@@ -289,14 +289,7 @@ function renderCal(){
 init();
 
 // Event delegation - fiable sur iOS
-document.addEventListener("DOMContentLoaded",function(){
-  document.getElementById("cal").addEventListener("click",function(e){
-    var cell=e.target.closest(".cday");
-    if(!cell||!cell.dataset.ds)return;
-    if(cell.classList.contains("past")||cell.classList.contains("other"))return;
-    tap(cell.dataset.ds);
-  });
-});
+
 </script>
 </body>
 </html>
