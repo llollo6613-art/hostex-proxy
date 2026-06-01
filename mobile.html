@@ -201,7 +201,8 @@ async function initPush(){
     const keyRes=await fetch('/vapid-key');
     const {publicKey}=await keyRes.json();
     const sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:urlBase64ToUint8Array(publicKey)});
-    const r=await fetch('/subscribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(sub)});
+    const subData=Object.assign({role:'owner'},JSON.parse(JSON.stringify(sub)));
+    const r=await fetch('/subscribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(subData)});
     const d=await r.json();
     updateNotifBtn(true);
     alert('✅ Notifications activées ! Vous recevrez les alertes même app fermée.');

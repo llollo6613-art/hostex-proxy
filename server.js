@@ -9,8 +9,8 @@ let pushSubscriptions = [];
 // Charger les abonnements depuis Supabase au démarrage
 async function loadSubs() {
   try {
-    const rows = await supaFetch('push_subscriptions?select=subscription');
-    pushSubscriptions = rows.map(r => JSON.parse(r.subscription));
+    const rows = await supaFetch('push_subscriptions?select=subscription,role');
+    pushSubscriptions = rows.map(r => ({...JSON.parse(r.subscription), role: r.role||'owner'}));
     console.log('Push subs loaded:', pushSubscriptions.length);
   } catch(e) { console.log('loadSubs error:', e.message); }
 }
@@ -18,16 +18,20 @@ async function saveSubs() {
   // Sauvegarder aussi en fichier comme backup
   try { require('fs').writeFileSync('/tmp/push_subs.json', JSON.stringify(pushSubscriptions)); } catch(e) {}
 }
-async function sendPushNotif(title, body, url, tag) {
+async function sendPushNotif(title, body, url, tag, targetRole) {
   if(!pushSubscriptions.length) return;
+  // Filtrer par rôle si spécifié, sinon envoyer à 'owner' uniquement
+  const role = targetRole || 'owner';
+  const targets = role === 'all' ? pushSubscriptions : pushSubscriptions.filter(s => (s.role||'owner') === role);
+  if(!targets.length) return;
   const payload = JSON.stringify({title:title||'Illiberis', body:body||'', url:url||'/mobile', tag:tag||'notif'});
   const failed = [];
-  for (const sub of pushSubscriptions) {
+  for (const sub of targets) {
     try { await webpush.sendNotification(sub, payload); }
     catch(e) { if(e.statusCode===410||e.statusCode===404) failed.push(sub.endpoint); }
   }
   if(failed.length) { pushSubscriptions=pushSubscriptions.filter(s=>!failed.includes(s.endpoint)); saveSubs(); }
-  console.log('Push sent:', pushSubscriptions.length, 'subscribers');
+  console.log('Push sent to', role, ':', targets.length, 'subscribers');
 }
 
 
@@ -455,22 +459,26 @@ app.get('/icon-menage-192.png', (req, res) => res.sendFile(__dirname+'/icon-mena
 app.get('/icon-menage-512.png', (req, res) => res.sendFile(__dirname+'/icon-menage-512.png'));
 
 app.post('/subscribe', async (req, res) => {
-  const sub = req.body;
+  const {endpoint, role, ...rest} = req.body || {};
+  const sub = {endpoint, ...rest};
   if(!sub || !sub.endpoint) return res.status(400).json({error:'Invalid subscription'});
-  const exists = pushSubscriptions.find(s => s.endpoint === sub.endpoint);
-  if(!exists) {
-    pushSubscriptions.push(sub);
-    saveSubs();
-    // Sauvegarder dans Supabase
-    try {
-      await supaFetch('push_subscriptions?on_conflict=endpoint', 'POST', [{
-        endpoint: sub.endpoint,
-        subscription: JSON.stringify(sub)
-      }]);
-    } catch(e) { console.log('Supabase sub save error:', e.message); }
+  const subRole = role || 'owner';
+  const idx = pushSubscriptions.findIndex(s => s.endpoint === sub.endpoint);
+  if(idx === -1) {
+    pushSubscriptions.push({...sub, role: subRole});
+  } else {
+    pushSubscriptions[idx] = {...pushSubscriptions[idx], role: subRole};
   }
-  res.json({ok: true, total: pushSubscriptions.length});
-  console.log('New push subscriber, total:', pushSubscriptions.length);
+  saveSubs();
+  try {
+    await supaFetch('push_subscriptions?on_conflict=endpoint', 'POST', [{
+      endpoint: sub.endpoint,
+      subscription: JSON.stringify(sub),
+      role: subRole
+    }]);
+  } catch(e) { console.log('Supabase sub save error:', e.message); }
+  res.json({ok: true, total: pushSubscriptions.length, role: subRole});
+  console.log('Push subscriber:', subRole, 'total:', pushSubscriptions.length);
 });
 
 
