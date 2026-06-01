@@ -2948,7 +2948,7 @@ function renderVirements(){
       var items=[
         {i:'🏠',l:'Accueil',k:['tableau','bord']},
         {i:'📋',l:'Résa',k:['réservation','reservation']},
-        {i:'💶',l:'Tarifs',k:['tarif','prix']},
+        {i:'💶',l:'Tarifs',k:['tarif','prix'],url:'/tarifs-mobile'},
         {i:'💬',l:'Messages',k:['message']},
         {i:'💰',l:'Bilan',k:['bilan']}
       ];
@@ -2957,6 +2957,7 @@ function renderVirements(){
         btn.className='mob-nav-btn'+(idx===0?' on':'');
         btn.innerHTML='<span class="ni">'+it.i+'</span>'+it.l;
         btn.onclick=function(){
+          if(it.url){window.location.href=it.url;return;}
           document.querySelectorAll('.mob-nav-btn').forEach(function(b){b.classList.remove('on');});
           btn.classList.add('on');
           var links=document.querySelectorAll('.sidebar [onclick],.sidebar a,.sidebar li');
