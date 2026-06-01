@@ -134,20 +134,29 @@ async function loadP(){
   var from=y+"-"+(m<10?"0":"")+m+"-01";
   var to=y+"-"+(m<10?"0":"")+m+"-"+(new Date(y,m,0).getDate());
   var chs=CHANNELS[prop]||[];
+  document.getElementById("hsub").textContent=PR[prop].n+" — chargement...";
   for(var i=0;i<chs.length;i++){
     var ch=chs[i];
     try{
-      var r=await fetch("/api/listings/prices?listing_id="+ch.lid+"&channel_type="+(ch.type==="airbnb"?"airbnb":"booking.com")+"&start_date="+from+"&end_date="+to);
-      var d=await r.json();
-      var list=(d&&d.data&&d.data.prices)||[];
-      list.forEach(function(p){
-        var k=prop+"_"+p.date;
-        if(!prices[k])prices[k]={a:0,b:0};
-        if(ch.type==="airbnb")prices[k].a=p.price||0;
-        else prices[k].b=p.price||0;
+      var r=await fetch("/api/listings/calendar",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({listings:[{listing_id:ch.lid,channel_type:ch.type==="airbnb"?"airbnb":"booking.com"}],start_date:from,end_date:to})
       });
-    }catch(e){}
+      var d=await r.json();
+      var listings=(d&&d.data&&d.data.listings)||[];
+      listings.forEach(function(lst){
+        (lst.calendar||[]).forEach(function(p){
+          if(!p.date||!p.price)return;
+          var k=prop+"_"+p.date;
+          if(!prices[k])prices[k]={a:0,b:0};
+          if(ch.type==="airbnb")prices[k].a=parseInt(p.price)||0;
+          else prices[k].b=parseInt(p.price)||0;
+        });
+      });
+    }catch(e){console.log("loadP error:",e);}
   }
+  document.getElementById("hsub").textContent=PR[prop].n;
 }
 
 function cm(delta){
