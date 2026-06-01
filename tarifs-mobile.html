@@ -117,14 +117,37 @@ function renderPbar(){
 
 function setProp(p){prop=p;sel={};renderPbar();updateCtrl();loadP().then(function(){renderCal();bindCal();});}
 
+// Listing IDs Hostex
+var CHANNELS={
+  "12619011":[
+    {type:"airbnb",lid:"1444758558715417027"},
+    {type:"booking",lid:"1481914101-57774854"}
+  ],
+  "12619012":[
+    {type:"airbnb",lid:"1499112879728152781"},
+    {type:"booking",lid:"1500939401-58637824"}
+  ]
+};
+
 async function loadP(){
   var y=month.getFullYear(),m=month.getMonth()+1;
-  var from=y+"-"+(m<10?"0":"")+m+"-01",to=y+"-"+(m<10?"0":"")+m+"-31";
-  try{
-    var r=await fetch("/api/prices?property_id="+prop+"&start_date="+from+"&end_date="+to);
-    var d=await r.json();
-    if(d&&d.data&&d.data.prices)d.data.prices.forEach(function(p){prices[prop+"_"+p.date]={a:p.airbnb_price||p.price||0,b:p.booking_price||p.price||0};});
-  }catch(e){}
+  var from=y+"-"+(m<10?"0":"")+m+"-01";
+  var to=y+"-"+(m<10?"0":"")+m+"-"+(new Date(y,m,0).getDate());
+  var chs=CHANNELS[prop]||[];
+  for(var i=0;i<chs.length;i++){
+    var ch=chs[i];
+    try{
+      var r=await fetch("/api/listings/prices?listing_id="+ch.lid+"&channel_type="+(ch.type==="airbnb"?"airbnb":"booking.com")+"&start_date="+from+"&end_date="+to);
+      var d=await r.json();
+      var list=(d&&d.data&&d.data.prices)||[];
+      list.forEach(function(p){
+        var k=prop+"_"+p.date;
+        if(!prices[k])prices[k]={a:0,b:0};
+        if(ch.type==="airbnb")prices[k].a=p.price||0;
+        else prices[k].b=p.price||0;
+      });
+    }catch(e){}
+  }
 }
 
 function cm(delta){
