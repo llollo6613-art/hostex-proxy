@@ -58,6 +58,21 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#F8F9FA;
 .mb{flex:1;padding:14px;border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;}
 .mb.c{background:#f5f5f5;color:#444;}.mb.s{background:#0F6E56;color:#fff;}
 .toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#111;color:#fff;padding:10px 20px;border-radius:20px;font-size:14px;z-index:999;}
+/* Cylindres réservations */
+.rb{font-size:8px;font-weight:700;border-radius:20px;padding:2px 3px;color:#fff;width:100%;text-align:center;margin-top:1px;}
+.rb.s{border-radius:6px 0 0 6px;margin-left:-1px;}
+.rb.e{border-radius:0 6px 6px 0;margin-right:-1px;}
+.rb.m{border-radius:0;margin-left:-1px;margin-right:-1px;}
+.rb.al{border-radius:6px;margin:0 2px;}
+.rb.air-c{background:#FF385C;}
+.rb.bk-c{background:#003580;}
+/* Panel prix de base */
+.base-panel{background:#fff;border-bottom:1px solid #eee;padding:10px 16px;}
+.base-panel h4{font-size:12px;font-weight:600;color:#888;margin-bottom:8px;}
+.base-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.base-item{border:1.5px solid #eee;border-radius:10px;padding:8px 10px;}
+.base-item label{font-size:10px;color:#888;display:block;margin-bottom:2px;}
+.base-item input{width:100%;border:none;font-size:15px;font-weight:700;color:#0F6E56;outline:none;background:none;}
 </style>
 </head>
 <body>
@@ -82,6 +97,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#F8F9FA;
     <button class="cbtn mod" onclick="openModal()">Modifier →</button>
   </div>
 </div>
+<div class="base-panel">
+  <h4>Prix de base — <span id="prop-name">Suite</span></h4>
+  <div class="base-grid">
+    <div class="base-item"><label>Airbnb semaine</label><input type="number" id="b-air-w" onchange="saveBase()"></div>
+    <div class="base-item"><label>Airbnb W-E</label><input type="number" id="b-air-we" onchange="saveBase()"></div>
+    <div class="base-item"><label>Booking semaine</label><input type="number" id="b-bk-w" onchange="saveBase()"></div>
+    <div class="base-item"><label>Booking W-E</label><input type="number" id="b-bk-we" onchange="saveBase()"></div>
+  </div>
+</div>
 <div id="cal"></div>
 <div class="mov" id="mov" onclick="if(event.target===this)closeMov()">
   <div class="msh">
@@ -100,8 +124,36 @@ var PR={"12619011":{n:"Suite Illiberis",s:"Suite"},"12619012":{n:"Loft Cinema",s
 var MO=["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
 var prop="12619011",month=new Date(),prices={},reservations=[],sel={},selMode=false;
 
+function nextDay(ds){var d=new Date(ds+"T00:00:00");d.setDate(d.getDate()+1);return d.toISOString().split("T")[0];}
+
+var BASE_PRICES={
+  "12619011":{aw:80,awe:95,bw:70,bwe:88},
+  "12619012":{aw:90,awe:110,bw:80,bwe:100}
+};
+
+function loadBase(){
+  try{var s=localStorage.getItem("base_"+prop);if(s)BASE_PRICES[prop]=JSON.parse(s);}catch(e){}
+  var b=BASE_PRICES[prop]||{aw:0,awe:0,bw:0,bwe:0};
+  document.getElementById("b-air-w").value=b.aw||"";
+  document.getElementById("b-air-we").value=b.awe||"";
+  document.getElementById("b-bk-w").value=b.bw||"";
+  document.getElementById("b-bk-we").value=b.bwe||"";
+  document.getElementById("prop-name").textContent=PR[prop].s;
+}
+
+function saveBase(){
+  BASE_PRICES[prop]={
+    aw:parseFloat(document.getElementById("b-air-w").value)||0,
+    awe:parseFloat(document.getElementById("b-air-we").value)||0,
+    bw:parseFloat(document.getElementById("b-bk-w").value)||0,
+    bwe:parseFloat(document.getElementById("b-bk-we").value)||0
+  };
+  try{localStorage.setItem("base_"+prop,JSON.stringify(BASE_PRICES[prop]));}catch(e){}
+}
+
 async function init(){
   renderPbar();
+  loadBase();
   try{var r=await fetch("/all-reservations");var d=await r.json();reservations=(d.data&&d.data.reservations)||[];}catch(e){}
   await loadP();
   renderCal();
@@ -115,7 +167,7 @@ function renderPbar(){
   document.getElementById("hsub").textContent=PR[prop].n;
 }
 
-function setProp(p){prop=p;sel={};renderPbar();updateCtrl();loadP().then(function(){renderCal();bindCal();});}
+function setProp(p){prop=p;sel={};renderPbar();loadBase();updateCtrl();loadP().then(function(){renderCal();bindCal();});}
 
 // Listing IDs Hostex
 var CHANNELS={
@@ -235,19 +287,35 @@ async function save(){
   var b=parseFloat(document.getElementById("ibk").value);
   if(!a&&!b){alert("Entrez au moins un prix.");return;}
   var dates=Object.keys(sel);
+  // Mettre à jour cache local
   dates.forEach(function(ds){var k=prop+"_"+ds;if(!prices[k])prices[k]={a:0,b:0};if(a)prices[k].a=a;if(b)prices[k].b=b;});
-  try{await fetch("/api/prices",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({property_id:prop,prices:dates.map(function(ds){return{date:ds,airbnb_price:a||0,booking_price:b||0};})})});}catch(e){}
-  // Mise à jour visuelle
-  dates.forEach(function(ds){
-    var cell=document.querySelector(".cd[data-ds='"+ds+"']");
-    if(cell){
-      var ae=cell.querySelector(".ap"),be=cell.querySelector(".bp");
-      if(a){if(ae)ae.textContent=Math.round(a)+"€";else{var d=document.createElement("div");d.className="ap";d.textContent=Math.round(a)+"€";cell.appendChild(d);}}
-      if(b){if(be)be.textContent=Math.round(b)+"€";else{var d2=document.createElement("div");d2.className="bp";d2.textContent=Math.round(b)+"€";cell.appendChild(d2);}}
-    }
-  });
+  // Envoyer à Hostex via listings/calendar pour chaque channel
+  var chs=CHANNELS[prop]||[];
+  var ok=true;
+  for(var i=0;i<chs.length;i++){
+    var ch=chs[i];
+    var isAir=ch.type==="airbnb";
+    if(isAir&&!a)continue;
+    if(!isAir&&!b)continue;
+    var price=isAir?a:b;
+    var priceList=dates.map(function(ds){return{date:ds,price:price,start_date:ds,end_date:ds};});
+    try{
+      // Envoyer par batch de 30
+      for(var j=0;j<priceList.length;j+=30){
+        var r=await fetch("/api/listings/prices",{
+          method:"POST",
+          headers:{"Content-Type":"application/json"},
+          body:JSON.stringify({listing_id:ch.lid,channel_type:isAir?"airbnb":"booking.com",prices:priceList.slice(j,j+30)})
+        });
+        var d=await r.json();
+        if(d.error_code)ok=false;
+      }
+    }catch(e){ok=false;}
+  }
   closeMov();clearSel();
-  var t=document.createElement("div");t.className="toast";t.textContent="✅ "+dates.length+" date"+(dates.length>1?"s":"")+" mise"+(dates.length>1?"s":"")+" à jour";document.body.appendChild(t);setTimeout(function(){t.remove();},2000);
+  renderCal();bindCal();
+  var msg=ok?"✅ "+dates.length+" date"+(dates.length>1?"s":"")+" mise"+(dates.length>1?"s":"")+" à jour sur Hostex":"⚠️ Sauvegarde locale OK (vérifiez Hostex)";
+  var t=document.createElement("div");t.className="toast";t.textContent=msg;document.body.appendChild(t);setTimeout(function(){t.remove();},3000);
 }
 
 function renderCal(){
@@ -270,7 +338,15 @@ function renderCal(){
     h+="<div class='dn'>"+day+"</div>";
     if(px&&px.a)h+="<div class='ap'>"+Math.round(px.a)+"€</div>";
     if(px&&px.b)h+="<div class='bp'>"+Math.round(px.b)+"€</div>";
-    if(rv){var ia=(rv.channel_type||"").toLowerCase().includes("airbnb");h+="<div class='rt "+(ia?"a":"b")+"'>"+(ia?"AIR":"BK")+"</div>";}
+    if(rv){
+      var ia=(rv.channel_type||"").toLowerCase().includes("airbnb");
+      var ci=rv.check_in_date||rv.check_in||"";
+      var co=rv.check_out_date||rv.check_out||"";
+      var isStart=ci===ds,isEnd=co===ds;
+      var alone=isStart&&co===nextDay(ds);
+      var rcls=(ia?"air-c":"bk-c")+" "+(alone?"al":isStart?"s":isEnd?"e":"m");
+      h+="<div class='rb "+rcls+"'>"+(ia?"A":"B")+"</div>";
+    }
     h+="</div>";
   }
   h+="</div>";
