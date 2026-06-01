@@ -202,15 +202,6 @@ function tap(ds){
   }
 }
 
-    updateAbar();
-    // Re-render différé pour éviter double-tap iOS
-    clearTimeout(window._rt);
-    window._rt=setTimeout(renderCal,500);
-  } else {
-    sel={};sel[ds]=true;
-    openModal();
-  }
-}
 
 function openModal(){
   var n=Object.keys(sel).length;
