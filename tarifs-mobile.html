@@ -29,9 +29,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#F8F9FA;
 .cbtn.vide{background:#f0efe9;color:#444;}
 .cbtn.mod{background:#0F6E56;color:#fff;}
 /* Calendrier */
-.cgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;padding:8px;}
+.cgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;padding:8px;overflow:visible;}
 .ch{text-align:center;font-size:11px;color:#888;font-weight:600;padding:5px 0;}
-.cd{border-radius:8px;padding:4px 2px;min-height:68px;display:flex;flex-direction:column;align-items:center;border:1.5px solid #e5e4e0;background:#fff;cursor:pointer;}
+.cd{border-radius:8px;padding:4px 2px;min-height:68px;display:flex;flex-direction:column;align-items:center;border:1.5px solid #e5e4e0;background:#fff;cursor:pointer;overflow:visible;}
 .cd.oth{opacity:.2;pointer-events:none;}
 .cd.pst{opacity:.35;pointer-events:none;}
 .cd.bkd{background:#FFF0F0;}
@@ -59,11 +59,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#F8F9FA;
 .mb.c{background:#f5f5f5;color:#444;}.mb.s{background:#0F6E56;color:#fff;}
 .toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#111;color:#fff;padding:10px 20px;border-radius:20px;font-size:14px;z-index:999;}
 /* Cylindres réservations */
-.rb{font-size:8px;font-weight:700;border-radius:20px;padding:2px 3px;color:#fff;width:100%;text-align:center;margin-top:1px;}
-.rb.s{border-radius:6px 0 0 6px;margin-left:-1px;}
-.rb.e{border-radius:0 6px 6px 0;margin-right:-1px;}
-.rb.m{border-radius:0;margin-left:-1px;margin-right:-1px;}
-.rb.al{border-radius:6px;margin:0 2px;}
+.rb{font-size:8px;font-weight:700;padding:2px 0;color:#fff;width:100%;text-align:center;margin-top:1px;position:relative;z-index:2;}
+.rb.s{border-radius:6px 0 0 6px;margin-right:-3px;padding-left:4px;}
+.rb.e{border-radius:0 6px 6px 0;margin-left:-3px;padding-right:4px;}
+.rb.m{border-radius:0;margin-left:-3px;margin-right:-3px;}
+.rb.al{border-radius:6px;margin:0 4px;}
 .rb.air-c{background:#FF385C;}
 .rb.bk-c{background:#003580;}
 /* Panel prix de base */
