@@ -59,11 +59,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#F8F9FA;
 .mb.c{background:#f5f5f5;color:#444;}.mb.s{background:#0F6E56;color:#fff;}
 .toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#111;color:#fff;padding:10px 20px;border-radius:20px;font-size:14px;z-index:999;}
 /* Cylindres réservations */
-.rb{font-size:8px;font-weight:700;padding:2px 0;color:#fff;width:100%;text-align:center;margin-top:1px;position:relative;z-index:2;}
-.rb.s{border-radius:6px 0 0 6px;margin-right:-5px;padding-left:4px;}
-.rb.e{border-radius:0 6px 6px 0;margin-left:-5px;padding-right:4px;}
-.rb.m{border-radius:0;margin-left:-5px;margin-right:-5px;}
-.rb.al{border-radius:6px;margin:0 4px;}
+.rb-wrap{position:relative;width:calc(100% + 4px);margin-left:-2px;height:14px;margin-top:2px;}
+.rb{position:absolute;top:0;height:14px;font-size:7px;font-weight:700;color:#fff;display:flex;align-items:center;justify-content:center;z-index:10;}
+.rb.s{left:50%;right:-4px;border-radius:5px 0 0 5px;}
+.rb.e{left:-4px;right:50%;border-radius:0 5px 5px 0;}
+.rb.m{left:-4px;right:-4px;border-radius:0;}
+.rb.al{left:15%;right:15%;border-radius:5px;}
+/* check_out = dernier jour = finit à 50% */
+.rb.co{left:-4px;right:50%;border-radius:0 5px 5px 0;}
 .rb.air-c{background:#FF385C;}
 .rb.bk-c{background:#003580;}
 .gp{font-size:8px;color:#aaa;text-align:center;line-height:1.2;}
@@ -332,22 +335,29 @@ function renderCal(){
     var isPast=ds<today,isTod=ds===today;
     var px=prices[prop+"_"+ds]||null;
     var rv=null;
+    // Résa en cours ce jour
     for(var ri=0;ri<reservations.length;ri++){var r=reservations[ri];if(String(r.property_id)===prop&&(r.check_in_date||r.check_in)<=ds&&(r.check_out_date||r.check_out)>ds&&r.status!=="cancelled"){rv=r;break;}}
+    // Résa qui se termine ce jour (checkout)
+    var rvEnd=null;
+    if(!rv){for(var ri2=0;ri2<reservations.length;ri2++){var r2=reservations[ri2];if(String(r2.property_id)===prop&&(r2.check_out_date||r2.check_out)===ds&&r2.status!=="cancelled"){rvEnd=r2;break;}}}
     var isSel=sel[ds]||false;
-    var cls="cd"+(isPast?" pst":"")+(isTod?" tod":"")+(rv?" bkd":"")+(isSel?" sel":"");
+    var cls="cd"+(isPast?" pst":"")+(isTod?" tod":"")+((rv||rvEnd)?" bkd":"")+(isSel?" sel":"");
     h+="<div class='"+cls+"' data-ds='"+ds+"'>";
     h+="<div class='dn'>"+day+"</div>";
     var cleanFee=prop==="12619011"?25:45;
     if(px&&px.a){var guestAir=Math.round(px.a*1.14+cleanFee);h+="<div class='ap'>"+Math.round(px.a)+"€</div>";h+="<div class='gp'>~"+guestAir+"€ client</div>";}
     if(px&&px.b){var netBk=Math.round(px.b*0.856);h+="<div class='bp'>"+Math.round(px.b)+"€</div>";h+="<div class='gp'>~"+netBk+"€ net</div>";}
-    if(rv){
-      var ia=(rv.channel_type||"").toLowerCase().includes("airbnb");
-      var ci=rv.check_in_date||rv.check_in||"";
-      var co=rv.check_out_date||rv.check_out||"";
-      var isStart=ci===ds,isEnd=co===ds;
-      var alone=isStart&&co===nextDay(ds);
-      var rcls=(ia?"air-c":"bk-c")+" "+(alone?"al":isStart?"s":isEnd?"e":"m");
-      h+="<div class='rb "+rcls+"'>"+(ia?"A":"B")+"</div>";
+    // Afficher cylindre
+    var rbRes=rv||rvEnd;
+    if(rbRes){
+      var ia=(rbRes.channel_type||"").toLowerCase().includes("airbnb");
+      var ci2=rbRes.check_in_date||rbRes.check_in||"";
+      var co2=rbRes.check_out_date||rbRes.check_out||"";
+      var isStart2=ci2===ds;
+      var isEnd2=co2===ds;
+      var alone2=isStart2&&co2===nextDay(ds);
+      var rcls=(ia?"air-c":"bk-c")+" "+(alone2?"al":isStart2?"s":isEnd2?"e":"m");
+      h+="<div class='rb-wrap'><div class='rb "+rcls+"'>"+(ia?"A":"B")+"</div></div>";
     }
     h+="</div>";
   }
