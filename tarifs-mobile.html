@@ -71,6 +71,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#F8F9FA;
 .rb.al.bk-c{background:linear-gradient(90deg,transparent 10%,#003580 10%,#003580 90%,transparent 90%);border-radius:5px;}
 /* check_out = dernier jour = finit à 50% */
 .gp{font-size:8px;color:#aaa;text-align:center;line-height:1.2;}
+.bar{position:absolute;height:10px;z-index:5;pointer-events:none;}
+.bar.air-c{background:linear-gradient(90deg,#ef4444,#f87171);}
+.bar.bk-c{background:linear-gradient(90deg,#3b82f6,#60a5fa);}
+.bar{position:absolute;height:10px;z-index:5;pointer-events:none;}
+.bar.air-c{background:linear-gradient(90deg,#ef4444,#f87171);}
+.bar.bk-c{background:linear-gradient(90deg,#3b82f6,#60a5fa);}
 /* Panel prix de base */
 .base-panel{background:#fff;border-bottom:1px solid #eee;padding:10px 16px;}
 .base-panel h4{font-size:12px;font-weight:600;color:#888;margin-bottom:8px;}
@@ -328,6 +334,7 @@ function renderCal(){
   var today=new Date().toISOString().split("T")[0];
   document.getElementById("mtitle").textContent=MO[m]+" "+y;
   var fd=(new Date(y,m,1).getDay()+6)%7,nd=new Date(y,m+1,0).getDate();
+  var calW=(window.innerWidth||360)-32;var GAP=2;var CELL=Math.floor((calW-GAP*6)/7);var bars2='';
   var DN=["L","M","M","J","V","S","D"],h="<div class='cgrid'>";
   DN.forEach(function(d){h+="<div class='ch'>"+d+"</div>";});
   for(var i=0;i<fd;i++)h+="<div class='cd oth'></div>";
@@ -350,28 +357,41 @@ function renderCal(){
     if(px&&px.a){var guestAir=Math.round(px.a*1.14+cleanFee);h+="<div class='ap'>"+Math.round(px.a)+"€</div>";h+="<div class='gp'>~"+guestAir+"€ client</div>";}
     if(px&&px.b){var netBk=Math.round(px.b*0.856);h+="<div class='bp'>"+Math.round(px.b)+"€</div>";h+="<div class='gp'>~"+netBk+"€ net</div>";}
     // Cylindre réservation
-    // Afficher les cylindres — gérer le cas où fin et début se chevauchent le même jour
-    var showEnd = rvEnd && (!rv || (rv.check_in_date||rv.check_in)===ds);
-    if(rv && rvEnd && (rv.check_in_date||rv.check_in)===ds){
-      // Deux demi-barres : fin de l'ancienne + début de la nouvelle
-      var ia2=(rvEnd.channel_type||"").toLowerCase().includes("airbnb");
-      var ia3=(rv.channel_type||"").toLowerCase().includes("airbnb");
-      h+="<div class='rb-wrap'>";
-      h+="<div class='rb "+(ia2?"air-c":"bk-c")+" e' style='flex:1'>"</div>";
-      h+="<div class='rb "+(ia3?"air-c":"bk-c")+" s' style='flex:1'>"</div>";
-      h+="</div>";
-    } else if(rv){
-      var ia4=(rv.channel_type||"").toLowerCase().includes("airbnb");
-      var isStart4=(rv.check_in_date||rv.check_in)===ds;
-      h+="<div class='rb-wrap'><div class='rb "+(ia4?"air-c":"bk-c")+" "+(isStart4?"s":"m")+"'>"</div></div>";
-    } else if(rvEnd){
-      var ia5=(rvEnd.channel_type||"").toLowerCase().includes("airbnb");
-      h+="<div class='rb-wrap'><div class='rb "+(ia5?"air-c":"bk-c")+" e'>"</div></div>";
-    }
+
     h+="</div>";
   }
   h+="</div>";
-  document.getElementById("cal").innerHTML=h;
+  // Barres absolues style dashboard
+  for(var bi=0;bi<reservations.length;bi++){
+    var br=reservations[bi];
+    if(String(br.property_id)!==prop||br.status==="cancelled")continue;
+    var bci=br.check_in_date||br.check_in||"";var bco=br.check_out_date||br.check_out||"";
+    if(!bci||!bco)continue;
+    var startD=new Date(bci+"T00:00:00"),endD=new Date(bco+"T00:00:00");
+    var mStart=new Date(y,m,1);
+    if(endD<=mStart||startD>new Date(y,m+1,0))continue;
+    var cur2=startD<mStart?new Date(mStart):new Date(startD);
+    var ia=(br.channel_type||"").toLowerCase().includes("airbnb");
+    var bc=ia?"air-c":"bk-c";
+    while(cur2<endD){
+      var idx2=fd+cur2.getDate()-1;
+      var rowEnd2=Math.floor(idx2/7)*7+7;
+      var rowEndDate2=new Date(y,m,cur2.getDate()+(rowEnd2-idx2));
+      if(rowEndDate2>endD)rowEndDate2=new Date(endD);
+      var cc=Math.round((rowEndDate2-cur2)/86400000);
+      var col2=idx2%7,row2=Math.floor(idx2/7);
+      var isSt=cur2.toDateString()===startD.toDateString();
+      var isEn=rowEndDate2>=endD;
+      var lft=col2*(CELL+GAP)+(isSt?CELL/2:0);
+      var wd=cc*(CELL+GAP)-GAP-(isSt?CELL/2:0)-(isEn?CELL/2:0);
+      if(wd<2)wd=2;
+      var tp=row2*(CELL+GAP)+CELL-14;
+      var brr=isSt&&isEn?"5px":isSt?"5px 0 0 5px":isEn?"0 5px 5px 0":"0";
+      bars2+="<div class=\'bar "+bc+"\' style=\'left:"+lft+"px;top:"+tp+"px;width:"+wd+"px;border-radius:"+brr+";border-radius:"+brr+";\'></div>";
+      cur2=rowEndDate2;
+    }
+  }
+  document.getElementById("cal").innerHTML="<div style=\'padding:8px;position:relative;\'>"+h+bars2+"</div>";
 }
 
 init();
