@@ -58,10 +58,17 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#F8F9FA;
 .mb{flex:1;padding:14px;border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;}
 .mb.c{background:#f5f5f5;color:#444;}.mb.s{background:#0F6E56;color:#fff;}
 .toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#111;color:#fff;padding:10px 20px;border-radius:20px;font-size:14px;z-index:999;}
-/* barres réservation calculées en JS - position absolute */
-.rb-bar{position:absolute;height:10px;z-index:5;display:flex;align-items:center;padding:0 4px;font-size:8px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;pointer-events:none;}
-.rb-bar.air-c{background:linear-gradient(90deg,#ef4444,#f87171);}
-.rb-bar.bk-c{background:linear-gradient(90deg,#3b82f6,#60a5fa);}
+/* Cylindres réservations */
+.rb-wrap{position:relative;width:calc(100% + 4px);margin-left:-2px;height:14px;margin-top:2px;}
+.rb{position:absolute;top:0;height:14px;font-size:7px;font-weight:700;color:#fff;display:flex;align-items:center;justify-content:center;z-index:10;}
+.rb.s{left:50%;right:-4px;border-radius:5px 0 0 5px;}
+.rb.e{left:-4px;right:50%;border-radius:0 5px 5px 0;}
+.rb.m{left:-4px;right:-4px;border-radius:0;}
+.rb.al{left:15%;right:15%;border-radius:5px;}
+/* check_out = dernier jour = finit à 50% */
+.rb.co{left:-4px;right:50%;border-radius:0 5px 5px 0;}
+.rb.air-c{background:#FF385C;}
+.rb.bk-c{background:#003580;}
 .gp{font-size:8px;color:#aaa;text-align:center;line-height:1.2;}
 /* Panel prix de base */
 .base-panel{background:#fff;border-bottom:1px solid #eee;padding:10px 16px;}
@@ -363,47 +370,7 @@ function renderCal(){
     h+="</div>";
   }
   h+="</div>";
-  // Calculer les barres position absolute comme le dashboard
-  var seen={};
-  for(var bi=0;bi<reservations.length;bi++){
-    var bres=reservations[bi];
-    if(String(bres.property_id)!==prop||bres.status==="cancelled")continue;
-    var bci=bres.check_in_date||bres.check_in||"";
-    var bco=bres.check_out_date||bres.check_out||"";
-    if(!bci||!bco)continue;
-    var startD=new Date(bci+"T00:00:00");
-    var endD=new Date(bco+"T00:00:00");
-    var monthStart=new Date(y,m,1);
-    var monthEndD=new Date(y,m+1,0);
-    if(endD<=monthStart||startD>monthEndD)continue;
-    var clampStart=startD<monthStart?monthStart:startD;
-    var endDp1=new Date(endD.getFullYear(),endD.getMonth(),endD.getDate());
-    var clampEnd=endDp1>new Date(y,m+1,0)?new Date(y,m+1,1):new Date(endD.getFullYear(),endD.getMonth(),endD.getDate()+1);
-    var cur=new Date(clampStart);
-    var ia=(bres.channel_type||"").toLowerCase().includes("airbnb");
-    var bcolor=ia?"air-c":"bk-c";
-    while(cur<clampEnd){
-      var idx=fd+cur.getDate()-1;
-      var rowEnd=Math.floor(idx/7)*7+7;
-      var rowEndDate=new Date(y,m,cur.getDate()+(rowEnd-idx));
-      if(rowEndDate>clampEnd)rowEndDate=new Date(clampEnd);
-      var cellCount=Math.round((rowEndDate-cur)/86400000);
-      var col=idx%7;
-      var row=Math.floor(idx/7);
-      var isResStart=cur.toDateString()===startD.toDateString();
-      var isResEnd=rowEndDate>=endD;
-      var leftBase=col*(CELL+GAP);
-      var left=isResStart?leftBase+CELL/2:leftBase;
-      var rawW=cellCount*(CELL+GAP)-GAP;
-      var width=rawW-(isResStart?CELL/2:0)-(isResEnd?CELL/2:0);
-      if(width<2)width=2;
-      var topPx=row*(CELL+GAP)+CELL-12+8;
-      var br=isResStart&&isResEnd?"5px":isResStart?"5px 0 0 5px":isResEnd?"0 5px 5px 0":"0";
-      bars+="<div class='rb-bar "+bcolor+"' style='left:"+left+"px;top:"+topPx+"px;width:"+width+"px;border-radius:"+br+";'></div>";
-      cur=rowEndDate;
-    }
-  }
-  document.getElementById("cal").innerHTML="<div style='position:relative;padding:8px;'>"+h+bars+"</div>";
+  document.getElementById("cal").innerHTML=h;
 }
 
 init();
