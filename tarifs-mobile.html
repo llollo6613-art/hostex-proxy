@@ -341,23 +341,22 @@ function renderCal(){
     var rvEnd=null;
     if(!rv){for(var ri2=0;ri2<reservations.length;ri2++){var r2=reservations[ri2];if(String(r2.property_id)===prop&&(r2.check_out_date||r2.check_out)===ds&&r2.status!=="cancelled"){rvEnd=r2;break;}}}
     var isSel=sel[ds]||false;
-    var cls="cd"+(isPast?" pst":"")+(isTod?" tod":"")+((rv||rvEnd)?" bkd":"")+(isSel?" sel":"");
+    // bkd uniquement si la nuit est occupée (pas le jour de départ)
+    var cls="cd"+(isPast?" pst":"")+(isTod?" tod":"")+(rv?" bkd":"")+(isSel?" sel":"");
     h+="<div class='"+cls+"' data-ds='"+ds+"'>";
     h+="<div class='dn'>"+day+"</div>";
     var cleanFee=prop==="12619011"?25:45;
     if(px&&px.a){var guestAir=Math.round(px.a*1.14+cleanFee);h+="<div class='ap'>"+Math.round(px.a)+"€</div>";h+="<div class='gp'>~"+guestAir+"€ client</div>";}
     if(px&&px.b){var netBk=Math.round(px.b*0.856);h+="<div class='bp'>"+Math.round(px.b)+"€</div>";h+="<div class='gp'>~"+netBk+"€ net</div>";}
-    // Afficher cylindre
-    var rbRes=rv||rvEnd;
-    if(rbRes){
-      var ia=(rbRes.channel_type||"").toLowerCase().includes("airbnb");
-      var ci2=rbRes.check_in_date||rbRes.check_in||"";
-      var co2=rbRes.check_out_date||rbRes.check_out||"";
-      var isStart2=ci2===ds;
-      var isEnd2=co2===ds;
-      var alone2=isStart2&&co2===nextDay(ds);
-      var rcls=(ia?"air-c":"bk-c")+" "+(alone2?"al":isStart2?"s":isEnd2?"e":"m");
-      h+="<div class='rb-wrap'><div class='rb "+rcls+"'>"+(ia?"A":"B")+"</div></div>";
+    // Cylindre réservation
+    if(rv){
+      var ia=(rv.channel_type||"").toLowerCase().includes("airbnb");
+      var isStart3=(rv.check_in_date||rv.check_in)===ds;
+      var rcls3=(ia?"air-c":"bk-c")+" "+(isStart3?"s":"m");
+      h+="<div class='rb-wrap'><div class='rb "+rcls3+"'>"+(ia?"A":"B")+"</div></div>";
+    } else if(rvEnd){
+      var ia2=(rvEnd.channel_type||"").toLowerCase().includes("airbnb");
+      h+="<div class='rb-wrap'><div class='rb "+(ia2?"air-c":"bk-c")+" e'>"+(ia2?"A":"B")+"</div></div>";
     }
     h+="</div>";
   }
