@@ -320,7 +320,6 @@ function renderCal(){
   var today=new Date().toISOString().split("T")[0];
   document.getElementById("mtitle").textContent=MO[m]+" "+y;
   var fd=(new Date(y,m,1).getDay()+6)%7,nd=new Date(y,m+1,0).getDate();
-  var calW=(window.innerWidth||360)-16;var GAP=2;var CELL=Math.floor((calW-GAP*6)/7);var bars='';
   var DN=["L","M","M","J","V","S","D"],h="<div class='cgrid'>";
   DN.forEach(function(d){h+="<div class='ch'>"+d+"</div>";});
   for(var i=0;i<fd;i++)h+="<div class='cd oth'></div>";
