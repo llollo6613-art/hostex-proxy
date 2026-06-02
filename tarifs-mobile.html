@@ -349,14 +349,23 @@ function renderCal(){
     if(px&&px.a){var guestAir=Math.round(px.a*1.14+cleanFee);h+="<div class='ap'>"+Math.round(px.a)+"€</div>";h+="<div class='gp'>~"+guestAir+"€ client</div>";}
     if(px&&px.b){var netBk=Math.round(px.b*0.856);h+="<div class='bp'>"+Math.round(px.b)+"€</div>";h+="<div class='gp'>~"+netBk+"€ net</div>";}
     // Cylindre réservation
-    if(rv){
-      var ia=(rv.channel_type||"").toLowerCase().includes("airbnb");
-      var isStart3=(rv.check_in_date||rv.check_in)===ds;
-      var rcls3=(ia?"air-c":"bk-c")+" "+(isStart3?"s":"m");
-      h+="<div class='rb-wrap'><div class='rb "+rcls3+"'>"+(ia?"A":"B")+"</div></div>";
-    } else if(rvEnd){
+    // Afficher les cylindres — gérer le cas où fin et début se chevauchent le même jour
+    var showEnd = rvEnd && (!rv || (rv.check_in_date||rv.check_in)===ds);
+    if(rv && rvEnd && (rv.check_in_date||rv.check_in)===ds){
+      // Deux demi-barres : fin de l'ancienne + début de la nouvelle
       var ia2=(rvEnd.channel_type||"").toLowerCase().includes("airbnb");
-      h+="<div class='rb-wrap'><div class='rb "+(ia2?"air-c":"bk-c")+" e'>"+(ia2?"A":"B")+"</div></div>";
+      var ia3=(rv.channel_type||"").toLowerCase().includes("airbnb");
+      h+="<div class='rb-wrap'>";
+      h+="<div class='rb "+(ia2?"air-c":"bk-c")+" e' style='flex:1'>"+(ia2?"A":"B")+"</div>";
+      h+="<div class='rb "+(ia3?"air-c":"bk-c")+" s' style='flex:1'>"+(ia3?"A":"B")+"</div>";
+      h+="</div>";
+    } else if(rv){
+      var ia4=(rv.channel_type||"").toLowerCase().includes("airbnb");
+      var isStart4=(rv.check_in_date||rv.check_in)===ds;
+      h+="<div class='rb-wrap'><div class='rb "+(ia4?"air-c":"bk-c")+" "+(isStart4?"s":"m")+"'>"+(ia4?"A":"B")+"</div></div>";
+    } else if(rvEnd){
+      var ia5=(rvEnd.channel_type||"").toLowerCase().includes("airbnb");
+      h+="<div class='rb-wrap'><div class='rb "+(ia5?"air-c":"bk-c")+" e'>"+(ia5?"A":"B")+"</div></div>";
     }
     h+="</div>";
   }
