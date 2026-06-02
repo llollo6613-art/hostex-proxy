@@ -488,8 +488,7 @@ app.post('/menage-done', async function(req, res) {
   const propName = prop === '12619011' ? 'Suite Illiberis' : 'Loft Cinema Illiberis';
   const msg = propName + ' - Ménage effectué le ' + (date || new Date().toLocaleDateString('fr-FR'));
   // Web Push + ntfy
-  await sendPushNotif('✅ Ménage terminé !', msg, '/mobile', 'menage-done');
-  await sendNtfy(NTFY_RESA, '✅ Ménage terminé !', msg, 'default');
+  await sendPushNotif('✅ Ménage terminé !', msg, '/mobile', 'menage-done', 'owner');
   res.json({ ok: true });
   console.log('Menage done notif sent:', propName);
 });
@@ -910,13 +909,13 @@ async function syncHostexToSupabase() {
         const ch = r.channel_type === 'airbnb' ? 'Airbnb' : 'Booking';
         const price = r.total_price ? Math.round(r.total_price) + 'EUR' : '';
         const msg = prop + ' - ' + ch + '\n' + (r.guest_name||'') + '\n' + (r.check_in_date||'') + ' → ' + (r.check_out_date||'');
-        await sendPushNotif('🏠 Nouvelle réservation !', msg, '/mobile', 'new-resa');
-        await sendNtfy(NTFY_RESA, '🏠 Nouvelle reservation !', msg, 'high');
+        await sendPushNotif('🏠 Nouvelle réservation !', msg, '/mobile', 'new-resa', 'owner');
+        await sendPushNotif('🏠 Nouvelle réservation !', msg, '/menage', 'new-resa', 'menage');
         // Alerter ménage si départ dans moins de 3 jours
         const coDate = new Date((r.check_out_date||'') + 'T12:00:00');
         const diff = Math.round((coDate - new Date()) / 86400000);
         if(diff >= 0 && diff <= 2) {
-          await sendNtfy(NTFY_MENAGE, '🧹 Depart dans ' + diff + 'j - ' + prop, (r.guest_name||'') + ' quitte le ' + (r.check_out_date||''), 'urgent');
+          await sendPushNotif('🧹 Départ dans '+diff+'j - '+prop, (r.guest_name||'')+' quitte le '+(r.check_out_date||''), '/menage', 'depart-menage', 'menage');
         }
       }
     }
