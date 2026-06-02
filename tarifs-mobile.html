@@ -31,7 +31,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#F8F9FA;
 /* Calendrier */
 .cgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;padding:8px;overflow:visible;}
 .ch{text-align:center;font-size:11px;color:#888;font-weight:600;padding:5px 0;}
-.cd{border-radius:8px;padding:4px 2px;min-height:68px;display:flex;flex-direction:column;align-items:center;border:1.5px solid #e5e4e0;background:#fff;cursor:pointer;overflow:visible;}
+.cd{border-radius:8px;padding:4px 2px;min-height:68px;display:flex;flex-direction:column;align-items:stretch;border:1.5px solid #e5e4e0;background:#fff;cursor:pointer;overflow:visible;}
 .cd.oth{opacity:.2;pointer-events:none;}
 .cd.pst{opacity:.35;pointer-events:none;}
 .cd.bkd{background:#FFF0F0;}
@@ -59,12 +59,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#F8F9FA;
 .mb.c{background:#f5f5f5;color:#444;}.mb.s{background:#0F6E56;color:#fff;}
 .toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#111;color:#fff;padding:10px 20px;border-radius:20px;font-size:14px;z-index:999;}
 /* Cylindres réservations */
-.rb-wrap{position:relative;width:calc(100% + 4px);margin-left:-2px;height:14px;margin-top:2px;}
-.rb{position:absolute;top:0;height:14px;font-size:7px;font-weight:700;color:#fff;display:flex;align-items:center;justify-content:center;z-index:10;}
-.rb.s{left:50%;right:-4px;border-radius:5px 0 0 5px;}
-.rb.e{left:-4px;right:50%;border-radius:0 5px 5px 0;}
-.rb.m{left:-4px;right:-4px;border-radius:0;}
-.rb.al{left:15%;right:15%;border-radius:5px;}
+.rb-wrap{position:relative;width:calc(100% + 6px);margin-left:-3px;height:14px;margin-top:2px;overflow:visible;}
+.rb{position:absolute;top:0;height:12px;font-size:8px;font-weight:700;color:#fff;display:flex;align-items:center;justify-content:center;z-index:10;overflow:visible;}
+.rb.s{left:50%;right:-3px;border-radius:5px 0 0 5px;}
+.rb.e{left:-3px;right:50%;border-radius:0 5px 5px 0;}
+.rb.m{left:-3px;right:-3px;border-radius:0;}
+.rb.al{left:10%;right:10%;border-radius:5px;}
 /* check_out = dernier jour = finit à 50% */
 .rb.co{left:-4px;right:50%;border-radius:0 5px 5px 0;}
 .rb.air-c{background:#FF385C;}
@@ -153,6 +153,32 @@ function saveBase(){
     bwe:parseFloat(document.getElementById("b-bk-we").value)||0
   };
   try{localStorage.setItem("base_"+prop,JSON.stringify(BASE_PRICES[prop]));}catch(e){}
+}
+
+function showResInfo(code){
+  var r=reservations.filter(function(x){return (x.reservation_code||x.id)===code;})[0];
+  if(!r)return;
+  var ia=(r.channel_type||"").toLowerCase().includes("airbnb");
+  var plat=ia?"Airbnb":"Booking";
+  var prop=r.property_id==="12619011"?"Suite Illiberis":"Loft Cinema";
+  var ci=r.check_in_date||r.check_in||"";
+  var co=r.check_out_date||r.check_out||"";
+  var nights=ci&&co?Math.round((new Date(co)-new Date(ci))/86400000):0;
+  var net=r.net_amount||0;
+  var gross=r.total_price||0;
+  document.getElementById("modal-title").textContent=(r.guest_name||r.guest||"Voyageur");
+  document.getElementById("iair").style.display="none";
+  document.getElementById("ibk").style.display="none";
+  document.getElementById("modal").classList.add("show");
+  document.querySelector(".modal-sheet").innerHTML="<div class='mhd'></div>"
+    +"<h3>"+(r.guest_name||r.guest||"Voyageur")+"</h3>"
+    +"<div style='background:#f5f5f5;border-radius:12px;padding:14px;margin-bottom:12px;'>"
+    +"<div style='font-size:13px;margin-bottom:6px;'>🏠 <b>"+prop+"</b> · "+plat+"</div>"
+    +"<div style='font-size:13px;margin-bottom:6px;'>📅 "+ci+" → "+co+" ("+nights+" nuit"+(nights>1?"s":"")+")</div>"
+    +(gross?"<div style='font-size:13px;margin-bottom:6px;'>💰 "+gross+"€ brut"+(net?" · "+net+"€ net":"")+"</div>":"")
+    +(r.number_of_guests?"<div style='font-size:13px;'>👥 "+r.number_of_guests+" personne"+(r.number_of_guests>1?"s":"")+"</div>":"")
+    +"</div>"
+    +"<button class='mb c' onclick='document.getElementById("modal").classList.remove("show");document.querySelector(".modal-sheet").innerHTML="";'>Fermer</button>";
 }
 
 async function init(){
@@ -362,7 +388,9 @@ function renderCal(){
     } else if(rv){
       var ia4=(rv.channel_type||"").toLowerCase().includes("airbnb");
       var isStart4=(rv.check_in_date||rv.check_in)===ds;
-      h+="<div class='rb-wrap'><div class='rb "+(ia4?"air-c":"bk-c")+" "+(isStart4?"s":"m")+"'>"+(ia4?"A":"B")+"</div></div>";
+      var lbl4=isStart4?(rv.guest_name||rv.guest||"").split(" ")[0]:"";
+      var rid4=rv.reservation_code||rv.id||"";
+      h+="<div class='rb-wrap'><div class='rb "+(ia4?"air-c":"bk-c")+" "+(isStart4?"s":"m")+"' onclick=\"showResInfo('"+rid4+"')\" style=\"cursor:pointer;\">"+lbl4+"</div></div>";
     } else if(rvEnd){
       var ia5=(rvEnd.channel_type||"").toLowerCase().includes("airbnb");
       h+="<div class='rb-wrap'><div class='rb "+(ia5?"air-c":"bk-c")+" e'>"+(ia5?"A":"B")+"</div></div>";
