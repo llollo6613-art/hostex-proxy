@@ -66,6 +66,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#F8F9FA;
 .rb.al{border-radius:6px;margin:0 4px;}
 .rb.air-c{background:#FF385C;}
 .rb.bk-c{background:#003580;}
+.gp{font-size:8px;color:#aaa;text-align:center;line-height:1.2;}
 /* Panel prix de base */
 .base-panel{background:#fff;border-bottom:1px solid #eee;padding:10px 16px;}
 .base-panel h4{font-size:12px;font-weight:600;color:#888;margin-bottom:8px;}
@@ -98,7 +99,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#F8F9FA;
   </div>
 </div>
 <div class="base-panel">
-  <h4>Prix de base — <span id="prop-name">Suite</span></h4>
+  <h4>Prix de base — <span id="prop-name">Suite</span> <span style="font-size:10px;color:#aaa;font-weight:400;">(prix Hostex · voyageur voit +15€)</span></h4>
   <div class="base-grid">
     <div class="base-item"><label>Airbnb semaine</label><input type="number" id="b-air-w" onchange="saveBase()"></div>
     <div class="base-item"><label>Airbnb W-E</label><input type="number" id="b-air-we" onchange="saveBase()"></div>
@@ -336,8 +337,8 @@ function renderCal(){
     var cls="cd"+(isPast?" pst":"")+(isTod?" tod":"")+(rv?" bkd":"")+(isSel?" sel":"");
     h+="<div class='"+cls+"' data-ds='"+ds+"'>";
     h+="<div class='dn'>"+day+"</div>";
-    if(px&&px.a)h+="<div class='ap'>"+Math.round(px.a)+"€</div>";
-    if(px&&px.b)h+="<div class='bp'>"+Math.round(px.b)+"€</div>";
+    if(px&&px.a){h+="<div class='ap'>"+Math.round(px.a)+"€</div>";h+="<div class='gp'>→"+(Math.round(px.a)+15)+"€</div>";}
+    if(px&&px.b){h+="<div class='bp'>"+Math.round(px.b)+"€</div>";h+="<div class='gp'>→"+(Math.round(px.b)+15)+"€</div>";}
     if(rv){
       var ia=(rv.channel_type||"").toLowerCase().includes("airbnb");
       var ci=rv.check_in_date||rv.check_in||"";
