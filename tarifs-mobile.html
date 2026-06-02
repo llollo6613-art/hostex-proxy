@@ -337,8 +337,9 @@ function renderCal(){
     var cls="cd"+(isPast?" pst":"")+(isTod?" tod":"")+(rv?" bkd":"")+(isSel?" sel":"");
     h+="<div class='"+cls+"' data-ds='"+ds+"'>";
     h+="<div class='dn'>"+day+"</div>";
-    if(px&&px.a){h+="<div class='ap'>"+Math.round(px.a)+"€</div>";h+="<div class='gp'>→"+(Math.round(px.a)+15)+"€</div>";}
-    if(px&&px.b){h+="<div class='bp'>"+Math.round(px.b)+"€</div>";h+="<div class='gp'>→"+(Math.round(px.b)+15)+"€</div>";}
+    var cleanFee=prop==="12619011"?25:45;
+    if(px&&px.a){var guestAir=Math.round(px.a*1.14+cleanFee);h+="<div class='ap'>"+Math.round(px.a)+"€</div>";h+="<div class='gp'>~"+guestAir+"€ client</div>";}
+    if(px&&px.b){var netBk=Math.round(px.b*0.856);h+="<div class='bp'>"+Math.round(px.b)+"€</div>";h+="<div class='gp'>~"+netBk+"€ net</div>";}
     if(rv){
       var ia=(rv.channel_type||"").toLowerCase().includes("airbnb");
       var ci=rv.check_in_date||rv.check_in||"";
