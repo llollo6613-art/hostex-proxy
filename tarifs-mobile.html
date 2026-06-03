@@ -160,25 +160,32 @@ function showResInfo(code){
   if(!r)return;
   var ia=(r.channel_type||"").toLowerCase().includes("airbnb");
   var plat=ia?"Airbnb":"Booking";
-  var prop=r.property_id==="12619011"?"Suite Illiberis":"Loft Cinema";
+  var propN=r.property_id==="12619011"?"Suite Illiberis":"Loft Cinema";
   var ci=r.check_in_date||r.check_in||"";
   var co=r.check_out_date||r.check_out||"";
-  var nights=ci&&co?Math.round((new Date(co)-new Date(ci))/86400000):0;
-  var net=r.net_amount||0;
+  var nights=ci&&co?Math.round((new Date(co+"T00:00:00")-new Date(ci+"T00:00:00"))/86400000):0;
   var gross=r.total_price||0;
-  document.getElementById("modal-title").textContent=(r.guest_name||r.guest||"Voyageur");
-  document.getElementById("iair").style.display="none";
-  document.getElementById("ibk").style.display="none";
-  document.getElementById("modal").classList.add("show");
-  document.querySelector(".modal-sheet").innerHTML="<div class='mhd'></div>"
-    +"<h3>"+(r.guest_name||r.guest||"Voyageur")+"</h3>"
-    +"<div style='background:#f5f5f5;border-radius:12px;padding:14px;margin-bottom:12px;'>"
-    +"<div style='font-size:13px;margin-bottom:6px;'>🏠 <b>"+prop+"</b> · "+plat+"</div>"
-    +"<div style='font-size:13px;margin-bottom:6px;'>📅 "+ci+" → "+co+" ("+nights+" nuit"+(nights>1?"s":"")+")</div>"
-    +(gross?"<div style='font-size:13px;margin-bottom:6px;'>💰 "+gross+"€ brut"+(net?" · "+net+"€ net":"")+"</div>":"")
-    +(r.number_of_guests?"<div style='font-size:13px;'>👥 "+r.number_of_guests+" personne"+(r.number_of_guests>1?"s":"")+"</div>":"")
+  var net=r.net_amount||0;
+  var info=document.getElementById("res-info-modal");
+  if(!info){
+    info=document.createElement("div");
+    info.id="res-info-modal";
+    info.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:300;display:flex;align-items:flex-end;justify-content:center;";
+    info.onclick=function(e){if(e.target===info)info.remove();};
+    document.body.appendChild(info);
+  }
+  info.innerHTML="<div style='background:#fff;border-radius:24px 24px 0 0;padding:20px 20px 48px;width:100%;'>"
+    +"<div style='width:40px;height:4px;background:#ddd;border-radius:2px;margin:0 auto 16px;'></div>"
+    +"<h3 style='font-size:17px;font-weight:700;margin-bottom:14px;'>"+(r.guest_name||r.guest||"Voyageur")+"</h3>"
+    +"<div style='background:#f5f5f5;border-radius:12px;padding:14px;margin-bottom:16px;'>"
+    +"<div style='font-size:14px;margin-bottom:8px;'>🏠 <b>"+propN+"</b> · <span style='background:"+(ia?"#FF385C":"#003580")+";color:#fff;border-radius:4px;padding:1px 6px;font-size:11px;'>"+plat+"</span></div>"
+    +"<div style='font-size:14px;margin-bottom:8px;'>📅 "+ci+" → "+co+"</div>"
+    +"<div style='font-size:14px;margin-bottom:8px;'>🌙 "+nights+" nuit"+(nights>1?"s":"")+"</div>"
+    +(gross?"<div style='font-size:14px;margin-bottom:8px;'>💰 "+gross+"€"+(net?" · net "+net+"€":"")+"</div>":"")
+    +(r.number_of_guests?"<div style='font-size:14px;'>👥 "+r.number_of_guests+" pers.</div>":"")
     +"</div>"
-    +"<button class='mb c' onclick='document.getElementById("modal").classList.remove("show");document.querySelector(".modal-sheet").innerHTML="";'>Fermer</button>";
+    +"<button style='width:100%;padding:14px;border:none;border-radius:12px;background:#f5f5f5;font-size:15px;font-weight:600;cursor:pointer;' onclick='document.getElementById("res-info-modal").remove()'>Fermer</button>"
+    +"</div>";
 }
 
 async function init(){
