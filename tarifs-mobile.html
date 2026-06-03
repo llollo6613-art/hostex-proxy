@@ -463,6 +463,15 @@ function renderCal(){
       cur=segEnd;
       firstSeg=false;
     }
+    // Demi-barre checkout (gauche → 50%)
+    if(endD>=mStart&&endD<mEnd){
+      var coIdx=fd+endD.getDate()-1;
+      var coCol=coIdx%7,coRow=Math.floor(coIdx/7);
+      var coLft=coCol*(CELL_W+GAP);
+      var coWd=Math.round(CELL_W/2);
+      var coTp=HDR_H+coRow*(CELL_H+GAP)+CELL_H-20;
+      bars+="<div class='res-bar "+bc+"' data-code='"+bcode+"' style='left:"+coLft+"px;top:"+coTp+"px;width:"+coWd+"px;border-radius:0 8px 8px 0;'></div>";
+    }
   }
   var gridH=Math.ceil((fd+nd)/7)*(CELL_H+GAP)-GAP+HDR_H;
   h+="</div>";
