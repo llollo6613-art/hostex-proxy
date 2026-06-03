@@ -458,6 +458,7 @@ function renderCal(){
     }
   }
   var gridH=Math.ceil((fd+nd)/7)*(CELL+GAP)-GAP+HDR_H;
+  h+="</div>";
   document.getElementById("cal").innerHTML="<div style='position:relative;padding:2px;height:"+(gridH+28)+"px;'>"+h+bars+"</div>";
 }
 init();
