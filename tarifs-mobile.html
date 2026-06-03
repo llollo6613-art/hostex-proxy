@@ -159,32 +159,55 @@ function showResInfo(code){
   var r=reservations.filter(function(x){return (x.reservation_code||x.id)===code;})[0];
   if(!r)return;
   var ia=(r.channel_type||"").toLowerCase().includes("airbnb");
-  var plat=ia?"Airbnb":"Booking";
+  var plat=ia?"Airbnb":"Booking.com";
+  var platColor=ia?"#FF385C":"#003580";
   var propN=r.property_id==="12619011"?"Suite Illiberis":"Loft Cinema";
-  var ci=r.check_in_date||r.check_in||"";
-  var co=r.check_out_date||r.check_out||"";
+  var ci=r.check_in_date||"";
+  var co=r.check_out_date||"";
   var nights=ci&&co?Math.round((new Date(co+"T00:00:00")-new Date(ci+"T00:00:00"))/86400000):0;
-  var gross=r.total_price||0;
-  var net=r.net_amount||0;
+  var gross=parseFloat(r.total_price)||0;
+  var net=parseFloat(r.net_amount)||0;
+  var com=parseFloat(r.commission)||0;
+  var cleanFee=r.property_id==="12619011"?25:45;
+  var netAfterClean=net-cleanFee;
+  // Calcul taxe Airbnb estimée
+  var guestPrice=ia?Math.round(gross*1.14+cleanFee):gross;
   var info=document.getElementById("res-info-modal");
   if(!info){
     info=document.createElement("div");
     info.id="res-info-modal";
-    info.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:300;display:flex;align-items:flex-end;justify-content:center;";
+    info.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:300;display:flex;align-items:flex-end;justify-content:center;overflow-y:auto;";
     info.onclick=function(e){if(e.target===info)info.remove();};
     document.body.appendChild(info);
   }
-  info.innerHTML="<div style='background:#fff;border-radius:24px 24px 0 0;padding:20px 20px 48px;width:100%;'>"
+  var rows=[
+    ["🏠","Logement","<b>"+propN+"</b>"],
+    ["📱","Plateforme","<span style='background:"+platColor+";color:#fff;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:700;'>"+plat+"</span>"],
+    ["📅","Arrivée",ci],
+    ["📅","Départ",co],
+    ["🌙","Durée",nights+" nuit"+(nights>1?"s":"")],
+    ["👥","Voyageurs",(r.number_of_guests||1)+" pers."],
+    gross?["💶","Tarif brut",gross+"€"]:[],
+    net?["💰","Net encaissé","<b style='color:#0F6E56;'>"+net+"€</b>"]:[],
+    com?["📊","Commission plat.","-"+com+"€"]:[],
+    gross?["🧹","Frais ménage","-"+cleanFee+"€"]:[],
+    netAfterClean>0?["✅","Net après ménage","<b style='color:#0F6E56;'>"+Math.round(netAfterClean)+"€</b>"]:[],
+    ia&&gross?["👤","Prix vu par client","~"+guestPrice+"€"]:[],
+    r.guest_phone?["📞","Téléphone",r.guest_phone]:[],
+    r.booked_at?["📆","Réservé le",r.booked_at.split("T")[0]]:[],
+  ].filter(function(x){return x.length>0;});
+  info.innerHTML="<div style='background:#fff;border-radius:24px 24px 0 0;padding:20px 20px 48px;width:100%;max-height:85vh;overflow-y:auto;'>"
     +"<div style='width:40px;height:4px;background:#ddd;border-radius:2px;margin:0 auto 16px;'></div>"
-    +"<h3 style='font-size:17px;font-weight:700;margin-bottom:14px;'>"+(r.guest_name||r.guest||"Voyageur")+"</h3>"
-    +"<div style='background:#f5f5f5;border-radius:12px;padding:14px;margin-bottom:16px;'>"
-    +"<div style='font-size:14px;margin-bottom:8px;'>🏠 <b>"+propN+"</b> · <span style='background:"+(ia?"#FF385C":"#003580")+";color:#fff;border-radius:4px;padding:1px 6px;font-size:11px;'>"+plat+"</span></div>"
-    +"<div style='font-size:14px;margin-bottom:8px;'>📅 "+ci+" → "+co+"</div>"
-    +"<div style='font-size:14px;margin-bottom:8px;'>🌙 "+nights+" nuit"+(nights>1?"s":"")+"</div>"
-    +(gross?"<div style='font-size:14px;margin-bottom:8px;'>💰 "+gross+"€"+(net?" · net "+net+"€":"")+"</div>":"")
-    +(r.number_of_guests?"<div style='font-size:14px;'>👥 "+r.number_of_guests+" pers.</div>":"")
+    +"<h3 style='font-size:18px;font-weight:700;margin-bottom:16px;'>"+(r.guest_name||"Voyageur")+"</h3>"
+    +"<div style='background:#f8f8f8;border-radius:14px;overflow:hidden;margin-bottom:16px;'>"
+    +rows.map(function(row,i){
+      return "<div style='display:flex;align-items:center;gap:12px;padding:11px 14px;"+(i<rows.length-1?"border-bottom:1px solid #eee;":"")+"'>"
+        +"<span style='font-size:18px;width:28px;text-align:center;'>"+row[0]+"</span>"
+        +"<div style='flex:1;'><div style='font-size:11px;color:#888;'>"+row[1]+"</div><div style='font-size:14px;font-weight:500;margin-top:2px;'>"+row[2]+"</div></div>"
+        +"</div>";
+    }).join("")
     +"</div>"
-    +"<button style='width:100%;padding:14px;border:none;border-radius:12px;background:#f5f5f5;font-size:15px;font-weight:600;cursor:pointer;' onclick='closeResInfo()'>Fermer</button>"
+    +"<button style='width:100%;padding:15px;border:none;border-radius:14px;background:#f0f0f0;font-size:15px;font-weight:600;cursor:pointer;' onclick='closeResInfo()'>Fermer</button>"
     +"</div>";
 }
 
