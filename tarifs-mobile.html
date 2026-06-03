@@ -433,11 +433,24 @@ function renderCal(){
 
 init();
 
-// Délégation événement pour les barres réservation
+// Délégation événement pour les barres réservation - capture phase
 document.getElementById('cal').addEventListener('click',function(e){
   var bar=e.target.closest('[data-code]');
-  if(bar&&bar.getAttribute('data-code'))showResInfo(bar.getAttribute('data-code'));
-});
+  if(bar&&bar.getAttribute('data-code')){
+    e.stopPropagation();
+    e.preventDefault();
+    showResInfo(bar.getAttribute('data-code'));
+  }
+},true); // capture=true : intercepte avant les onclick des cellules
+
+document.getElementById('cal').addEventListener('touchend',function(e){
+  var bar=e.target.closest('[data-code]');
+  if(bar&&bar.getAttribute('data-code')){
+    e.stopPropagation();
+    e.preventDefault();
+    showResInfo(bar.getAttribute('data-code'));
+  }
+},{capture:true,passive:false});
 </script>
 </body>
 </html>
