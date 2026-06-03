@@ -449,9 +449,23 @@ function renderCal(){
       var col2=idx2%7,row2=Math.floor(idx2/7);
       var isSt=cur.toDateString()===startD.toDateString();
       var isEn=segEnd>=visualEndD;
+      var rowW=7*(CELL_W+GAP)-GAP; // largeur totale d'une ligne
       var lft=col2*(CELL_W+GAP)+(isSt?Math.round(CELL_W/2):0);
-      var wd=cc*(CELL_W+GAP)-GAP-(isSt?Math.round(CELL_W/2):0)-(isEn?Math.round(CELL_W/2):0);
-      if(wd<2)wd=2;
+      var wd;
+      if(!isSt&&!isEn){
+        // Milieu : pleine largeur de ligne
+        lft=0; wd=rowW;
+      } else if(isSt&&!isEn){
+        // Début : de 50% jusqu'au bord droit
+        wd=rowW-lft;
+      } else if(!isSt&&isEn){
+        // Fin : du bord gauche jusqu'à 50% du dernier
+        lft=0; wd=col2*(CELL_W+GAP)+(isEn?Math.round(CELL_W/2):CELL_W);
+      } else {
+        // Seul (1 résa, même ligne) : 50% → 50%
+        wd=cc*(CELL_W+GAP)-GAP-Math.round(CELL_W/2)-Math.round(CELL_W/2);
+        if(wd<2)wd=2;
+      }
       var tp=HDR_H+row2*(CELL_H+GAP)+CELL_H-20;
       var brr=isSt&&isEn?"8px":isSt?"8px 0 0 8px":isEn?"0 8px 8px 0":"0";
       var lbl=isSt?guestFirst:"";
