@@ -400,11 +400,16 @@ function renderCal(){
     var isPast=ds<today,isTod=ds===today;
     var px=prices[prop+"_"+ds]||null;
     var rv=null;
-    // Résa en cours ce jour
-    for(var ri=0;ri<reservations.length;ri++){var r=reservations[ri];if(String(r.property_id)===prop&&(r.check_in_date||r.check_in)<=ds&&(r.check_out_date||r.check_out)>ds&&r.status!=="cancelled"){rv=r;break;}}
-    // Résa qui se termine ce jour (checkout)
+    // Chercher rv (nuit occupée) ET rvEnd (checkout) indépendamment
     var rvEnd=null;
-    if(!rv){for(var ri2=0;ri2<reservations.length;ri2++){var r2=reservations[ri2];if(String(r2.property_id)===prop&&(r2.check_out_date||r2.check_out)===ds&&r2.status!=="cancelled"){rvEnd=r2;break;}}}
+    for(var ri=0;ri<reservations.length;ri++){
+      var r=reservations[ri];
+      if(String(r.property_id)!==prop||r.status==="cancelled")continue;
+      var rci=r.check_in_date||r.check_in||"";
+      var rco=r.check_out_date||r.check_out||"";
+      if(rci<=ds&&rco>ds) rv=r;
+      if(rco===ds) rvEnd=r;
+    }
     var isSel=sel[ds]||false;
     // bkd uniquement si la nuit est occupée (pas le jour de départ)
     var cls="cd"+(isPast?" pst":"")+(isTod?" tod":"")+(rv?" bkd":"")+(isSel?" sel":"");
