@@ -419,7 +419,8 @@ function renderCal(){
       var ia4=(rv.channel_type||"").toLowerCase().includes("airbnb");
       var isStart4=(rv.check_in_date||rv.check_in)===ds;
       var lbl4=isStart4?(rv.guest_name||"").split(" ")[0]:"";
-      h+="<div class='rb-wrap'><div class='rb "+(ia4?"air-c":"bk-c")+" "+(isStart4?"s":"m")+"'>"+lbl4+"</div></div>";
+      var code4=rv.reservation_code||rv.id||"";
+      h+="<div class='rb-wrap'><div class='rb "+(ia4?"air-c":"bk-c")+" "+(isStart4?"s":"m")+"' data-code='"+code4+"' style='padding:4px 2px;min-height:18px;'>"+lbl4+"</div></div>";
     } else if(rvEnd){
       var ia5=(rvEnd.channel_type||"").toLowerCase().includes("airbnb");
       h+="<div class='rb-wrap'><div class='rb "+(ia5?"air-c":"bk-c")+" e'>"+(ia5?"A":"B")+"</div></div>";
@@ -431,6 +432,12 @@ function renderCal(){
 }
 
 init();
+
+// Délégation événement pour les barres réservation
+document.getElementById('cal').addEventListener('click',function(e){
+  var bar=e.target.closest('[data-code]');
+  if(bar&&bar.getAttribute('data-code'))showResInfo(bar.getAttribute('data-code'));
+});
 </script>
 </body>
 </html>
