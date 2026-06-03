@@ -59,16 +59,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#F8F9FA;
 .mb.c{background:#f5f5f5;color:#444;}.mb.s{background:#0F6E56;color:#fff;}
 .toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#111;color:#fff;padding:10px 20px;border-radius:20px;font-size:14px;z-index:999;}
 /* Cylindres réservations */
-.rb-wrap{position:relative;width:calc(100% + 6px);margin-left:-3px;height:14px;margin-top:2px;overflow:visible;}
-.rb{position:absolute;top:0;height:12px;font-size:8px;font-weight:700;color:#fff;display:flex;align-items:center;justify-content:center;z-index:10;overflow:visible;}
-.rb.s{left:50%;right:-3px;border-radius:5px 0 0 5px;}
-.rb.e{left:-3px;right:50%;border-radius:0 5px 5px 0;}
-.rb.m{left:-3px;right:-3px;border-radius:0;}
-.rb.al{left:10%;right:10%;border-radius:5px;}
-/* check_out = dernier jour = finit à 50% */
-.rb.co{left:-4px;right:50%;border-radius:0 5px 5px 0;}
-.rb.air-c{background:#FF385C;}
-.rb.bk-c{background:#003580;}
+.res-bar{position:absolute;height:16px;z-index:5;display:flex;align-items:center;padding:0 6px;font-size:10px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;pointer-events:auto;cursor:pointer;}
+.res-bar.air-c{background:linear-gradient(90deg,#ef4444,#f87171);}
+.res-bar.bk-c{background:linear-gradient(90deg,#3b82f6,#60a5fa);}
 .gp{font-size:10px;color:#aaa;text-align:center;line-height:1.3;}
 /* Panel prix de base */
 .base-panel{background:#fff;border-bottom:1px solid #eee;padding:10px 16px;}
@@ -418,33 +411,55 @@ function renderCal(){
     var cleanFee=prop==="12619011"?25:45;
     if(px&&px.a){var guestAir=Math.round(px.a*1.14+cleanFee);h+="<div class='ap'>"+Math.round(px.a)+"€</div>";h+="<div class='gp'>~"+guestAir+"€ client</div>";}
     if(px&&px.b){var netBk=Math.round(px.b*0.856);h+="<div class='bp'>"+Math.round(px.b)+"€</div>";h+="<div class='gp'>~"+netBk+"€ net</div>";}
-    // Cylindre réservation
-    // Afficher les cylindres — gérer le cas où fin et début se chevauchent le même jour
-    var showEnd = rvEnd && (!rv || (rv.check_in_date||rv.check_in)===ds);
-    if(rv && rvEnd && (rv.check_in_date||rv.check_in)===ds){
-      // Deux demi-barres : fin de l'ancienne + début de la nouvelle
-      var ia2=(rvEnd.channel_type||"").toLowerCase().includes("airbnb");
-      var ia3=(rv.channel_type||"").toLowerCase().includes("airbnb");
-      h+="<div class='rb-wrap'>";
-      h+="<div class='rb "+(ia2?"air-c":"bk-c")+" e' style='flex:1'>"+(ia2?"A":"B")+"</div>";
-      h+="<div class='rb "+(ia3?"air-c":"bk-c")+" s' style='flex:1'>"+(ia3?"A":"B")+"</div>";
-      h+="</div>";
-    } else if(rv){
-      var ia4=(rv.channel_type||"").toLowerCase().includes("airbnb");
-      var isStart4=(rv.check_in_date||rv.check_in)===ds;
-      var lbl4=isStart4?(rv.guest_name||"").split(" ")[0]:"";
-      var code4=rv.reservation_code||rv.id||"";
-      h+="<div class='rb-wrap'><div class='rb "+(ia4?"air-c":"bk-c")+" "+(isStart4?"s":"m")+"' data-code='"+code4+"' style='padding:4px 2px;min-height:18px;'>"+lbl4+"</div></div>";
-    } else if(rvEnd){
-      var ia5=(rvEnd.channel_type||"").toLowerCase().includes("airbnb");
-      h+="<div class='rb-wrap'><div class='rb "+(ia5?"air-c":"bk-c")+" e'>"+(ia5?"A":"B")+"</div></div>";
-    }
     h+="</div>";
   }
-  h+="</div>";
-  document.getElementById("cal").innerHTML=h;
+  // Calcul barres position absolue
+  var HDR_H=26;
+  var bars='';
+  var seen={};
+  for(var bi=0;bi<reservations.length;bi++){
+    var br=reservations[bi];
+    if(String(br.property_id)!==prop||br.status==="cancelled")continue;
+    var bci=br.check_in_date||br.check_in||"";
+    var bco=br.check_out_date||br.check_out||"";
+    var bcode=br.reservation_code||br.id||"";
+    if(!bci||!bco||seen[bcode])continue;
+    seen[bcode]=true;
+    var startD=new Date(bci+"T00:00:00");
+    var endD=new Date(bco+"T00:00:00");
+    var mStart=new Date(y,m,1),mEnd=new Date(y,m+1,1);
+    if(endD<=mStart||startD>=mEnd)continue;
+    var clampStart=startD<mStart?mStart:startD;
+    var ia=(br.channel_type||"").toLowerCase().includes("airbnb");
+    var bc=ia?"air-c":"bk-c";
+    var guestFirst=(br.guest_name||"").split(" ")[0];
+    var cur=new Date(clampStart);
+    var firstSeg=true;
+    while(cur<endD&&cur<mEnd){
+      var idx2=fd+cur.getDate()-1;
+      var rowEnd2=Math.floor(idx2/7)*7+7;
+      var nextB=new Date(y,m,cur.getDate()+(rowEnd2-idx2));
+      var segEnd=nextB<endD?nextB:endD;
+      if(segEnd>mEnd)segEnd=mEnd;
+      var cc=Math.round((segEnd-cur)/86400000);
+      if(cc<=0){cur=segEnd;continue;}
+      var col2=idx2%7,row2=Math.floor(idx2/7);
+      var isSt=firstSeg;
+      var isEn=segEnd>=endD;
+      var lft=col2*(CELL+GAP)+(isSt?CELL/2:0);
+      var wd=cc*(CELL+GAP)-GAP-(isSt?CELL/2:0)-(isEn?CELL/2:0);
+      if(wd<2)wd=2;
+      var tp=HDR_H+row2*(CELL+GAP)+CELL-20;
+      var brr=isSt&&isEn?"8px":isSt?"8px 0 0 8px":isEn?"0 8px 8px 0":"0";
+      var lbl=isSt?guestFirst:"";
+      bars+="<div class='res-bar "+bc+"' data-code='"+bcode+"' style='left:"+lft+"px;top:"+tp+"px;width:"+wd+"px;border-radius:"+brr+";'>"+lbl+"</div>";
+      cur=segEnd;
+      firstSeg=false;
+    }
+  }
+  var gridH=Math.ceil((fd+nd)/7)*(CELL+GAP)-GAP+HDR_H;
+  document.getElementById("cal").innerHTML="<div style='position:relative;padding:2px;height:"+(gridH+28)+"px;'>"+h+bars+"</div>";
 }
-
 init();
 
 // Délégation événement pour les barres réservation - capture phase
