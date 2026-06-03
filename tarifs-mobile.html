@@ -169,8 +169,17 @@ function showResInfo(code){
   var net=parseFloat(r.net_amount)||0;
   var com=parseFloat(r.commission)||0;
   var cleanFee=r.property_id==="12619011"?25:45;
+  // Si net_amount non renseigné, calculer depuis commission
+  if(!net&&gross){
+    if(ia) net=Math.round(gross*(1-0.0488));
+    else net=Math.round(gross*(1-0.164));
+  }
+  if(!com&&gross){
+    if(ia) com=Math.round(gross*0.0488);
+    else com=Math.round(gross*0.164);
+  }
   var netAfterClean=net-cleanFee;
-  // Calcul taxe Airbnb estimée
+  // Prix vu par le client Airbnb
   var guestPrice=ia?Math.round(gross*1.14+cleanFee):gross;
   var info=document.getElementById("res-info-modal");
   if(!info){
