@@ -87,6 +87,48 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .res-gross{font-size:14px;font-weight:600;}
 .res-net{font-size:11px;color:var(--green);margin-top:1px;}
 
+/* ELNE */
+.elne-wrap{background:#fff;border-radius:14px;border:1px solid var(--border);overflow:hidden;margin-bottom:16px;}
+.elne-hdr{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+.elne-hdr h2{font-size:15px;font-weight:700;}
+.year-sel{display:flex;gap:6px;align-items:center;}
+.year-btn{width:32px;height:32px;border:1.5px solid var(--border);border-radius:8px;background:#fff;font-size:16px;cursor:pointer;}
+.year-lbl{font-size:15px;font-weight:700;min-width:40px;text-align:center;}
+.elne-table{width:100%;border-collapse:collapse;font-size:12px;}
+.elne-table th{background:#f8f9fa;padding:8px 6px;text-align:center;font-weight:600;color:var(--text3);border-bottom:1px solid var(--border);white-space:nowrap;}
+.elne-table th.apt-col{text-align:left;min-width:140px;}
+.elne-table td{padding:6px;border-bottom:0.5px solid var(--border);border-right:0.5px solid #f0f0f0;text-align:center;vertical-align:middle;}
+.elne-table td.apt-cell{text-align:left;padding:8px 12px;}
+.apt-name{font-size:12px;font-weight:600;color:var(--text);}
+.apt-tenant{font-size:10px;color:var(--text3);margin-top:1px;}
+.apt-rent{font-size:11px;font-weight:600;color:var(--green);margin-top:1px;}
+.pay-cell{width:36px;height:36px;cursor:pointer;border-radius:8px;transition:all .15s;display:flex;align-items:center;justify-content:center;margin:auto;}
+.pay-cell.paid{background:#D1FAE5;color:#059669;font-size:16px;}
+.pay-cell.unpaid{background:#FEE2E2;color:#DC2626;font-size:12px;font-weight:700;}
+.pay-cell.na{background:#f0f0f0;color:#ccc;cursor:default;font-size:14px;}
+.pay-cell.future{background:#f8f9fa;color:#ddd;cursor:default;}
+.month-total{font-size:11px;font-weight:700;color:var(--text);padding:6px;}
+.section-title{padding:10px 14px;font-size:11px;font-weight:700;color:var(--text3);background:#f8f9fa;border-top:1px solid var(--border);letter-spacing:.05em;}
+.charges-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;padding:14px;margin-bottom:16px;}
+@media(min-width:600px){.charges-grid{grid-template-columns:repeat(4,1fr);}}
+.charge-item{background:#fff;border:1px solid var(--border);border-radius:12px;padding:12px;}
+.charge-label{font-size:10px;color:var(--text3);font-weight:500;margin-bottom:4px;}
+.charge-val{font-size:18px;font-weight:700;color:#DC2626;}
+.cashflow-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;padding:0 14px 14px;}
+@media(min-width:600px){.cashflow-grid{grid-template-columns:repeat(4,1fr);}}
+.cf-item{border-radius:10px;padding:10px;text-align:center;}
+.cf-item.pos{background:#D1FAE5;}
+.cf-item.neg{background:#FEE2E2;}
+.cf-item.zero{background:#f8f9fa;}
+.cf-month{font-size:10px;font-weight:600;color:var(--text3);margin-bottom:3px;}
+.cf-val{font-size:14px;font-weight:700;}
+.cf-item.pos .cf-val{color:#059669;}
+.cf-item.neg .cf-val{color:#DC2626;}
+.summary-bar{display:flex;gap:12px;padding:12px 16px;background:#f8f9fa;border-top:1px solid var(--border);flex-wrap:wrap;}
+.sb-item{display:flex;flex-direction:column;gap:2px;}
+.sb-label{font-size:10px;color:var(--text3);font-weight:500;}
+.sb-val{font-size:15px;font-weight:700;}
+
 /* LOADING */
 .loading{text-align:center;padding:60px 20px;color:var(--text3);}
 .spin{display:inline-block;width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--green);border-radius:50%;animation:spin .7s linear infinite;margin-bottom:12px;}
@@ -114,6 +156,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <button class="tab on" onclick="setTab('all')">Global</button>
     <button class="tab" onclick="setTab('12619011')">Suite</button>
     <button class="tab" onclick="setTab('12619012')">Loft</button>
+    <button class="tab" onclick="setTab('elne')">🏢 ELNE</button>
   </div>
 </div>
 
@@ -134,6 +177,189 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 var PROPS = {"12619011":{name:"Suite Illiberis",clean:25}, "12619012":{name:"Loft Cinema",clean:45}};
 var MONTHS = ["Jan","Fév","Mar","Avr","Mai","Juin","Juil","Août","Sep","Oct","Nov","Déc"];
 var state = {tab:"all", period:"month", reservations:[]};
+
+// ===== ELNE MODULE =====
+var ELNE_YEAR = new Date().getFullYear();
+var MONTHS_FULL = ["Janv","Févr","Mars","Avr","Mai","Juin","Juil","Août","Sep","Oct","Nov","Déc"];
+
+var ELNE_APTS = [
+  {id:1, name:"Appartement 1", tenant:"Moreau Olivia", rent:750, startMonth:3, email:"theo.beaufreton@gmail.com", caution:"0"},
+  {id:3, name:"Appartement 3", tenant:"Goncalves Moura Vincent", rent:490, startMonth:1, email:"vincentgoncalves1977@gmail.com", caution:"450€ virement"},
+  {id:4, name:"Appartement 4", tenant:"Coquin Etienne", rent:750, startMonth:4, email:"eti77720@gmail.com", caution:"81€ cash"},
+  {id:5, name:"Appartement 5", tenant:"Saï Sadek", rent:640, startMonth:1, email:"sedersai243@gmail.com", caution:"600€ liquide"},
+  {id:6, name:"Appartement 6", tenant:"Bonicel Thomas / Cadorel Maeva", rent:800, startMonth:5, email:"cadorelmaeva@gmail.com", caution:"750€ chèque"},
+  {id:7, name:"Appartement 7", tenant:"Guillem Victoria & Vidal Thomas", rent:750, startMonth:1, email:"guillemvictoria@gmail.com", caution:"700€ virement"}
+];
+
+var ELNE_CHARGES = [
+  {label:"Crédit", key:"credit", val:3038.15, monthly:true},
+  {label:"Taxe foncière", key:"taxe", val:458.33, monthly:true},
+  {label:"Assurances", key:"assurance", val:29.14, monthly:true},
+  {label:"Eau", key:"eau", val:160, monthly:true},
+  {label:"Comptable", key:"comptable", val:60, monthly:true}
+];
+
+function elneKey(){return 'elne_'+ELNE_YEAR;}
+
+function elneData(){
+  try{var d=localStorage.getItem(elneKey());return d?JSON.parse(d):{};}
+  catch(e){return {};}
+}
+
+function elneSet(aptId, month, val){
+  var d=elneData();
+  if(!d[aptId])d[aptId]={};
+  d[aptId][month]=val;
+  try{localStorage.setItem(elneKey(),JSON.stringify(d));}catch(e){}
+  renderElne();
+}
+
+function togglePay(aptId, month){
+  var d=elneData();
+  var cur=(d[aptId]&&d[aptId][month])||false;
+  elneSet(aptId, month, !cur);
+}
+
+function changeElneYear(delta){
+  ELNE_YEAR+=delta;
+  renderElne();
+}
+
+function renderElne(){
+  var d=elneData();
+  var now=new Date();
+  var curMonth=now.getMonth()+1;
+  var isCurrentYear=(ELNE_YEAR===now.getFullYear());
+  var totalCharges=ELNE_CHARGES.reduce(function(s,c){return s+(c.monthly?c.val:0);},0);
+
+  // Calcul récapitulatif
+  var totalExpected=0, totalCollected=0;
+  ELNE_APTS.forEach(function(apt){
+    for(var mo=apt.startMonth;mo<=12;mo++){
+      totalExpected+=apt.rent;
+      if(d[apt.id]&&d[apt.id][mo])totalCollected+=apt.rent;
+    }
+  });
+
+  var html='';
+
+  // Barre résumé
+  html+='<div class="kpi-grid" style="margin-bottom:16px;">';
+  html+='<div class="kpi"><div class="kpi-label">Loyers attendus</div><div class="kpi-value" style="color:var(--bk)">'+Math.round(totalExpected).toLocaleString('fr-FR')+'€</div><div class="kpi-sub">sur l'année</div></div>';
+  html+='<div class="kpi green"><div class="kpi-label">Loyers encaissés</div><div class="kpi-value">'+Math.round(totalCollected).toLocaleString('fr-FR')+'€</div><div class="kpi-sub">'+(totalExpected>0?Math.round(totalCollected/totalExpected*100):0)+'% collecté</div></div>';
+  html+='<div class="kpi"><div class="kpi-label">Restant à encaisser</div><div class="kpi-value" style="color:'+(totalExpected-totalCollected>0?'#DC2626':'#059669')+'">'+(totalExpected-totalCollected).toLocaleString('fr-FR')+'€</div><div class="kpi-sub">'+ELNE_APTS.length+' appartements</div></div>';
+  html+='<div class="kpi"><div class="kpi-label">Charges mensuelles</div><div class="kpi-value" style="color:#DC2626">'+Math.round(totalCharges).toLocaleString('fr-FR')+'€</div><div class="kpi-sub">fixes/mois</div></div>';
+  html+='</div>';
+
+  // Tableau loyers
+  html+='<div class="elne-wrap">';
+  html+='<div class="elne-hdr">';
+  html+='<h2>🏢 Suivi loyers '+ELNE_YEAR+'</h2>';
+  html+='<div class="year-sel"><button class="year-btn" onclick="changeElneYear(-1)">‹</button><span class="year-lbl">'+ELNE_YEAR+'</span><button class="year-btn" onclick="changeElneYear(1)">›</button></div>';
+  html+='</div>';
+  html+='<div style="overflow-x:auto"><table class="elne-table">';
+  // Header
+  html+='<tr><th class="apt-col">Appartement</th>';
+  MONTHS_FULL.forEach(function(mo){html+='<th>'+mo+'</th>';});
+  html+='<th>Total</th></tr>';
+  // Lignes
+  ELNE_APTS.forEach(function(apt){
+    html+='<tr>';
+    html+='<td class="apt-cell"><div class="apt-name">Apt '+apt.id+' — '+apt.tenant+'</div>';
+    html+='<div class="apt-rent">'+apt.rent+'€/mois</div></td>';
+    var aptTotal=0;
+    for(var mo=1;mo<=12;mo++){
+      var isPaid=d[apt.id]&&d[apt.id][mo];
+      var isActive=mo>=apt.startMonth;
+      var isFuture=isCurrentYear&&mo>curMonth;
+      var cls='', content2='', onclick2='';
+      if(!isActive){
+        cls='na'; content2='—';
+      } else if(isFuture){
+        cls='future'; content2='';
+      } else if(isPaid){
+        cls='paid'; content2='✓';
+        aptTotal+=apt.rent;
+        onclick2=' onclick="togglePay('+apt.id+','+mo+')"';
+      } else {
+        cls='unpaid'; content2='✗';
+        onclick2=' onclick="togglePay('+apt.id+','+mo+')"';
+      }
+      html+='<td><div class="pay-cell '+cls+'"'+onclick2+'>'+content2+'</div></td>';
+    }
+    // Calculer les mois attendus (non futurs)
+    var expectedMos=0;
+    for(var mo2=apt.startMonth;mo2<=(isCurrentYear?Math.min(12,curMonth):12);mo2++)expectedMos++;
+    html+='<td class="month-total">'+aptTotal.toLocaleString('fr-FR')+'€</td>';
+    html+='</tr>';
+  });
+  // Ligne totaux mensuels
+  html+='<tr style="background:#f8f9fa;">';
+  html+='<td class="apt-cell" style="font-weight:700;font-size:12px;">TOTAL MENSUEL</td>';
+  for(var mo=1;mo<=12;mo++){
+    var moTotal=0;
+    var moExpected=0;
+    ELNE_APTS.forEach(function(apt){
+      if(mo>=apt.startMonth){
+        moExpected+=apt.rent;
+        if(d[apt.id]&&d[apt.id][mo])moTotal+=apt.rent;
+      }
+    });
+    var pct=moExpected>0?moTotal/moExpected:0;
+    var color=pct>=1?'#059669':pct>0?'#D97706':'#DC2626';
+    var isFut=isCurrentYear&&mo>curMonth;
+    html+='<td style="font-size:11px;font-weight:700;color:'+(isFut?'#ccc':color)+';">'+(isFut?'—':moTotal.toLocaleString('fr-FR')+'€')+'</td>';
+  }
+  var grandTotal=ELNE_APTS.reduce(function(s,apt){
+    var t=0;for(var mo=1;mo<=12;mo++){if(mo>=apt.startMonth&&d[apt.id]&&d[apt.id][mo])t+=apt.rent;}return s+t;
+  },0);
+  html+='<td class="month-total" style="color:var(--green);font-size:13px;">'+grandTotal.toLocaleString('fr-FR')+'€</td>';
+  html+='</tr>';
+  html+='</table></div></div>';
+
+  // Charges
+  html+='<div class="elne-wrap">';
+  html+='<div class="section-title">CHARGES MENSUELLES FIXES</div>';
+  html+='<div class="charges-grid">';
+  ELNE_CHARGES.forEach(function(c){
+    html+='<div class="charge-item"><div class="charge-label">'+c.label+'</div>';
+    html+='<div class="charge-val">'+c.val.toLocaleString('fr-FR',{minimumFractionDigits:0,maximumFractionDigits:2})+'€</div></div>';
+  });
+  html+='<div class="charge-item"><div class="charge-label">TOTAL CHARGES</div>';
+  html+='<div class="charge-val" style="font-size:20px;">'+Math.round(totalCharges).toLocaleString('fr-FR')+'€</div></div>';
+  html+='</div>';
+
+  // Cash flow mensuel
+  html+='<div class="section-title">CASH FLOW MENSUEL (loyers - charges fixes)</div>';
+  html+='<div class="cashflow-grid">';
+  for(var mo=1;mo<=12;mo++){
+    var moIncome=0;
+    ELNE_APTS.forEach(function(apt){
+      if(mo>=apt.startMonth&&d[apt.id]&&d[apt.id][mo])moIncome+=apt.rent;
+    });
+    var cf=moIncome-totalCharges;
+    var isFut=isCurrentYear&&mo>curMonth;
+    var cls=isFut?'zero':cf>0?'pos':cf<0?'neg':'zero';
+    html+='<div class="cf-item '+cls+'"><div class="cf-month">'+MONTHS_FULL[mo-1]+'</div>';
+    html+='<div class="cf-val">'+(isFut?'—':(cf>0?'+':'')+Math.round(cf).toLocaleString('fr-FR')+'€')+'</div></div>';
+  }
+  html+='</div></div>';
+
+  // Cautions
+  html+='<div class="elne-wrap">';
+  html+='<div class="section-title">CAUTIONS</div>';
+  html+='<table class="elne-table"><tr><th class="apt-col">Appartement</th><th>Locataire</th><th>Caution</th><th>Contact</th></tr>';
+  ELNE_APTS.forEach(function(apt){
+    html+='<tr><td class="apt-cell"><div class="apt-name">Apt '+apt.id+'</div></td>';
+    html+='<td style="font-size:12px;padding:8px;">'+apt.tenant+'</td>';
+    html+='<td style="font-size:12px;font-weight:600;padding:8px;color:var(--green)">'+apt.caution+'</td>';
+    html+='<td style="font-size:11px;color:var(--text3);padding:8px;">'+apt.email+'</td></tr>';
+  });
+  html+='</table></div>';
+
+  document.getElementById('main').innerHTML=html;
+}
+// ===== FIN ELNE =====
 
 async function init(){
   try{
@@ -175,9 +401,10 @@ async function init(){
 function setTab(t){
   state.tab = t;
   document.querySelectorAll('.tab').forEach(function(b,i){
-    b.classList.toggle('on', ['all','12619011','12619012'][i]===t);
+    b.classList.toggle('on', ['all','12619011','12619012','elne'][i]===t);
   });
-  render();
+  if(t==='elne') renderElne();
+  else render();
 }
 
 function setPeriod(p){
