@@ -393,8 +393,13 @@ function renderElne(){
 // ===== FIN ELNE =====
 
 async function init(){
+  // Afficher ELNE immédiatement sans attendre les résas
+  if(state.tab==='elne') renderElne();
   try{
-    var r = await fetch("/all-reservations");
+    var controller = new AbortController();
+    var timeout = setTimeout(function(){controller.abort();},10000);
+    var r = await fetch("/all-reservations",{signal:controller.signal});
+    clearTimeout(timeout);
     var d = await r.json();
     var raw = (d.data&&d.data.reservations)||[];
     // Déduplication : normaliser les codes (0-HMxxxx-idXXX → HMxxxx, 9-xxx-bk → 9-xxx)
