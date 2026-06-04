@@ -393,7 +393,11 @@ function renderElne(){
 // ===== FIN ELNE =====
 
 // Affichage immédiat sans attendre les données
-if(state.tab==='elne') renderElne(); else render();
+try{
+  if(state.tab==='elne') renderElne(); else render();
+}catch(e){
+  document.getElementById('main').innerHTML='<div style="padding:20px;color:red;font-family:monospace;font-size:12px;"><b>Erreur JS:</b> '+e.message+'<br><pre>'+e.stack+'</pre></div>';
+}
 
 async function init(){
   if(state.tab==='elne') renderElne();
