@@ -107,6 +107,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .pay-cell.unpaid{background:#FEE2E2;color:#DC2626;font-size:12px;font-weight:700;}
 .pay-cell.na{background:#f0f0f0;color:#ccc;cursor:default;font-size:14px;}
 .pay-cell.future{background:#f8f9fa;color:#ddd;cursor:default;}
+.pay-cell.partial{background:#FEF3C7;color:#D97706;font-size:10px;font-weight:700;}
 .month-total{font-size:11px;font-weight:700;color:var(--text);padding:6px;}
 .section-title{padding:10px 14px;font-size:11px;font-weight:700;color:var(--text3);background:#f8f9fa;border-top:1px solid var(--border);letter-spacing:.05em;}
 .charges-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;padding:14px;margin-bottom:16px;}
@@ -207,15 +208,29 @@ function elneData(){
 function elneSet(aptId, month, val){
   var d=elneData();
   if(!d[aptId])d[aptId]={};
-  d[aptId][month]=val;
+  if(val===null) delete d[aptId][month];
+  else d[aptId][month]=val;
   try{localStorage.setItem(elneKey(),JSON.stringify(d));}catch(e){}
   renderElne();
 }
 
 function togglePay(aptId, month){
   var d=elneData();
-  var cur=(d[aptId]&&d[aptId][month])||false;
-  elneSet(aptId, month, !cur);
+  var cur=d[aptId]&&d[aptId][month];
+  var rentKey='elne_rent_'+ELNE_YEAR+'_'+aptId;
+  var customRent=localStorage.getItem(rentKey);
+  var baseRent=customRent?parseFloat(customRent):(ELNE_APTS.find(function(a){return a.id===aptId;})||{rent:0}).rent;
+  if(cur){
+    // Déjà payé → annuler
+    elneSet(aptId, month, null);
+  } else {
+    // Pas payé → demander le montant
+    var val=prompt('Montant reçu pour ce mois (€) :', baseRent);
+    if(val===null) return;
+    var n=parseFloat(val);
+    if(isNaN(n)||n<0) return;
+    elneSet(aptId, month, n);
+  }
 }
 
 function editRent(aptId, currentRent, el){
@@ -283,10 +298,16 @@ function renderElne(){
       var isPaid=d[apt.id]&&d[apt.id][mo];
       var isActive=mo>=apt.startMonth;
       var isFuture=isCurrentYear&&mo>curMonth;
+      var payVal=d[apt.id]&&d[apt.id][mo];
+      var rentKey2='elne_rent_'+ELNE_YEAR+'_'+apt.id;
+      var cr2=localStorage.getItem(rentKey2);
+      var baseRent2=cr2?parseFloat(cr2):apt.rent;
+      var isPartial=payVal&&payVal<baseRent2;
       var cls='', content2='';
-      if(isPaid){
-        cls='paid'; content2='✓';
-        aptTotal+=apt.rent;
+      if(payVal){
+        if(isPartial){cls='partial';content2=payVal+'€';}
+        else{cls='paid';content2='✓';}
+        aptTotal+=payVal;
       } else {
         cls=isActive?'unpaid':'na'; content2=isActive?'✗':'—';
       }
