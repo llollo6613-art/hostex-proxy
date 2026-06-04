@@ -140,13 +140,28 @@ async function init(){
     var r = await fetch("/all-reservations");
     var d = await r.json();
     var raw = (d.data&&d.data.reservations)||[];
-    // Déduplication : garder une seule résa par code de base
+    // Déduplication : normaliser les codes (0-HMxxxx-idXXX → HMxxxx, 9-xxx-bk → 9-xxx)
+    function normCode(c){
+      if(!c) return c;
+      c = c.replace(/^0-/,'');          // retirer préfixe 0-
+      c = c.replace(/-id[a-z0-9]+$/i,''); // retirer suffixe -idXXXX
+      c = c.replace(/-ic[a-z0-9]+$/i,''); // retirer suffixe -icXXXX
+      c = c.replace(/-bk$/i,'');          // retirer suffixe -bk
+      return c;
+    }
     var map = {};
     raw.forEach(function(r){
-      var code = (r.reservation_code||r.id||'').replace(/-bk[0-9a-z]*$/i,'').replace(/-id[0-9a-z]*$/i,'').replace(/-[0-9]+$/,'');
+      var code = normCode(r.reservation_code||r.id||'');
       var existing = map[code];
-      if(!existing || r.status==='confirmed' || (r.status!=='cancelled'&&existing.status==='cancelled')){
+      if(!existing){
         map[code] = r;
+      } else {
+        // Garder la version avec le plus d'infos (prix non nul, statut confirmé)
+        var rScore = (parseFloat(r.total_price)||0)>0 ? 2 : 0;
+        rScore += r.status==='confirmed' ? 1 : 0;
+        var eScore = (parseFloat(existing.total_price)||0)>0 ? 2 : 0;
+        eScore += existing.status==='confirmed' ? 1 : 0;
+        if(rScore > eScore) map[code] = r;
       }
     });
     state.reservations = Object.values(map);
