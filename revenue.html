@@ -266,6 +266,28 @@ function renderElne(){
 
   var html='';
 
+  // Calcul revenus Airbnb pour l'année sélectionnée
+  var airTotal=0;
+  state.reservations.forEach(function(r){
+    if(r.status==='cancelled')return;
+    var ci=new Date((r.check_in_date||r.check_in||'')+'T00:00:00');
+    if(ci.getFullYear()!==ELNE_YEAR)return;
+    airTotal+=(parseFloat(r.total_price)||0);
+  });
+  var totalImmeuble=totalCollected+airTotal;
+  var totalChargesAnnuel=totalCharges*12;
+  var cashFlowAnnuel=totalImmeuble-totalChargesAnnuel;
+
+  // KPIs globaux immeuble
+  html+='<div style="background:var(--green);border-radius:14px;padding:14px;margin-bottom:14px;color:#fff;">';
+  html+='<div style="font-size:12px;font-weight:600;opacity:.8;margin-bottom:10px;">🏢 TOTAL IMMEUBLE ELNE '+ELNE_YEAR+'</div>';
+  html+='<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;">';
+  html+='<div><div style="font-size:10px;opacity:.7;">Loyers annuels</div><div style="font-size:20px;font-weight:700;">'+Math.round(totalCollected).toLocaleString('fr-FR')+'€</div></div>';
+  html+='<div><div style="font-size:10px;opacity:.7;">Airbnb (Suite+Loft)</div><div style="font-size:20px;font-weight:700;">'+Math.round(airTotal).toLocaleString('fr-FR')+'€</div></div>';
+  html+='<div><div style="font-size:10px;opacity:.7;">TOTAL REVENUS</div><div style="font-size:24px;font-weight:700;border-top:1px solid rgba(255,255,255,.3);padding-top:8px;">'+Math.round(totalImmeuble).toLocaleString('fr-FR')+'€</div></div>';
+  html+='<div><div style="font-size:10px;opacity:.7;">Cash flow net</div><div style="font-size:24px;font-weight:700;border-top:1px solid rgba(255,255,255,.3);padding-top:8px;color:'+(cashFlowAnnuel>=0?'#A7F3D0':'#FCA5A5')+';">'+(cashFlowAnnuel>=0?'+':'')+Math.round(cashFlowAnnuel).toLocaleString('fr-FR')+'€</div></div>';
+  html+='</div></div>';
+
   // Barre résumé
   html+='<div class="kpi-grid" style="margin-bottom:16px;">';
   html+='<div class="kpi"><div class="kpi-label">Loyers attendus</div><div class="kpi-value" style="color:var(--bk)">'+Math.round(totalExpected).toLocaleString('fr-FR')+'€</div><div class="kpi-sub">sur l année</div></div>';
