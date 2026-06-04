@@ -353,7 +353,7 @@ function renderElne(){
         var rk='elne_rent_'+ELNE_YEAR+'_'+apt.id;
       var cr=localStorage.getItem(rk);
       var rl=cr?parseFloat(cr):apt.rent;
-      if(d[apt.id]&&d[apt.id][mo])moTotal+=rl;
+      if(d[apt.id]&&d[apt.id][mo])moTotal+=parseFloat(d[apt.id][mo]);
       }
     });
     var pct=moExpected>0?moTotal/moExpected:0;
@@ -362,7 +362,7 @@ function renderElne(){
     html+='<td style="font-size:11px;font-weight:700;color:'+(isFut?'#ccc':color)+';">'+(isFut?'—':moTotal.toLocaleString('fr-FR')+'€')+'</td>';
   }
   var grandTotal=ELNE_APTS.reduce(function(s,apt){
-    var t=0;for(var mo=1;mo<=12;mo++){if(mo>=apt.startMonth&&d[apt.id]&&d[apt.id][mo])t+=apt.rent;}return s+t;
+    var t=0;for(var mo=1;mo<=12;mo++){if(mo>=apt.startMonth&&d[apt.id]&&d[apt.id][mo])t+=parseFloat(d[apt.id][mo]);}return s+t;
   },0);
   html+='<td class="month-total" style="color:var(--green);font-size:13px;">'+grandTotal.toLocaleString('fr-FR')+'€</td>';
   html+='</tr>';
