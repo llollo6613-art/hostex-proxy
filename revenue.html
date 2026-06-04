@@ -257,6 +257,12 @@ function editRent(aptId, currentRent, el){
   renderElne();
 }
 
+function resetElne(){
+  if(!confirm('Effacer toutes les données de loyers '+ELNE_YEAR+' ?')) return;
+  localStorage.removeItem(elneKey());
+  renderElne();
+}
+
 function changeElneYear(delta){
   ELNE_YEAR+=delta;
   renderElne();
@@ -317,8 +323,10 @@ function renderElne(){
   html+='<div class="elne-wrap">';
   html+='<div class="elne-hdr">';
   html+='<h2>🏢 Suivi loyers '+ELNE_YEAR+'</h2>';
+  html+='<div style="display:flex;align-items:center;gap:8px;">';
   html+='<div class="year-sel"><button class="year-btn" onclick="changeElneYear(-1)">‹</button><span class="year-lbl">'+ELNE_YEAR+'</span><button class="year-btn" onclick="changeElneYear(1)">›</button></div>';
-  html+='</div>';
+  html+='<button onclick="resetElne()" style="padding:6px 10px;border:1.5px solid #FCA5A5;background:#FEF2F2;color:#DC2626;border-radius:8px;font-size:11px;cursor:pointer;">🗑 Réinit</button>';
+  html+='</div></div>';
   html+='<div style="overflow-x:auto"><table class="elne-table">';
   // Header
   html+='<tr><th class="apt-col">Appartement</th>';
