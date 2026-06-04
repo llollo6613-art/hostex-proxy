@@ -519,6 +519,10 @@ app.post('/note-add', async function(req, res) {
   } catch(e) { res.status(500).json({error:e.message}); }
 });
 
+app.get('/revenue', function(req, res) {
+  res.sendFile(__dirname+'/revenue.html');
+});
+
 app.get('/tarifs-mobile', function(req, res) {
   res.setHeader('Content-Type','text/html; charset=utf-8');
   res.sendFile(__dirname+'/tarifs-mobile.html');

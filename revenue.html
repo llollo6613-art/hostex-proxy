@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0F6E56">
+<title>Illiberis — Revenus</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+:root{--green:#0F6E56;--green-light:#E1F5EE;--green-mid:#1D9E75;--air:#FF385C;--bk:#003580;--gray:#F8F9FA;--border:#E5E4E0;--text:#1A1A1A;--text2:#666;--text3:#999;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--gray);color:var(--text);min-height:100vh;}
+
+/* HEADER */
+.hdr{background:var(--green);padding:16px 20px 0;position:sticky;top:0;z-index:50;}
+.hdr-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.hdr-top h1{font-size:20px;font-weight:700;color:#fff;}
+.hdr-top p{font-size:12px;color:rgba(255,255,255,.7);margin-top:2px;}
+.back{background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:20px;padding:8px 14px;font-size:13px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:5px;}
+/* Tabs */
+.tabs{display:flex;gap:2px;}
+.tab{flex:1;padding:10px 8px;border:none;background:rgba(255,255,255,.15);color:rgba(255,255,255,.8);font-size:13px;font-weight:600;cursor:pointer;border-radius:10px 10px 0 0;transition:all .2s;}
+.tab.on{background:#fff;color:var(--green);}
+
+/* PERIOD BAR */
+.period-bar{background:#fff;border-bottom:1px solid var(--border);padding:10px 16px;display:flex;gap:6px;overflow-x:auto;-webkit-overflow-scrolling:touch;}
+.period-bar::-webkit-scrollbar{display:none;}
+.pbtn{flex-shrink:0;padding:7px 14px;border-radius:20px;border:1.5px solid var(--border);background:#fff;font-size:13px;font-weight:500;color:var(--text2);cursor:pointer;white-space:nowrap;}
+.pbtn.on{background:var(--green);border-color:var(--green);color:#fff;}
+
+/* MAIN */
+.main{max-width:1100px;margin:0 auto;padding:16px;}
+
+/* KPI GRID */
+.kpi-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px;}
+@media(min-width:600px){.kpi-grid{grid-template-columns:repeat(3,1fr);}}
+@media(min-width:900px){.kpi-grid{grid-template-columns:repeat(6,1fr);}}
+.kpi{background:#fff;border-radius:14px;padding:14px;border:1px solid var(--border);}
+.kpi-label{font-size:11px;color:var(--text3);font-weight:500;margin-bottom:6px;}
+.kpi-value{font-size:22px;font-weight:700;color:var(--text);}
+.kpi-sub{font-size:11px;color:var(--text3);margin-top:3px;}
+.kpi.green .kpi-value{color:var(--green);}
+.kpi.red .kpi-value{color:#dc2626;}
+.kpi.blue .kpi-value{color:var(--bk);}
+
+/* CHART */
+.chart-card{background:#fff;border-radius:14px;padding:16px;border:1px solid var(--border);margin-bottom:16px;}
+.chart-title{font-size:14px;font-weight:600;color:var(--text);margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;}
+.chart-wrap{width:100%;overflow-x:auto;}
+.bar-chart{display:flex;align-items:flex-end;gap:6px;height:160px;padding-bottom:24px;position:relative;min-width:100%;}
+.bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;min-width:32px;}
+.bar-wrap{width:100%;display:flex;gap:2px;align-items:flex-end;flex:1;}
+.bar{width:100%;border-radius:4px 4px 0 0;transition:height .3s;cursor:pointer;min-height:2px;}
+.bar.air{background:var(--air);}
+.bar.bk{background:var(--bk);}
+.bar-lbl{font-size:9px;color:var(--text3);text-align:center;position:absolute;bottom:0;width:100%;}
+.chart-legend{display:flex;gap:16px;margin-top:10px;}
+.leg-item{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);}
+.leg-dot{width:10px;height:10px;border-radius:3px;}
+
+/* SPLIT */
+.split-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;}
+@media(min-width:700px){.split-grid{grid-template-columns:1fr 1fr 1fr;}}
+.split-card{background:#fff;border-radius:14px;padding:14px;border:1px solid var(--border);}
+.split-card h3{font-size:12px;font-weight:600;color:var(--text3);margin-bottom:12px;}
+.plat-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.plat-badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;color:#fff;flex-shrink:0;}
+.plat-badge.air{background:var(--air);}
+.plat-badge.bk{background:var(--bk);}
+.plat-bar-wrap{flex:1;background:var(--gray);border-radius:4px;height:8px;overflow:hidden;}
+.plat-bar{height:100%;border-radius:4px;transition:width .5s;}
+.plat-bar.air{background:var(--air);}
+.plat-bar.bk{background:var(--bk);}
+.plat-val{font-size:11px;font-weight:600;color:var(--text);width:50px;text-align:right;}
+
+/* RÉSAS RÉCENTES */
+.reslist{background:#fff;border-radius:14px;border:1px solid var(--border);overflow:hidden;}
+.reslist-hdr{padding:14px 16px;font-size:14px;font-weight:600;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
+.res-item{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;}
+.res-item:last-child{border-bottom:none;}
+.res-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.res-dot.air{background:var(--air);}
+.res-dot.bk{background:var(--bk);}
+.res-info{flex:1;min-width:0;}
+.res-name{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.res-dates{font-size:11px;color:var(--text3);margin-top:2px;}
+.res-amount{text-align:right;flex-shrink:0;}
+.res-gross{font-size:14px;font-weight:600;}
+.res-net{font-size:11px;color:var(--green);margin-top:1px;}
+
+/* LOADING */
+.loading{text-align:center;padding:60px 20px;color:var(--text3);}
+.spin{display:inline-block;width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--green);border-radius:50%;animation:spin .7s linear infinite;margin-bottom:12px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* RESPONSIVE desktop */
+@media(min-width:900px){
+  .hdr{padding:20px 32px 0;}
+  .main{padding:24px 32px;}
+  .kpi-value{font-size:26px;}
+}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="hdr-top">
+    <div>
+      <h1>💰 Revenus Illiberis</h1>
+      <p id="hdr-sub">Chargement...</p>
+    </div>
+    <a href="/mobile" class="back">← App</a>
+  </div>
+  <div class="tabs">
+    <button class="tab on" onclick="setTab('all')">Global</button>
+    <button class="tab" onclick="setTab('12619011')">Suite</button>
+    <button class="tab" onclick="setTab('12619012')">Loft</button>
+  </div>
+</div>
+
+<div class="period-bar">
+  <button class="pbtn on" onclick="setPeriod('month')">Ce mois</button>
+  <button class="pbtn" onclick="setPeriod('3m')">3 mois</button>
+  <button class="pbtn" onclick="setPeriod('6m')">6 mois</button>
+  <button class="pbtn" onclick="setPeriod('year')">Cette année</button>
+  <button class="pbtn" onclick="setPeriod('lastyear')">An dernier</button>
+  <button class="pbtn" onclick="setPeriod('all')">Tout</button>
+</div>
+
+<div class="main" id="main">
+  <div class="loading"><div class="spin"></div><br>Chargement des données...</div>
+</div>
+
+<script>
+var PROPS = {"12619011":{name:"Suite Illiberis",clean:25}, "12619012":{name:"Loft Cinema",clean:45}};
+var MONTHS = ["Jan","Fév","Mar","Avr","Mai","Juin","Juil","Août","Sep","Oct","Nov","Déc"];
+var state = {tab:"all", period:"month", reservations:[]};
+
+async function init(){
+  try{
+    var r = await fetch("/all-reservations");
+    var d = await r.json();
+    state.reservations = (d.data&&d.data.reservations)||[];
+    document.getElementById("hdr-sub").textContent = state.reservations.length + " réservations chargées";
+  } catch(e){
+    document.getElementById("hdr-sub").textContent = "Erreur de chargement";
+  }
+  render();
+}
+
+function setTab(t){
+  state.tab = t;
+  document.querySelectorAll('.tab').forEach(function(b,i){
+    b.classList.toggle('on', ['all','12619011','12619012'][i]===t);
+  });
+  render();
+}
+
+function setPeriod(p){
+  state.period = p;
+  document.querySelectorAll('.pbtn').forEach(function(b){
+    b.classList.toggle('on', b.getAttribute('onclick').includes("'"+p+"'"));
+  });
+  render();
+}
+
+function getDateRange(){
+  var now = new Date();
+  var y = now.getFullYear(), m = now.getMonth();
+  if(state.period==='month') return {from:new Date(y,m,1), to:new Date(y,m+1,0)};
+  if(state.period==='3m') return {from:new Date(y,m-2,1), to:new Date(y,m+1,0)};
+  if(state.period==='6m') return {from:new Date(y,m-5,1), to:new Date(y,m+1,0)};
+  if(state.period==='year') return {from:new Date(y,0,1), to:new Date(y,11,31)};
+  if(state.period==='lastyear') return {from:new Date(y-1,0,1), to:new Date(y-1,11,31)};
+  return {from:new Date(2020,0,1), to:new Date(2030,0,1)};
+}
+
+function filterRes(){
+  var range = getDateRange();
+  return state.reservations.filter(function(r){
+    if(r.status==='cancelled') return false;
+    if(state.tab!=='all' && String(r.property_id)!==state.tab) return false;
+    var ci = new Date((r.check_in_date||r.check_in||'')+'T00:00:00');
+    return ci >= range.from && ci <= range.to;
+  });
+}
+
+function calcKpis(res){
+  var brut=0, net=0, nights=0, airN=0, bkN=0, airBrut=0, bkBrut=0;
+  res.forEach(function(r){
+    var ia = (r.channel_type||'').toLowerCase().includes('airbnb');
+    var g = parseFloat(r.total_price)||0;
+    var n = parseFloat(r.net_amount)||0;
+    if(!n && g) n = ia ? g*(1-0.0488) : g*(1-0.164);
+    var ci = new Date((r.check_in_date||r.check_in||'')+'T00:00:00');
+    var co = new Date((r.check_out_date||r.check_out||'')+'T00:00:00');
+    var ni = Math.max(0,Math.round((co-ci)/86400000));
+    var clean = PROPS[String(r.property_id)] ? PROPS[String(r.property_id)].clean : 30;
+    brut += g; net += n; nights += ni;
+    if(ia){airN+=ni; airBrut+=g;} else {bkN+=ni; bkBrut+=g;}
+  });
+  // Taux occupation
+  var range = getDateRange();
+  var totalDays = Math.round((range.to - range.from)/86400000)+1;
+  var props = state.tab==='all' ? 2 : 1;
+  var occ = totalDays>0 ? Math.min(100,Math.round(nights/(totalDays*props)*100)) : 0;
+  return {brut,net,nights,occ,airBrut,bkBrut,airN,bkN,nbRes:res.length};
+}
+
+function getMonthlyData(res){
+  var map = {};
+  res.forEach(function(r){
+    var ci = new Date((r.check_in_date||r.check_in||'')+'T00:00:00');
+    var key = ci.getFullYear()+'-'+(ci.getMonth()+1<10?'0':'')+(ci.getMonth()+1);
+    if(!map[key]) map[key]={label:MONTHS[ci.getMonth()]+' '+String(ci.getFullYear()).slice(2),air:0,bk:0};
+    var ia = (r.channel_type||'').toLowerCase().includes('airbnb');
+    var g = parseFloat(r.total_price)||0;
+    if(ia) map[key].air+=g; else map[key].bk+=g;
+  });
+  return Object.keys(map).sort().map(function(k){return map[k];});
+}
+
+function fmt(n){return Math.round(n).toLocaleString('fr-FR');}
+function fmtC(n){return fmt(n)+'€';}
+
+function render(){
+  var res = filterRes();
+  var kpis = calcKpis(res);
+  var monthly = getMonthlyData(res);
+  var maxBar = monthly.length ? Math.max.apply(null,monthly.map(function(m){return m.air+m.bk;})) : 1;
+  var propName = state.tab==='all'?'Tous les logements':PROPS[state.tab]?PROPS[state.tab].name:'';
+  var netAfterClean = kpis.net;
+  if(state.tab==='all'){
+    // estimation frais ménage déjà inclus dans net
+  }
+
+  var html = '';
+
+  // KPIs
+  html += '<div class="kpi-grid">';
+  html += '<div class="kpi green"><div class="kpi-label">Brut total</div><div class="kpi-value">'+fmtC(kpis.brut)+'</div><div class="kpi-sub">'+kpis.nbRes+' résa</div></div>';
+  html += '<div class="kpi green"><div class="kpi-label">Net encaissé</div><div class="kpi-value">'+fmtC(kpis.net)+'</div><div class="kpi-sub">après commissions</div></div>';
+  html += '<div class="kpi"><div class="kpi-label">Nuits louées</div><div class="kpi-value">'+kpis.nights+'</div><div class="kpi-sub">nuits</div></div>';
+  html += '<div class="kpi"><div class="kpi-label">Taux occupation</div><div class="kpi-value">'+kpis.occ+'%</div><div class="kpi-sub">estimé</div></div>';
+  html += '<div class="kpi"><div class="kpi-label">Moy. par nuit</div><div class="kpi-value">'+(kpis.nights?fmtC(kpis.brut/kpis.nights):'—')+'</div><div class="kpi-sub">brut/nuit</div></div>';
+  html += '<div class="kpi"><div class="kpi-label">Moy. par résa</div><div class="kpi-value">'+(kpis.nbRes?fmtC(kpis.brut/kpis.nbRes):'—')+'</div><div class="kpi-sub">brut/résa</div></div>';
+  html += '</div>';
+
+  // Graphique mensuel
+  if(monthly.length > 0){
+    html += '<div class="chart-card">';
+    html += '<div class="chart-title"><span>📈 Revenus mensuels</span><span style="font-size:11px;color:var(--text3);">'+propName+'</span></div>';
+    html += '<div class="chart-wrap"><div class="bar-chart">';
+    monthly.forEach(function(mo){
+      var total = mo.air+mo.bk;
+      var airH = maxBar>0 ? Math.round(mo.air/maxBar*130) : 0;
+      var bkH = maxBar>0 ? Math.round(mo.bk/maxBar*130) : 0;
+      html += '<div class="bar-col" style="position:relative;">';
+      html += '<div style="font-size:9px;color:var(--text3);text-align:center;margin-bottom:2px;">'+(total>0?Math.round(total/1000*10)/10+'k':'')+'</div>';
+      html += '<div class="bar-wrap"><div class="bar air" style="height:'+airH+'px" title="Airbnb: '+fmtC(mo.air)+'"></div><div class="bar bk" style="height:'+bkH+'px" title="Booking: '+fmtC(mo.bk)+'"></div></div>';
+      html += '<div class="bar-lbl">'+mo.label+'</div>';
+      html += '</div>';
+    });
+    html += '</div></div>';
+    html += '<div class="chart-legend"><div class="leg-item"><div class="leg-dot" style="background:var(--air)"></div>Airbnb '+fmtC(kpis.airBrut)+'</div><div class="leg-item"><div class="leg-dot" style="background:var(--bk)"></div>Booking '+fmtC(kpis.bkBrut)+'</div></div>';
+    html += '</div>';
+  }
+
+  // Répartition
+  var totalBrut = kpis.airBrut+kpis.bkBrut||1;
+  html += '<div class="split-grid">';
+  // Répartition revenus
+  html += '<div class="split-card"><h3>💰 REVENUS PAR PLATEFORME</h3>';
+  html += '<div class="plat-row"><span class="plat-badge air">AIR</span><div class="plat-bar-wrap"><div class="plat-bar air" style="width:'+Math.round(kpis.airBrut/totalBrut*100)+'%"></div></div><span class="plat-val">'+fmtC(kpis.airBrut)+'</span></div>';
+  html += '<div class="plat-row"><span class="plat-badge bk">BK</span><div class="plat-bar-wrap"><div class="plat-bar bk" style="width:'+Math.round(kpis.bkBrut/totalBrut*100)+'%"></div></div><span class="plat-val">'+fmtC(kpis.bkBrut)+'</span></div>';
+  html += '</div>';
+  // Répartition nuits
+  var totalNights = kpis.airN+kpis.bkN||1;
+  html += '<div class="split-card"><h3>🌙 NUITS PAR PLATEFORME</h3>';
+  html += '<div class="plat-row"><span class="plat-badge air">AIR</span><div class="plat-bar-wrap"><div class="plat-bar air" style="width:'+Math.round(kpis.airN/totalNights*100)+'%"></div></div><span class="plat-val">'+kpis.airN+' n</span></div>';
+  html += '<div class="plat-row"><span class="plat-badge bk">BK</span><div class="plat-bar-wrap"><div class="plat-bar bk" style="width:'+Math.round(kpis.bkN/totalNights*100)+'%"></div></div><span class="plat-val">'+kpis.bkN+' n</span></div>';
+  html += '</div>';
+  // Par logement si global
+  if(state.tab==='all'){
+    var suiteRes = state.reservations.filter(function(r){return r.status!=='cancelled'&&String(r.property_id)==='12619011';});
+    var loftRes = state.reservations.filter(function(r){return r.status!=='cancelled'&&String(r.property_id)==='12619012'});
+    // filter by period
+    var range = getDateRange();
+    suiteRes = suiteRes.filter(function(r){var ci=new Date((r.check_in_date||r.check_in||'')+'T00:00:00');return ci>=range.from&&ci<=range.to;});
+    loftRes = loftRes.filter(function(r){var ci=new Date((r.check_in_date||r.check_in||'')+'T00:00:00');return ci>=range.from&&ci<=range.to;});
+    var suiteB = suiteRes.reduce(function(s,r){return s+(parseFloat(r.total_price)||0);},0);
+    var loftB = loftRes.reduce(function(s,r){return s+(parseFloat(r.total_price)||0);},0);
+    var totB = suiteB+loftB||1;
+    html += '<div class="split-card"><h3>🏠 REVENUS PAR LOGEMENT</h3>';
+    html += '<div class="plat-row"><span class="plat-badge" style="background:var(--green)">STE</span><div class="plat-bar-wrap"><div class="plat-bar" style="background:var(--green);width:'+Math.round(suiteB/totB*100)+'%"></div></div><span class="plat-val">'+fmtC(suiteB)+'</span></div>';
+    html += '<div class="plat-row"><span class="plat-badge" style="background:#7C3AED">LFT</span><div class="plat-bar-wrap"><div class="plat-bar" style="background:#7C3AED;width:'+Math.round(loftB/totB*100)+'%"></div></div><span class="plat-val">'+fmtC(loftB)+'</span></div>';
+    html += '</div>';
+  }
+  html += '</div>';
+
+  // Réservations récentes
+  var sorted = res.slice().sort(function(a,b){return (b.check_in_date||b.check_in||'').localeCompare(a.check_in_date||a.check_in||'');});
+  html += '<div class="reslist">';
+  html += '<div class="reslist-hdr"><span>Réservations ('+res.length+')</span><span style="font-size:11px;color:var(--text3);">par date d\'arrivée</span></div>';
+  sorted.slice(0,20).forEach(function(r){
+    var ia = (r.channel_type||'').toLowerCase().includes('airbnb');
+    var g = parseFloat(r.total_price)||0;
+    var n = parseFloat(r.net_amount)||0;
+    if(!n&&g) n = ia ? g*(1-0.0488) : g*(1-0.164);
+    var ci = r.check_in_date||r.check_in||'';
+    var co = r.check_out_date||r.check_out||'';
+    var ni = Math.round((new Date(co+'T00:00:00')-new Date(ci+'T00:00:00'))/86400000);
+    var propN = PROPS[String(r.property_id)]?PROPS[String(r.property_id)].name.split(' ')[0]:'';
+    html += '<div class="res-item">';
+    html += '<div class="res-dot '+(ia?'air':'bk')+'"></div>';
+    html += '<div class="res-info"><div class="res-name">'+(r.guest_name||'Voyageur')+'</div><div class="res-dates">'+ci+' → '+co+' · '+ni+' nuits · '+propN+'</div></div>';
+    html += '<div class="res-amount"><div class="res-gross">'+fmtC(g)+'</div><div class="res-net">net '+fmtC(n)+'</div></div>';
+    html += '</div>';
+  });
+  if(res.length>20) html += '<div style="padding:12px 16px;text-align:center;font-size:12px;color:var(--text3);">+ '+(res.length-20)+' autres réservations</div>';
+  html += '</div>';
+
+  document.getElementById('main').innerHTML = html;
+}
+
+init();
+</script>
+</body>
+</html>
