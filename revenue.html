@@ -392,8 +392,13 @@ function renderElne(){
 }
 // ===== FIN ELNE =====
 
+// Affichage immédiat sans attendre les données
+window.addEventListener('DOMContentLoaded', function(){
+  if(state.tab==='elne') renderElne();
+  else render();
+});
+
 async function init(){
-  // Afficher ELNE immédiatement sans attendre les résas
   if(state.tab==='elne') renderElne();
   try{
     var controller = new AbortController();
