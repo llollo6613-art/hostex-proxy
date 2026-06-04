@@ -218,6 +218,16 @@ function togglePay(aptId, month){
   elneSet(aptId, month, !cur);
 }
 
+function editRent(aptId, currentRent, el){
+  var val=prompt('Nouveau loyer mensuel pour Apt '+aptId+' (€) :', currentRent);
+  if(val===null) return;
+  var n=parseFloat(val);
+  if(isNaN(n)||n<0) return;
+  var key='elne_rent_'+ELNE_YEAR+'_'+aptId;
+  localStorage.setItem(key, n);
+  renderElne();
+}
+
 function changeElneYear(delta){
   ELNE_YEAR+=delta;
   renderElne();
@@ -263,8 +273,11 @@ function renderElne(){
   // Lignes
   ELNE_APTS.forEach(function(apt){
     html+='<tr>';
+    var rentKey='elne_rent_'+ELNE_YEAR+'_'+apt.id;
+    var customRent=localStorage.getItem(rentKey);
+    var displayRent=customRent?parseFloat(customRent):apt.rent;
     html+='<td class="apt-cell"><div class="apt-name">Apt '+apt.id+' — '+apt.tenant+'</div>';
-    html+='<div class="apt-rent">'+apt.rent+'€/mois</div></td>';
+    html+='<div class="apt-rent" style="cursor:pointer;" onclick="editRent('+apt.id+','+displayRent+',this)">'+displayRent+'€/mois ✏️</div></td>';
     var aptTotal=0;
     for(var mo=1;mo<=12;mo++){
       var isPaid=d[apt.id]&&d[apt.id][mo];
@@ -273,8 +286,6 @@ function renderElne(){
       var cls='', content2='', onclick2='';
       if(!isActive){
         cls='na'; content2='—';
-      } else if(isFuture){
-        cls='future'; content2='';
       } else if(isPaid){
         cls='paid'; content2='✓';
         aptTotal+=apt.rent;
@@ -300,7 +311,10 @@ function renderElne(){
     ELNE_APTS.forEach(function(apt){
       if(mo>=apt.startMonth){
         moExpected+=apt.rent;
-        if(d[apt.id]&&d[apt.id][mo])moTotal+=apt.rent;
+        var rk='elne_rent_'+ELNE_YEAR+'_'+apt.id;
+      var cr=localStorage.getItem(rk);
+      var rl=cr?parseFloat(cr):apt.rent;
+      if(d[apt.id]&&d[apt.id][mo])moTotal+=rl;
       }
     });
     var pct=moExpected>0?moTotal/moExpected:0;
