@@ -153,9 +153,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <a href="/mobile" class="back">← App</a>
   </div>
   <div class="tabs">
-    <button class="tab on" onclick="setTab('all')">Global</button>
-    <button class="tab" onclick="setTab('12619011')">Suite</button>
-    <button class="tab" onclick="setTab('12619012')">Loft</button>
+    <button class="tab on" onclick="setTab('all')">📊 Global</button>
     <button class="tab" onclick="setTab('elne')">🏢 ELNE</button>
   </div>
 </div>
@@ -317,6 +315,39 @@ function renderElne(){
   html+='</tr>';
   html+='</table></div></div>';
 
+  // Section Airbnb (Suite + Loft)
+  html+='<div class="elne-wrap" style="margin-bottom:16px;">';
+  html+='<div class="section-title">APT 2 & 8 — AIRBNB (Suite Illiberis & Loft Cinema)</div>';
+  // Revenus par mois pour les 2 biens Airbnb
+  var airMonths={};
+  state.reservations.forEach(function(r){
+    if(r.status==='cancelled')return;
+    var ci=new Date((r.check_in_date||r.check_in||'')+'T00:00:00');
+    if(ci.getFullYear()!==ELNE_YEAR)return;
+    var mo=ci.getMonth()+1;
+    var prop=String(r.property_id);
+    var key=prop+'_'+mo;
+    if(!airMonths[key])airMonths[key]=0;
+    airMonths[key]+=(parseFloat(r.total_price)||0);
+  });
+  html+='<div style="overflow-x:auto"><table class="elne-table">';
+  html+='<tr><th class="apt-col">Appartement</th>';
+  MONTHS_FULL.forEach(function(mo){html+='<th>'+mo+'</th>';});
+  html+='<th>Total</th></tr>';
+  [['12619011','Apt 2 — Suite Illiberis','Airbnb'],['12619012','Apt 8 — Loft Cinema','Airbnb']].forEach(function(apt){
+    html+='<tr><td class="apt-cell"><div class="apt-name">'+apt[1]+'</div><div class="apt-rent apt-label" style="font-size:10px;color:var(--air);">Airbnb / Booking</div></td>';
+    var total=0;
+    for(var mo=1;mo<=12;mo++){
+      var v=(airMonths[apt[0]+'_'+mo]||0);
+      total+=v;
+      var isFut=isCurrentYear&&mo>curMonth;
+      html+='<td style="font-size:11px;font-weight:'+(v>0?'700':'400')+';color:'+(v>0?'var(--air)':'#ccc')+'">'+(isFut?'—':(v>0?Math.round(v)+'€':'0€'))+'</td>';
+    }
+    html+='<td class="month-total" style="color:var(--air)">'+Math.round(total).toLocaleString('fr-FR')+'€</td>';
+    html+='</tr>';
+  });
+  html+='</table></div></div>';
+
   // Charges
   html+='<div class="elne-wrap">';
   html+='<div class="section-title">CHARGES MENSUELLES FIXES</div>';
@@ -395,13 +426,14 @@ async function init(){
   } catch(e){
     document.getElementById("hdr-sub").textContent = "Erreur de chargement";
   }
-  render();
+  if(state.tab==='elne') renderElne();
+  else render();
 }
 
 function setTab(t){
   state.tab = t;
   document.querySelectorAll('.tab').forEach(function(b,i){
-    b.classList.toggle('on', ['all','12619011','12619012','elne'][i]===t);
+    b.classList.toggle('on', ['all','elne'][i]===t);
   });
   if(t==='elne') renderElne();
   else render();
