@@ -139,7 +139,17 @@ async function init(){
   try{
     var r = await fetch("/all-reservations");
     var d = await r.json();
-    state.reservations = (d.data&&d.data.reservations)||[];
+    var raw = (d.data&&d.data.reservations)||[];
+    // Déduplication : garder une seule résa par code de base
+    var map = {};
+    raw.forEach(function(r){
+      var code = (r.reservation_code||r.id||'').replace(/-bk[0-9a-z]*$/i,'').replace(/-id[0-9a-z]*$/i,'').replace(/-[0-9]+$/,'');
+      var existing = map[code];
+      if(!existing || r.status==='confirmed' || (r.status!=='cancelled'&&existing.status==='cancelled')){
+        map[code] = r;
+      }
+    });
+    state.reservations = Object.values(map);
     document.getElementById("hdr-sub").textContent = state.reservations.length + " réservations chargées";
   } catch(e){
     document.getElementById("hdr-sub").textContent = "Erreur de chargement";
