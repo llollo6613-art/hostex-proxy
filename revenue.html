@@ -283,18 +283,14 @@ function renderElne(){
       var isPaid=d[apt.id]&&d[apt.id][mo];
       var isActive=mo>=apt.startMonth;
       var isFuture=isCurrentYear&&mo>curMonth;
-      var cls='', content2='', onclick2='';
-      if(!isActive){
-        cls='na'; content2='—';
-      } else if(isPaid){
+      var cls='', content2='';
+      if(isPaid){
         cls='paid'; content2='✓';
         aptTotal+=apt.rent;
-        onclick2=' onclick="togglePay('+apt.id+','+mo+')"';
       } else {
-        cls='unpaid'; content2='✗';
-        onclick2=' onclick="togglePay('+apt.id+','+mo+')"';
+        cls=isActive?'unpaid':'na'; content2=isActive?'✗':'—';
       }
-      html+='<td><div class="pay-cell '+cls+'"'+onclick2+'>'+content2+'</div></td>';
+      html+='<td><div class="pay-cell '+cls+'" onclick="togglePay('+apt.id+','+mo+')">'+content2+'</div></td>';
     }
     // Calculer les mois attendus (non futurs)
     var expectedMos=0;
