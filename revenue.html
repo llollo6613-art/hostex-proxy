@@ -243,7 +243,7 @@ function renderElne(){
 
   // Barre résumé
   html+='<div class="kpi-grid" style="margin-bottom:16px;">';
-  html+='<div class="kpi"><div class="kpi-label">Loyers attendus</div><div class="kpi-value" style="color:var(--bk)">'+Math.round(totalExpected).toLocaleString('fr-FR')+'€</div><div class="kpi-sub">sur l'année</div></div>';
+  html+='<div class="kpi"><div class="kpi-label">Loyers attendus</div><div class="kpi-value" style="color:var(--bk)">'+Math.round(totalExpected).toLocaleString('fr-FR')+'€</div><div class="kpi-sub">sur l année</div></div>';
   html+='<div class="kpi green"><div class="kpi-label">Loyers encaissés</div><div class="kpi-value">'+Math.round(totalCollected).toLocaleString('fr-FR')+'€</div><div class="kpi-sub">'+(totalExpected>0?Math.round(totalCollected/totalExpected*100):0)+'% collecté</div></div>';
   html+='<div class="kpi"><div class="kpi-label">Restant à encaisser</div><div class="kpi-value" style="color:'+(totalExpected-totalCollected>0?'#DC2626':'#059669')+'">'+(totalExpected-totalCollected).toLocaleString('fr-FR')+'€</div><div class="kpi-sub">'+ELNE_APTS.length+' appartements</div></div>';
   html+='<div class="kpi"><div class="kpi-label">Charges mensuelles</div><div class="kpi-value" style="color:#DC2626">'+Math.round(totalCharges).toLocaleString('fr-FR')+'€</div><div class="kpi-sub">fixes/mois</div></div>';
