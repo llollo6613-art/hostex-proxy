@@ -378,8 +378,6 @@ function renderElne(){
       var brent2e=cr2e?parseFloat(cr2e):apt.rent;
       if(d[apt.id]&&d[apt.id][mo])moTotal+=getPayAmount(apt.id,mo);
       if(mo>=apt.startMonth) moExpected+=brent2e;
-      if(d[apt.id]&&d[apt.id][mo])moTotal+=getPayAmount(apt.id,mo);
-      }
     });
     var pct=moExpected>0?moTotal/moExpected:0;
     var color=pct>=1?'#059669':pct>0?'#D97706':'#DC2626';
