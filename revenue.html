@@ -411,17 +411,34 @@ function renderElne(){
   MONTHS_FULL.forEach(function(mo){html+='<th>'+mo+'</th>';});
   html+='<th>Total</th></tr>';
   [['12619011','Apt 2 — Suite Illiberis','Airbnb'],['12619012','Apt 8 — Loft Cinema','Airbnb']].forEach(function(apt){
-    html+='<tr><td class="apt-cell"><div class="apt-name">'+apt[1]+'</div><div class="apt-rent apt-label" style="font-size:10px;color:var(--air);">Airbnb / Booking</div></td>';
+    html+='<tr>';
+    html+='<td class="apt-cell"><div class="apt-name">'+apt[1]+'</div><div style="font-size:10px;color:var(--green);">Airbnb / Booking</div></td>';
     var total=0;
     for(var mo=1;mo<=12;mo++){
       var v=(airMonths[apt[0]+'_'+mo]||0);
       total+=v;
       var isFut=isCurrentYear&&mo>curMonth;
-      html+='<td style="font-size:11px;font-weight:'+(v>0?'700':'400')+';color:'+(v>0?'var(--air)':'#ccc')+'">'+(isFut?'—':(v>0?Math.round(v)+'€':'0€'))+'</td>';
+      html+='<td style="font-size:11px;font-weight:'+(v>0?'700':'400')+';color:'+(v>0?'var(--green)':'#ccc')+'">'+(isFut?'—':(v>0?Math.round(v)+'€':'0€'))+'</td>';
     }
-    html+='<td class="month-total" style="color:var(--air)">'+Math.round(total).toLocaleString('fr-FR')+'€</td>';
+    html+='<td class="month-total" style="color:var(--green)">'+Math.round(total).toLocaleString('fr-FR')+'€</td>';
     html+='</tr>';
   });
+  // Ligne total immeuble par mois
+  html+='<tr style="background:#E1F5EE;border-top:2px solid var(--green);">';
+  html+='<td class="apt-cell" style="font-weight:700;font-size:12px;color:var(--green);">🏢 TOTAL IMMEUBLE</td>';
+  for(var mo=1;mo<=12;mo++){
+    var moRent=0;
+    ELNE_APTS.forEach(function(apt){
+      if(d[apt.id]&&d[apt.id][mo])moRent+=getPayAmount(apt.id,mo);
+    });
+    var moAir=(airMonths['12619011_'+mo]||0)+(airMonths['12619012_'+mo]||0);
+    var moTot=moRent+moAir;
+    var isFut=isCurrentYear&&mo>curMonth;
+    html+='<td style="font-size:11px;font-weight:700;color:var(--green);">'+(isFut?'—':(moTot>0?Math.round(moTot).toLocaleString('fr-FR')+'€':'0€'))+'</td>';
+  }
+  var grandTotImm=grandTotal+airTotal;
+  html+='<td class="month-total" style="color:var(--green);font-size:13px;font-weight:700;">'+Math.round(grandTotImm).toLocaleString('fr-FR')+'€</td>';
+  html+='</tr>';
   html+='</table></div></div>';
 
   // Charges
