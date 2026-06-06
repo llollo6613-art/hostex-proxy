@@ -277,27 +277,46 @@ function getApt(aptId){
 }
 function editApt(aptId){
   var apt=getApt(aptId);
-  var name=prompt('Nom du locataire:',apt.tenant);
-  if(name===null)return;
-  var rent=parseFloat(prompt('Loyer mensuel (€):',apt.rent));
-  if(isNaN(rent))return;
-  var caution=prompt('Caution:',apt.caution||'');
-  if(caution===null)return;
-  var email=prompt('Email:',apt.email||'');
-  if(email===null)return;
-  var startM=parseInt(prompt('Mois de début (1-12):',apt.startMonth||1));
-  if(isNaN(startM)||startM<1||startM>12)return;
-  var key='elne_apt_'+aptId;
-  localStorage.setItem(key,JSON.stringify({tenant:name,rent:rent,caution:caution,email:email,startMonth:startM}));
-  // Mettre à jour ELNE_APTS en mémoire
-  for(var i=0;i<ELNE_APTS.length;i++){
-    if(ELNE_APTS[i].id===aptId){
-      ELNE_APTS[i].tenant=name;ELNE_APTS[i].rent=rent;
-      ELNE_APTS[i].caution=caution;ELNE_APTS[i].email=email;
-      ELNE_APTS[i].startMonth=startM;break;
+  // Créer modal
+  var ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:500;display:flex;align-items:flex-end;justify-content:center;';
+  ov.innerHTML='<div style="background:#fff;border-radius:24px 24px 0 0;padding:20px;width:100%;max-width:500px;padding-bottom:40px;">'
+    +'<div style="width:40px;height:4px;background:#ddd;border-radius:2px;margin:0 auto 16px;"></div>'
+    +'<h3 style="font-size:17px;font-weight:700;margin-bottom:16px;">Modifier Apt '+aptId+'</h3>'
+    +'<div style="display:grid;gap:10px;">'
+    +'<div><label style="font-size:11px;color:#888;display:block;margin-bottom:4px;">Nom du locataire</label><input id="ea-tenant" style="width:100%;border:1.5px solid #ddd;border-radius:10px;padding:11px;font-size:15px;outline:none;" value="'+apt.tenant+'"></div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">'
+    +'<div><label style="font-size:11px;color:#888;display:block;margin-bottom:4px;">Loyer (€/mois)</label><input id="ea-rent" type="number" style="width:100%;border:1.5px solid #ddd;border-radius:10px;padding:11px;font-size:15px;outline:none;" value="'+apt.rent+'"></div>'
+    +'<div><label style="font-size:11px;color:#888;display:block;margin-bottom:4px;">Mois début (1-12)</label><input id="ea-start" type="number" min="1" max="12" style="width:100%;border:1.5px solid #ddd;border-radius:10px;padding:11px;font-size:15px;outline:none;" value="'+(apt.startMonth||1)+'"></div>'
+    +'</div>'
+    +'<div><label style="font-size:11px;color:#888;display:block;margin-bottom:4px;">Caution</label><input id="ea-caution" style="width:100%;border:1.5px solid #ddd;border-radius:10px;padding:11px;font-size:15px;outline:none;" value="'+(apt.caution||'')+'"></div>'
+    +'<div><label style="font-size:11px;color:#888;display:block;margin-bottom:4px;">Email</label><input id="ea-email" type="email" style="width:100%;border:1.5px solid #ddd;border-radius:10px;padding:11px;font-size:15px;outline:none;" value="'+(apt.email||'')+'"></div>'
+    +'</div>'
+    +'<div style="display:flex;gap:8px;margin-top:16px;">'
+    +'<button onclick="document.body.removeChild(this.closest('[style*=fixed]'))" style="flex:1;padding:14px;border:none;border-radius:12px;background:#f5f5f5;font-size:15px;font-weight:600;cursor:pointer;">Annuler</button>'
+    +'<button id="ea-save" style="flex:1;padding:14px;border:none;border-radius:12px;background:var(--green);color:#fff;font-size:15px;font-weight:600;cursor:pointer;">✓ Enregistrer</button>'
+    +'</div>'
+    +'</div>';
+  document.body.appendChild(ov);
+  document.getElementById('ea-save').onclick=function(){
+    var name=document.getElementById('ea-tenant').value.trim();
+    var rent=parseFloat(document.getElementById('ea-rent').value)||0;
+    var caution=document.getElementById('ea-caution').value.trim();
+    var email=document.getElementById('ea-email').value.trim();
+    var startM=parseInt(document.getElementById('ea-start').value)||1;
+    if(!name||!rent)return;
+    var key='elne_apt_'+aptId;
+    localStorage.setItem(key,JSON.stringify({tenant:name,rent:rent,caution:caution,email:email,startMonth:startM}));
+    for(var i=0;i<ELNE_APTS.length;i++){
+      if(ELNE_APTS[i].id===aptId){
+        ELNE_APTS[i].tenant=name;ELNE_APTS[i].rent=rent;
+        ELNE_APTS[i].caution=caution;ELNE_APTS[i].email=email;
+        ELNE_APTS[i].startMonth=startM;break;
+      }
     }
-  }
-  renderElne();
+    document.body.removeChild(ov);
+    renderElne();
+  };
 }
 
 // ===== ÉDITION CHARGES =====
