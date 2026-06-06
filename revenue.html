@@ -275,6 +275,19 @@ function renderElne(){
   var isCurrentYear=(ELNE_YEAR===now.getFullYear());
   var totalCharges=ELNE_CHARGES.reduce(function(s,c){return s+(c.monthly?c.val:0);},0);
 
+  // Calculer airMonths en premier pour tout le rendu
+  var airMonths={};
+  state.reservations.forEach(function(r){
+    if(r.status==='cancelled')return;
+    var ci=new Date((r.check_in_date||r.check_in||'')+'T00:00:00');
+    if(ci.getFullYear()!==ELNE_YEAR)return;
+    var moA=ci.getMonth()+1;
+    var propA=String(r.property_id);
+    var keyA=propA+'_'+moA;
+    if(!airMonths[keyA])airMonths[keyA]=0;
+    airMonths[keyA]+=(parseFloat(r.total_price)||0);
+  });
+
   // Calcul récapitulatif
   var totalExpected=0, totalCollected=0;
   ELNE_APTS.forEach(function(apt){
@@ -394,18 +407,6 @@ function renderElne(){
   // Section Airbnb (Suite + Loft)
   html+='<div class="elne-wrap" style="margin-bottom:16px;">';
   html+='<div class="section-title">APT 2 & 8 — AIRBNB (Suite Illiberis & Loft Cinema)</div>';
-  // Revenus par mois pour les 2 biens Airbnb
-  var airMonths={};
-  state.reservations.forEach(function(r){
-    if(r.status==='cancelled')return;
-    var ci=new Date((r.check_in_date||r.check_in||'')+'T00:00:00');
-    if(ci.getFullYear()!==ELNE_YEAR)return;
-    var mo=ci.getMonth()+1;
-    var prop=String(r.property_id);
-    var key=prop+'_'+mo;
-    if(!airMonths[key])airMonths[key]=0;
-    airMonths[key]+=(parseFloat(r.total_price)||0);
-  });
   html+='<div style="overflow-x:auto"><table class="elne-table">';
   html+='<tr><th class="apt-col">Appartement</th>';
   MONTHS_FULL.forEach(function(mo){html+='<th>'+mo+'</th>';});
