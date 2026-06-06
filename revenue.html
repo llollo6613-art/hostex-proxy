@@ -459,8 +459,10 @@ function renderElne(){
   for(var mo=1;mo<=12;mo++){
     var moIncome=0;
     ELNE_APTS.forEach(function(apt){
-      if(mo>=apt.startMonth&&d[apt.id]&&d[apt.id][mo])moIncome+=apt.rent;
+      if(d[apt.id]&&d[apt.id][mo])moIncome+=getPayAmount(apt.id,mo);
     });
+    // Ajouter revenus Airbnb du mois
+    moIncome+=(airMonths['12619011_'+mo]||0)+(airMonths['12619012_'+mo]||0);
     var cf=moIncome-totalCharges;
     var isFut=isCurrentYear&&mo>curMonth;
     var cls=isFut?'zero':cf>0?'pos':cf<0?'neg':'zero';
