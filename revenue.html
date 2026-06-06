@@ -405,26 +405,23 @@ function renderElne(){
 
   // Calcul récapitulatif
   var totalExpected=0, totalCollected=0;
+  var fromM=range.from, toM=range.to;
   ELNE_APTS.forEach(function(apt){
     var rk='elne_rent_'+ELNE_YEAR+'_'+apt.id;
     var cr=localStorage.getItem(rk);
     var brent=cr?parseFloat(cr):apt.rent;
-    for(var mo=apt.startMonth;mo<=12;mo++){
-      totalExpected+=brent;
-      if(d[apt.id]&&d[apt.id][mo])totalCollected+=getPayAmount(apt.id,mo);
+    for(var mo=1;mo<=12;mo++){
+      var moDate=new Date(ELNE_YEAR,mo-1,1);
+      var inRange=(moDate>=range.from&&moDate<=range.to);
+      if(mo>=apt.startMonth&&inRange) totalExpected+=brent;
+      if(inRange&&d[apt.id]&&d[apt.id][mo])totalCollected+=getPayAmount(apt.id,mo);
+    }
     }
   });
 
   var html='';
 
   // Calcul revenus Airbnb pour l'année sélectionnée
-  var airTotal=0;
-  state.reservations.forEach(function(r){
-    if(r.status==='cancelled')return;
-    var ci=new Date((r.check_in_date||r.check_in||'')+'T00:00:00');
-    if(ci.getFullYear()!==ELNE_YEAR)return;
-    airTotal+=(parseFloat(r.total_price)||0);
-  });
   var totalImmeuble=totalCollected+airTotal;
   var totalChargesAnnuel=totalCharges*12;
   var cashFlowAnnuel=totalImmeuble-totalChargesAnnuel-getTotalMenageYear();
