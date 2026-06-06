@@ -271,6 +271,9 @@ function setMenage(mo, val){
   var key='elne_menage_'+ELNE_YEAR+'_'+mo;
   var n=parseFloat(val)||0;
   localStorage.setItem(key, n);
+}
+function saveMenage(mo, val){
+  setMenage(mo, val);
   renderElne();
 }
 function getTotalMenageYear(){
@@ -482,7 +485,7 @@ function renderElne(){
       html+='<div style="display:flex;align-items:center;gap:4px;">';
       html+='<input type="number" value="'+mVal+'" min="0" placeholder="0"';
       html+=' style="width:70px;border:1.5px solid #ddd;border-radius:8px;padding:4px 6px;font-size:14px;font-weight:700;color:#DC2626;outline:none;"';
-      html+=' onchange="setMenage('+moCh+',this.value)" oninput="setMenage('+moCh+',this.value)">';
+      html+=' oninput="setMenage('+moCh+',this.value)" onchange="saveMenage('+moCh+',this.value)">';
       html+='<span style="font-size:12px;color:#999;">€</span></div>';
     }
     html+='</div>';
