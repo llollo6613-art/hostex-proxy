@@ -760,7 +760,7 @@ function setPeriod(p){
   document.querySelectorAll('.pbtn').forEach(function(b){
     b.classList.toggle('on', b.getAttribute('onclick').includes("'"+p+"'"));
   });
-  render();
+  if(state.tab==='elne'){if(state.subtab==='suite')renderProp('12619011');else if(state.subtab==='loft')renderProp('12619012');else renderElne();}else render();
 }
 
 function getDateRange(){
