@@ -280,6 +280,7 @@ function getApt(aptId){
   var custom=getAptData(aptId)||{};
   return Object.assign({},base,custom);
 }
+function closeEditModal(){var m=document.getElementById('edit-apt-modal');if(m)m.remove();}
 function editApt(aptId){
   var apt=getApt(aptId);
   // Créer modal
@@ -298,7 +299,7 @@ function editApt(aptId){
     +'<div><label style="font-size:11px;color:#888;display:block;margin-bottom:4px;">Email</label><input id="ea-email" type="email" style="width:100%;border:1.5px solid #ddd;border-radius:10px;padding:11px;font-size:15px;outline:none;" value="'+(apt.email||'')+'"></div>'
     +'</div>'
     +'<div style="display:flex;gap:8px;margin-top:16px;">'
-    +'<button onclick="document.body.removeChild(this.closest('[style*=fixed]'))" style="flex:1;padding:14px;border:none;border-radius:12px;background:#f5f5f5;font-size:15px;font-weight:600;cursor:pointer;">Annuler</button>'
+    +'<button onclick="closeEditModal()" style="flex:1;padding:14px;border:none;border-radius:12px;background:#f5f5f5;font-size:15px;font-weight:600;cursor:pointer;">Annuler</button>'
     +'<button id="ea-save" style="flex:1;padding:14px;border:none;border-radius:12px;background:var(--green);color:#fff;font-size:15px;font-weight:600;cursor:pointer;">✓ Enregistrer</button>'
     +'</div>'
     +'</div>';
