@@ -159,6 +159,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   </div>
 </div>
 
+<div id="subbar" style="display:none;background:#fff;border-bottom:1px solid var(--border);padding:8px 14px;gap:6px;overflow-x:auto;">
+  <button class="subtab on" data-st="building" onclick="setSubTab('building')" style="padding:7px 14px;border-radius:20px;border:1.5px solid var(--border);background:var(--green);color:#fff;font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap;">🏢 Immeuble</button>
+  <button class="subtab" data-st="suite" onclick="setSubTab('suite')" style="padding:7px 14px;border-radius:20px;border:1.5px solid var(--border);background:#fff;font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap;color:#888;">Suite Illiberis</button>
+  <button class="subtab" data-st="loft" onclick="setSubTab('loft')" style="padding:7px 14px;border-radius:20px;border:1.5px solid var(--border);background:#fff;font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap;color:#888;">Loft Cinema</button>
+</div>
 <div class="period-bar">
   <button class="pbtn on" onclick="setPeriod('month')">Ce mois</button>
   <button class="pbtn" onclick="setPeriod('3m')">3 mois</button>
@@ -671,8 +676,82 @@ function setTab(t){
   document.querySelectorAll('.tab').forEach(function(b,i){
     b.classList.toggle('on', ['all','elne'][i]===t);
   });
-  if(t==='elne') renderElne();
-  else render();
+  var subbar = document.getElementById('subbar');
+  if(t==='elne'){
+    subbar.style.display='flex';
+    renderElne();
+  } else {
+    subbar.style.display='none';
+    render();
+  }
+}
+
+function setSubTab(st){
+  state.subtab = st;
+  document.querySelectorAll('.subtab').forEach(function(b){
+    b.classList.toggle('on', b.getAttribute('data-st')===st);
+  });
+  if(st==='suite') renderProp('12619011');
+  else if(st==='loft') renderProp('12619012');
+  else renderElne();
+}
+
+function renderProp(propId){
+  var propName = propId==='12619011'?'Suite Illiberis':'Loft Cinema';
+  // Filtrer résas pour cette prop
+  var range = getDateRange();
+  var res = state.reservations.filter(function(r){
+    if(r.status==='cancelled') return false;
+    if(String(r.property_id)!==propId) return false;
+    var ci = new Date((r.check_in_date||r.check_in||'')+'T00:00:00');
+    return ci >= range.from && ci <= range.to;
+  });
+  var kpis = calcKpis(res);
+  var monthly = getMonthlyData(res);
+  var maxBar = monthly.length ? Math.max.apply(null,monthly.map(function(m){return m.air+m.bk;})) : 1;
+  var html = '';
+  // KPIs
+  html += '<div class="kpi-grid" style="margin-bottom:16px;">';
+  html += '<div class="kpi green"><div class="kpi-label">Brut total</div><div class="kpi-value">'+fmtC(kpis.brut)+'</div><div class="kpi-sub">'+kpis.nbRes+' résa</div></div>';
+  html += '<div class="kpi green"><div class="kpi-label">Net encaissé</div><div class="kpi-value">'+fmtC(kpis.net)+'</div></div>';
+  html += '<div class="kpi"><div class="kpi-label">Nuits louées</div><div class="kpi-value">'+kpis.nights+'</div></div>';
+  html += '<div class="kpi"><div class="kpi-label">Taux occupation</div><div class="kpi-value">'+kpis.occ+'%</div></div>';
+  html += '<div class="kpi"><div class="kpi-label">Moy/nuit</div><div class="kpi-value">'+(kpis.nights?fmtC(kpis.brut/kpis.nights):'—')+'</div></div>';
+  html += '<div class="kpi"><div class="kpi-label">Moy/résa</div><div class="kpi-value">'+(kpis.nbRes?fmtC(kpis.brut/kpis.nbRes):'—')+'</div></div>';
+  html += '</div>';
+  // Graphique
+  if(monthly.length){
+    html += '<div class="chart-card">';
+    html += '<div class="chart-title"><span>📈 Revenus mensuels</span><span style="font-size:11px;color:var(--text3);">'+propName+'</span></div>';
+    html += '<div class="chart-wrap"><div class="bar-chart">';
+    monthly.forEach(function(mo){
+      var airH=maxBar>0?Math.round(mo.air/maxBar*130):0;
+      var bkH=maxBar>0?Math.round(mo.bk/maxBar*130):0;
+      html+='<div class="bar-col" style="position:relative;"><div style="font-size:9px;color:var(--text3);text-align:center;margin-bottom:2px;">'+(( mo.air+mo.bk)>0?Math.round((mo.air+mo.bk)/1000*10)/10+'k':'')+'</div>';
+      html+='<div class="bar-wrap"><div class="bar air" style="height:'+airH+'px"></div><div class="bar bk" style="height:'+bkH+'px"></div></div>';
+      html+='<div class="bar-lbl">'+mo.label+'</div></div>';
+    });
+    html+='</div></div>';
+    html+='<div class="chart-legend"><div class="leg-item"><div class="leg-dot" style="background:var(--air)"></div>Airbnb '+fmtC(kpis.airBrut)+'</div><div class="leg-item"><div class="leg-dot" style="background:var(--bk)"></div>Booking '+fmtC(kpis.bkBrut)+'</div></div>';
+    html+='</div>';
+  }
+  // Résa récentes
+  var sorted=res.slice().sort(function(a,b){return (b.check_in_date||b.check_in||'').localeCompare(a.check_in_date||a.check_in||'');});
+  html+='<div class="reslist"><div class="reslist-hdr"><span>Réservations ('+res.length+')</span></div>';
+  sorted.slice(0,30).forEach(function(r){
+    var ia=(r.channel_type||'').toLowerCase().includes('airbnb');
+    var g=parseFloat(r.total_price)||0;
+    var n=parseFloat(r.net_amount)||0;
+    if(!n&&g)n=ia?g*(1-0.0488):g*(1-0.164);
+    var ci=r.check_in_date||r.check_in||'';
+    var co=r.check_out_date||r.check_out||'';
+    var ni=Math.round((new Date(co+'T00:00:00')-new Date(ci+'T00:00:00'))/86400000);
+    html+='<div class="res-item"><div class="res-dot '+(ia?'air':'bk')+'"></div>';
+    html+='<div class="res-info"><div class="res-name">'+(r.guest_name||'Voyageur')+'</div><div class="res-dates">'+ci+' → '+co+' · '+ni+'n</div></div>';
+    html+='<div class="res-amount"><div class="res-gross">'+fmtC(g)+'</div><div class="res-net">net '+fmtC(n)+'</div></div></div>';
+  });
+  html+='</div>';
+  document.getElementById('main').innerHTML=html;
 }
 
 function setPeriod(p){
