@@ -422,8 +422,24 @@ function renderElne(){
 
   // Calcul revenus Airbnb pour l'année sélectionnée
   var totalImmeuble=totalCollected+airTotal;
-  var totalChargesAnnuel=totalCharges*12;
-  var cashFlowAnnuel=totalImmeuble-totalChargesAnnuel-getTotalMenageYear();
+  // Nombre de mois dans la période sélectionnée
+  var nbMois={'month':1,'3m':3,'6m':6,'year':12,'lastyear':12,'all':12}[state.period]||12;
+  if(state.period==='all'){
+    // Calculer le nombre de mois réel entre les résas
+    var allMonths=Math.round((range.to-range.from)/86400000/30.5)||12;
+    nbMois=Math.min(Math.max(allMonths,1),12);
+  }
+  var totalChargesPeriode=totalCharges*nbMois;
+  var totalMenagePeriode=0;
+  var rangeStartM=range.from.getMonth()+1;
+  var rangeEndM=range.to.getMonth()+1;
+  var rangeY1=range.from.getFullYear();
+  var rangeY2=range.to.getFullYear();
+  for(var mcc=1;mcc<=12;mcc++){
+    var mDate2=new Date(ELNE_YEAR,mcc-1,1);
+    if(mDate2>=range.from&&mDate2<=range.to) totalMenagePeriode+=getMenage(mcc);
+  }
+  var cashFlowAnnuel=totalImmeuble-totalChargesPeriode-totalMenagePeriode;
 
   // KPIs globaux immeuble
   html+='<div style="background:var(--green);border-radius:14px;padding:14px;margin-bottom:14px;color:#fff;">';
