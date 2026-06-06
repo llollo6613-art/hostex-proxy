@@ -263,6 +263,22 @@ function resetElne(){
   renderElne();
 }
 
+function getMenage(mo){
+  var key='elne_menage_'+ELNE_YEAR+'_'+mo;
+  return parseFloat(localStorage.getItem(key)||'0')||0;
+}
+function setMenage(mo, val){
+  var key='elne_menage_'+ELNE_YEAR+'_'+mo;
+  var n=parseFloat(val)||0;
+  localStorage.setItem(key, n);
+  renderElne();
+}
+function getTotalMenageYear(){
+  var t=0;
+  for(var mo=1;mo<=12;mo++) t+=getMenage(mo);
+  return t;
+}
+
 function changeElneYear(delta){
   ELNE_YEAR+=delta;
   renderElne();
@@ -312,7 +328,7 @@ function renderElne(){
   });
   var totalImmeuble=totalCollected+airTotal;
   var totalChargesAnnuel=totalCharges*12;
-  var cashFlowAnnuel=totalImmeuble-totalChargesAnnuel;
+  var cashFlowAnnuel=totalImmeuble-totalChargesAnnuel-getTotalMenageYear();
 
   // KPIs globaux immeuble
   html+='<div style="background:var(--green);border-radius:14px;padding:14px;margin-bottom:14px;color:#fff;">';
@@ -450,8 +466,31 @@ function renderElne(){
     html+='<div class="charge-item"><div class="charge-label">'+c.label+'</div>';
     html+='<div class="charge-val">'+c.val.toLocaleString('fr-FR',{minimumFractionDigits:0,maximumFractionDigits:2})+'€</div></div>';
   });
-  html+='<div class="charge-item"><div class="charge-label">TOTAL CHARGES</div>';
-  html+='<div class="charge-val" style="font-size:20px;">'+Math.round(totalCharges).toLocaleString('fr-FR')+'€</div></div>';
+  // Charges ménage variables par mois
+  var totalMenage=getTotalMenageYear();
+  html+='</div>';
+  html+='<div class="section-title" style="margin-top:0;">MÉNAGE AIRBNB (variable par mois)</div>';
+  html+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:14px;">';
+  for(var moCh=1;moCh<=12;moCh++){
+    var mVal=getMenage(moCh);
+    var isFut2=isCurrentYear&&moCh>curMonth;
+    html+='<div class="charge-item" style="padding:10px;">';
+    html+='<div class="charge-label">'+MONTHS_FULL[moCh-1]+'</div>';
+    if(isFut2){
+      html+='<div style="font-size:15px;color:#ccc;font-weight:700;">—</div>';
+    } else {
+      html+='<div style="display:flex;align-items:center;gap:4px;">';
+      html+='<input type="number" value="'+mVal+'" min="0" placeholder="0"';
+      html+=' style="width:70px;border:1.5px solid #ddd;border-radius:8px;padding:4px 6px;font-size:14px;font-weight:700;color:#DC2626;outline:none;"';
+      html+=' onchange="setMenage('+moCh+',this.value)" oninput="setMenage('+moCh+',this.value)">';
+      html+='<span style="font-size:12px;color:#999;">€</span></div>';
+    }
+    html+='</div>';
+  }
+  html+='</div>';
+  html+='<div style="padding:0 14px 14px;display:flex;gap:10px;flex-wrap:wrap;">';
+  html+='<div class="charge-item" style="flex:1;"><div class="charge-label">Total ménage</div><div class="charge-val">'+Math.round(totalMenage).toLocaleString('fr-FR')+'€</div></div>';
+  html+='<div class="charge-item" style="flex:1;background:#FEF2F2;"><div class="charge-label">TOTAL CHARGES ANNUEL</div><div class="charge-val" style="font-size:20px;">'+Math.round(totalCharges*12+totalMenage).toLocaleString('fr-FR')+'€</div></div>';
   html+='</div>';
 
   // Cash flow mensuel
@@ -464,7 +503,7 @@ function renderElne(){
     });
     // Ajouter revenus Airbnb du mois
     moIncome+=(airMonths['12619011_'+mo]||0)+(airMonths['12619012_'+mo]||0);
-    var cf=moIncome-totalCharges;
+    var cf=moIncome-totalCharges-getMenage(mo);
     var isFut=isCurrentYear&&mo>curMonth;
     var cls=isFut?'zero':cf>0?'pos':cf<0?'neg':'zero';
     html+='<div class="cf-item '+cls+'"><div class="cf-month">'+MONTHS_FULL[mo-1]+'</div>';
