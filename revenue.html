@@ -401,8 +401,9 @@ function renderElne(){
   var range=getDateRange();
   if(state.pieMois>0){
     var pm=state.pieMois;
-    range={from:new Date(ELNE_YEAR,pm-1,1),to:new Date(ELNE_YEAR,pm,0)};
-  }
+    var pmYear=new Date().getFullYear();
+    range={from:new Date(pmYear,pm-1,1),to:new Date(pmYear,pm,0)};
+    nbMois=1;
   // airMonths complet pour le tableau (toute l'année)
   var airMonths={};
   state.reservations.forEach(function(r){
