@@ -130,6 +130,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .sb-label{font-size:10px;color:var(--text3);font-weight:500;}
 .sb-val{font-size:15px;font-weight:700;}
 
+.kpi-g{background:var(--color-background-secondary,#f8f9fa);border-radius:var(--border-radius-md,8px);padding:14px;}
+.kg-l{font-size:11px;color:var(--color-text-secondary,#666);margin-bottom:4px;}
+.kg-v{font-size:22px;font-weight:500;color:var(--color-text-primary,#1a1a1a);}
+.kg-s{font-size:11px;color:var(--color-text-secondary,#888);margin-top:2px;}
 /* LOADING */
 .loading{text-align:center;padding:60px 20px;color:var(--text3);}
 .spin{display:inline-block;width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--green);border-radius:50%;animation:spin .7s linear infinite;margin-bottom:12px;}
@@ -844,104 +848,130 @@ function getMonthlyData(res){
 function fmt(n){return Math.round(n).toLocaleString('fr-FR');}
 function fmtC(n){return fmt(n)+'€';}
 
+
 function render(){
-  var res = filterRes();
-  var kpis = calcKpis(res);
-  var monthly = getMonthlyData(res);
-  var maxBar = monthly.length ? Math.max.apply(null,monthly.map(function(m){return m.air+m.bk;})) : 1;
-  var propName = state.tab==='all'?'Tous les logements':PROPS[state.tab]?PROPS[state.tab].name:'';
-  var netAfterClean = kpis.net;
-  if(state.tab==='all'){
-    // estimation frais ménage déjà inclus dans net
-  }
-
-  var html = '';
-
-  // KPIs
-  html += '<div class="kpi-grid">';
-  html += '<div class="kpi green"><div class="kpi-label">Brut total</div><div class="kpi-value">'+fmtC(kpis.brut)+'</div><div class="kpi-sub">'+kpis.nbRes+' résa</div></div>';
-  html += '<div class="kpi green"><div class="kpi-label">Net encaissé</div><div class="kpi-value">'+fmtC(kpis.net)+'</div><div class="kpi-sub">après commissions</div></div>';
-  html += '<div class="kpi"><div class="kpi-label">Nuits louées</div><div class="kpi-value">'+kpis.nights+'</div><div class="kpi-sub">nuits</div></div>';
-  html += '<div class="kpi"><div class="kpi-label">Taux occupation</div><div class="kpi-value">'+kpis.occ+'%</div><div class="kpi-sub">estimé</div></div>';
-  html += '<div class="kpi"><div class="kpi-label">Moy. par nuit</div><div class="kpi-value">'+(kpis.nights?fmtC(kpis.brut/kpis.nights):'—')+'</div><div class="kpi-sub">brut/nuit</div></div>';
-  html += '<div class="kpi"><div class="kpi-label">Moy. par résa</div><div class="kpi-value">'+(kpis.nbRes?fmtC(kpis.brut/kpis.nbRes):'—')+'</div><div class="kpi-sub">brut/résa</div></div>';
-  html += '</div>';
-
-  // Graphique mensuel
-  if(monthly.length > 0){
-    html += '<div class="chart-card">';
-    html += '<div class="chart-title"><span>📈 Revenus mensuels</span><span style="font-size:11px;color:var(--text3);">'+propName+'</span></div>';
-    html += '<div class="chart-wrap"><div class="bar-chart">';
-    monthly.forEach(function(mo){
-      var total = mo.air+mo.bk;
-      var airH = maxBar>0 ? Math.round(mo.air/maxBar*130) : 0;
-      var bkH = maxBar>0 ? Math.round(mo.bk/maxBar*130) : 0;
-      html += '<div class="bar-col" style="position:relative;">';
-      html += '<div style="font-size:9px;color:var(--text3);text-align:center;margin-bottom:2px;">'+(total>0?Math.round(total/1000*10)/10+'k':'')+'</div>';
-      html += '<div class="bar-wrap"><div class="bar air" style="height:'+airH+'px" title="Airbnb: '+fmtC(mo.air)+'"></div><div class="bar bk" style="height:'+bkH+'px" title="Booking: '+fmtC(mo.bk)+'"></div></div>';
-      html += '<div class="bar-lbl">'+mo.label+'</div>';
-      html += '</div>';
-    });
-    html += '</div></div>';
-    html += '<div class="chart-legend"><div class="leg-item"><div class="leg-dot" style="background:var(--air)"></div>Airbnb '+fmtC(kpis.airBrut)+'</div><div class="leg-item"><div class="leg-dot" style="background:var(--bk)"></div>Booking '+fmtC(kpis.bkBrut)+'</div></div>';
-    html += '</div>';
-  }
-
-  // Répartition
-  var totalBrut = kpis.airBrut+kpis.bkBrut||1;
-  html += '<div class="split-grid">';
-  // Répartition revenus
-  html += '<div class="split-card"><h3>💰 REVENUS PAR PLATEFORME</h3>';
-  html += '<div class="plat-row"><span class="plat-badge air">AIR</span><div class="plat-bar-wrap"><div class="plat-bar air" style="width:'+Math.round(kpis.airBrut/totalBrut*100)+'%"></div></div><span class="plat-val">'+fmtC(kpis.airBrut)+'</span></div>';
-  html += '<div class="plat-row"><span class="plat-badge bk">BK</span><div class="plat-bar-wrap"><div class="plat-bar bk" style="width:'+Math.round(kpis.bkBrut/totalBrut*100)+'%"></div></div><span class="plat-val">'+fmtC(kpis.bkBrut)+'</span></div>';
-  html += '</div>';
-  // Répartition nuits
-  var totalNights = kpis.airN+kpis.bkN||1;
-  html += '<div class="split-card"><h3>🌙 NUITS PAR PLATEFORME</h3>';
-  html += '<div class="plat-row"><span class="plat-badge air">AIR</span><div class="plat-bar-wrap"><div class="plat-bar air" style="width:'+Math.round(kpis.airN/totalNights*100)+'%"></div></div><span class="plat-val">'+kpis.airN+' n</span></div>';
-  html += '<div class="plat-row"><span class="plat-badge bk">BK</span><div class="plat-bar-wrap"><div class="plat-bar bk" style="width:'+Math.round(kpis.bkN/totalNights*100)+'%"></div></div><span class="plat-val">'+kpis.bkN+' n</span></div>';
-  html += '</div>';
-  // Par logement si global
-  if(state.tab==='all'){
-    var suiteRes = state.reservations.filter(function(r){return r.status!=='cancelled'&&String(r.property_id)==='12619011';});
-    var loftRes = state.reservations.filter(function(r){return r.status!=='cancelled'&&String(r.property_id)==='12619012'});
-    // filter by period
-    var range = getDateRange();
-    suiteRes = suiteRes.filter(function(r){var ci=new Date((r.check_in_date||r.check_in||'')+'T00:00:00');return ci>=range.from&&ci<=range.to;});
-    loftRes = loftRes.filter(function(r){var ci=new Date((r.check_in_date||r.check_in||'')+'T00:00:00');return ci>=range.from&&ci<=range.to;});
-    var suiteB = suiteRes.reduce(function(s,r){return s+(parseFloat(r.total_price)||0);},0);
-    var loftB = loftRes.reduce(function(s,r){return s+(parseFloat(r.total_price)||0);},0);
-    var totB = suiteB+loftB||1;
-    html += '<div class="split-card"><h3>🏠 REVENUS PAR LOGEMENT</h3>';
-    html += '<div class="plat-row"><span class="plat-badge" style="background:var(--green)">STE</span><div class="plat-bar-wrap"><div class="plat-bar" style="background:var(--green);width:'+Math.round(suiteB/totB*100)+'%"></div></div><span class="plat-val">'+fmtC(suiteB)+'</span></div>';
-    html += '<div class="plat-row"><span class="plat-badge" style="background:#7C3AED">LFT</span><div class="plat-bar-wrap"><div class="plat-bar" style="background:#7C3AED;width:'+Math.round(loftB/totB*100)+'%"></div></div><span class="plat-val">'+fmtC(loftB)+'</span></div>';
-    html += '</div>';
-  }
-  html += '</div>';
-
-  // Réservations récentes
-  var sorted = res.slice().sort(function(a,b){return (b.check_in_date||b.check_in||'').localeCompare(a.check_in_date||a.check_in||'');});
-  html += '<div class="reslist">';
-  html += '<div class="reslist-hdr"><span>Réservations ('+res.length+')</span><span style="font-size:11px;color:var(--text3);">par date d\'arrivée</span></div>';
-  sorted.slice(0,20).forEach(function(r){
-    var ia = (r.channel_type||'').toLowerCase().includes('airbnb');
-    var g = parseFloat(r.total_price)||0;
-    var n = parseFloat(r.net_amount)||0;
-    if(!n&&g) n = ia ? g*(1-0.0488) : g*(1-0.164);
-    var ci = r.check_in_date||r.check_in||'';
-    var co = r.check_out_date||r.check_out||'';
-    var ni = Math.round((new Date(co+'T00:00:00')-new Date(ci+'T00:00:00'))/86400000);
-    var propN = PROPS[String(r.property_id)]?PROPS[String(r.property_id)].name.split(' ')[0]:'';
-    html += '<div class="res-item">';
-    html += '<div class="res-dot '+(ia?'air':'bk')+'"></div>';
-    html += '<div class="res-info"><div class="res-name">'+(r.guest_name||'Voyageur')+'</div><div class="res-dates">'+ci+' → '+co+' · '+ni+' nuits · '+propN+'</div></div>';
-    html += '<div class="res-amount"><div class="res-gross">'+fmtC(g)+'</div><div class="res-net">net '+fmtC(n)+'</div></div>';
-    html += '</div>';
+  var range=getDateRange();
+  var nbMois={"month":1,"3m":3,"6m":6,"year":12,"lastyear":12,"all":12}[state.period]||12;
+  var airRevTotal=0,airRev11=0,airRev12=0,monthlyAir={};
+  state.reservations.filter(function(r){
+    if(r.status==="cancelled")return false;
+    var ci=new Date((r.check_in_date||r.check_in||"")+"T00:00:00");
+    return ci>=range.from&&ci<=range.to;
+  }).forEach(function(r){
+    var g=parseFloat(r.total_price)||0;
+    var ia=(r.channel_type||"").toLowerCase().includes("airbnb");
+    airRevTotal+=g;
+    if(String(r.property_id)==="12619011")airRev11+=g;
+    if(String(r.property_id)==="12619012")airRev12+=g;
+    var ci=new Date((r.check_in_date||r.check_in||"")+"T00:00:00");
+    var mo=ci.getMonth();
+    if(!monthlyAir[mo])monthlyAir[mo]={air:0,bk:0};
+    if(ia)monthlyAir[mo].air+=g;else monthlyAir[mo].bk+=g;
   });
-  if(res.length>20) html += '<div style="padding:12px 16px;text-align:center;font-size:12px;color:var(--text3);">+ '+(res.length-20)+' autres réservations</div>';
-  html += '</div>';
+  var elneRents=0,monthlyRents={};
+  loadCustomData();
+  var d=elneData();
+  ELNE_APTS.forEach(function(apt){
+    for(var mo=1;mo<=12;mo++){
+      var mDate=new Date(ELNE_YEAR,mo-1,1);
+      if(mDate>=range.from&&mDate<=range.to&&d[apt.id]&&d[apt.id][mo]){
+        var v=getPayAmount(apt.id,mo);
+        elneRents+=v;
+        if(!monthlyRents[mo-1])monthlyRents[mo-1]=0;
+        monthlyRents[mo-1]+=v;
+      }
+    }
+  });
+  var totalChargesM=ELNE_CHARGES.reduce(function(s,c){return s+(c.monthly?c.val:0);},0);
+  var chargesP=totalChargesM*nbMois;
+  var menageP=0;
+  for(var mo=1;mo<=12;mo++){var mDate=new Date(ELNE_YEAR,mo-1,1);if(mDate>=range.from&&mDate<=range.to)menageP+=getMenage(mo);}
+  var totalChargesP=chargesP+menageP;
+  var totalRev=airRevTotal+elneRents;
+  var cashFlow=totalRev-totalChargesP;
+  var estVal=parseFloat(localStorage.getItem("global_estvalue")||"850000");
+  var annualRev=nbMois>0?totalRev/nbMois*12:0;
+  var yieldPct=estVal>0?Math.round(annualRev/estVal*1000)/10:0;
+  var valMin=annualRev>0?Math.round(annualRev/0.065/1000)*1000:0;
+  var valMax=annualRev>0?Math.round(annualRev/0.050/1000)*1000:0;
+  var allMonths={};
+  for(var k in monthlyAir){if(!allMonths[k])allMonths[k]={air:0,bk:0,rent:0};allMonths[k].air=monthlyAir[k].air;allMonths[k].bk=monthlyAir[k].bk;}
+  for(var k in monthlyRents){if(!allMonths[k])allMonths[k]={air:0,bk:0,rent:0};allMonths[k].rent=monthlyRents[k];}
+  var MO=["Jan","Fev","Mar","Avr","Mai","Juin","Juil","Aout","Sep","Oct","Nov","Dec"];
+  var sm=Object.keys(allMonths).sort(function(a,b){return +a-+b;});
+  var bLbls=sm.map(function(m){return MO[+m];});
+  var bAir=sm.map(function(m){return Math.round(allMonths[m].air);});
+  var bBk=sm.map(function(m){return Math.round(allMonths[m].bk);});
+  var bRnt=sm.map(function(m){return Math.round(allMonths[m].rent);});
+  var curY=new Date().getFullYear();
+  var cfAnnuel=nbMois>0?cashFlow/nbMois*12:0;
+  var proj=[Math.round(cfAnnuel*0.9),Math.round(cfAnnuel),Math.round(cfAnnuel*1.05),Math.round(cfAnnuel*1.10)];
+  var ob=[];try{var obs=localStorage.getItem("other_buildings");if(obs)ob=JSON.parse(obs);}catch(e){}
+  var html="";
+  html+="<div style='display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:16px;'>";
+  html+="<div class='kpi-g'><div class='kg-l'>Valeur estimee</div><div class='kg-v'>"+Math.round(estVal/1000)+"k€</div><div class='kg-s' style='cursor:pointer;' onclick='editEstVal()'>modifier</div></div>";
+  html+="<div class='kpi-g'><div class='kg-l'>Revenus periode</div><div class='kg-v'>"+fmtC(totalRev)+"</div><div class='kg-s'>"+nbMois+" mois</div></div>";
+  html+="<div class='kpi-g'><div class='kg-l'>Charges periode</div><div class='kg-v' style='color:#DC2626;'>"+fmtC(totalChargesP)+"</div></div>";
+  html+="<div class='kpi-g' style='background:#E1F5EE;'><div class='kg-l'>Cash flow net</div><div class='kg-v' style='color:#0F6E56;'>"+(cashFlow>=0?"+":"")+fmtC(cashFlow)+"</div></div>";
+  html+="<div class='kpi-g'><div class='kg-l'>Rendement brut</div><div class='kg-v'>"+yieldPct+"%</div><div class='kg-s'>annualise</div></div>";
+  html+="</div>";
+  html+="<div style='display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;'>";
+  html+="<div class='chart-card'><div class='chart-title'>Repartition revenus</div><div style='display:flex;justify-content:center;'><div style='position:relative;height:160px;width:160px;'><canvas id='g-pie' role='img' aria-label='Repartition revenus'>Suite Loft Loyers</canvas></div></div><div class='chart-legend' style='justify-content:center;margin-top:8px;'><div class='leg-item'><div class='leg-dot' style='background:#FF385C;'></div>Suite "+fmtC(Math.round(airRev11))+"</div><div class='leg-item'><div class='leg-dot' style='background:#003580;'></div>Loft "+fmtC(Math.round(airRev12))+"</div><div class='leg-item'><div class='leg-dot' style='background:#0F6E56;'></div>Loyers "+fmtC(Math.round(elneRents))+"</div></div></div>";
+  html+="<div class='chart-card'><div class='chart-title'>Revenus mensuels</div><div style='position:relative;height:200px;'><canvas id='g-bar' role='img' aria-label='Revenus mensuels'>Revenus</canvas></div><div class='chart-legend' style='margin-top:6px;'><div class='leg-item'><div class='leg-dot' style='background:#FF385C;'></div>Airbnb</div><div class='leg-item'><div class='leg-dot' style='background:#003580;'></div>Booking</div><div class='leg-item'><div class='leg-dot' style='background:#0F6E56;'></div>Loyers</div></div></div>";
+  html+="</div>";
+  html+="<div class='chart-card' style='margin-bottom:16px;'><div class='chart-title' style='display:flex;justify-content:space-between;align-items:center;'>Portefeuille immobilier <button onclick='addBuilding()' style='font-size:12px;padding:5px 12px;border-radius:8px;border:1.5px solid #0F6E56;background:transparent;color:#0F6E56;cursor:pointer;'>+ Ajouter un bien</button></div><div style='overflow-x:auto;'><table style='width:100%;border-collapse:collapse;font-size:12px;'><tr style='background:#f8f9fa;'><th style='padding:8px;text-align:left;font-weight:500;'>Bien</th><th style='padding:8px;text-align:right;'>Valeur</th><th style='padding:8px;text-align:right;'>Rev. annuels</th><th style='padding:8px;text-align:right;'>Rendement</th><th style='padding:8px;text-align:right;'>Revente estimee</th></tr>";
+  html+="<tr style='border-bottom:0.5px solid #eee;'><td style='padding:10px 8px;font-weight:500;'>Immeuble ELNE<div style='font-size:10px;color:#888;'>Elne 66 · 8 lots</div></td><td style='padding:10px 8px;text-align:right;cursor:pointer;' onclick='editEstVal()'>"+Math.round(estVal/1000)+"k€ ✏</td><td style='padding:10px 8px;text-align:right;'>"+fmtC(Math.round(annualRev))+"/an</td><td style='padding:10px 8px;text-align:right;color:#0F6E56;font-weight:500;'>"+yieldPct+"%</td><td style='padding:10px 8px;text-align:right;font-size:11px;'>"+(valMin>0?fmtC(valMin)+" – "+fmtC(valMax):"—")+"</td></tr>";
+  ob.forEach(function(b){
+    var by=b.value>0?Math.round(b.annualRev/b.value*1000)/10:0;
+    html+="<tr style='border-bottom:0.5px solid #eee;'><td style='padding:10px 8px;font-weight:500;'>"+b.name+"<div style='font-size:10px;color:#888;'>"+b.location+"</div></td><td style='padding:10px 8px;text-align:right;'>"+Math.round(b.value/1000)+"k€</td><td style='padding:10px 8px;text-align:right;'>"+fmtC(b.annualRev)+"/an</td><td style='padding:10px 8px;text-align:right;color:#0F6E56;font-weight:500;'>"+by+"%</td><td style='padding:10px 8px;text-align:right;font-size:11px;'>"+(b.annualRev>0?fmtC(Math.round(b.annualRev/0.065/1000)*1000)+" – "+fmtC(Math.round(b.annualRev/0.050/1000)*1000):"—")+"</td></tr>";
+  });
+  html+="</table></div></div>";
+  html+="<div style='display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;'>";
+  html+="<div class='chart-card'><div class='chart-title'>Rendement par bien</div><div style='position:relative;height:120px;'><canvas id='g-yield' role='img' aria-label='Rendement'>ELNE "+yieldPct+"%</canvas></div></div>";
+  html+="<div class='chart-card'><div class='chart-title'>Valorisation ELNE</div><div style='display:grid;gap:6px;'><div style='display:flex;justify-content:space-between;padding:8px;background:#f8f9fa;border-radius:8px;font-size:12px;'><span>Cap rate 5%</span><span style='font-weight:500;'>"+(annualRev>0?fmtC(Math.round(annualRev/0.05/1000)*1000):"—")+"</span></div><div style='display:flex;justify-content:space-between;padding:8px;background:#f8f9fa;border-radius:8px;font-size:12px;'><span>Cap rate 6,5%</span><span style='font-weight:500;'>"+(annualRev>0?fmtC(Math.round(annualRev/0.065/1000)*1000):"—")+"</span></div><div style='display:flex;justify-content:space-between;padding:8px;background:#E1F5EE;border-radius:8px;font-size:12px;font-weight:500;'><span>Fourchette</span><span style='color:#0F6E56;'>"+(valMin>0?fmtC(valMin)+" – "+fmtC(valMax):"—")+"</span></div></div></div>";
+  html+="</div>";
+  var arbMsg=cashFlow>0?"Cash flow positif ("+fmtC(cashFlow)+"). Rendement "+yieldPct+"%. "+(yieldPct>7?"Actif performant — conserver et reinvestir.":"Optimiser les tarifs Airbnb pour ameliorer le rendement."):"Cash flow negatif. Analyser les charges pour ameliorer la rentabilite.";
+  html+="<div style='display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;'>";
+  html+="<div class='chart-card' style='border-left:3px solid #0F6E56;'><div style='font-size:13px;font-weight:500;margin-bottom:8px;'>Recommandation arbitrage</div><div style='font-size:12px;color:#666;line-height:1.6;'>"+arbMsg+"</div></div>";
+  html+="<div class='chart-card'><div class='chart-title'>Projection cash flow (annuel)</div><div style='position:relative;height:130px;'><canvas id='g-proj' role='img' aria-label='Projection cash flow'>"+proj.join(", ")+"</canvas></div></div>";
+  html+="</div>";
+  html+="<div class='chart-card'><div class='chart-title'>Indicateurs marche — Elne (66)</div><div style='display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;'>";
+  [["Prix m2 moyen","~2 100€/m2","estimation"],["Loyer moyen","~10€/m2","secteur"],["Tension locative","Forte","demande>offre"],["Evolution 2 ans","+8,3%","2024-2026"],["Cap rate marche","5-6,5%","Pyr-Or."],["Saisonnalite Airbnb","Forte","juin-sept"]].forEach(function(it){
+    html+="<div style='background:#f8f9fa;border-radius:8px;padding:10px;'><div style='font-size:10px;color:#888;'>"+it[0]+"</div><div style='font-size:15px;font-weight:500;'>"+it[1]+"</div><div style='font-size:10px;color:#888;'>"+it[2]+"</div></div>";
+  });
+  html+="</div></div>";
+  document.getElementById("main").innerHTML=html;
+  if(window.Chart){_drawGC(bLbls,bAir,bBk,bRnt,airRev11,airRev12,elneRents,yieldPct,ob,proj,curY);}
+  else{var sc=document.createElement("script");sc.src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js";sc.onload=function(){_drawGC(bLbls,bAir,bBk,bRnt,airRev11,airRev12,elneRents,yieldPct,ob,proj,curY);};document.head.appendChild(sc);}
+}
 
-  document.getElementById('main').innerHTML = html;
+function _drawGC(bL,bA,bB,bR,r11,r12,rnt,yp,ob,proj,curY){
+  var cp=document.getElementById("g-pie");
+  if(cp&&!cp._c)cp._c=new Chart(cp,{type:"doughnut",data:{labels:["Suite","Loft","Loyers"],datasets:[{data:[Math.round(r11),Math.round(r12),Math.round(rnt)],backgroundColor:["#FF385C","#003580","#0F6E56"],borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}}});
+  var cb=document.getElementById("g-bar");
+  if(cb&&!cb._c)cb._c=new Chart(cb,{type:"bar",data:{labels:bL,datasets:[{label:"Airbnb",data:bA,backgroundColor:"#FF385C"},{label:"Booking",data:bB,backgroundColor:"#003580"},{label:"Loyers",data:bR,backgroundColor:"#0F6E56"}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{stacked:true,ticks:{autoSkip:false,maxRotation:45}},y:{stacked:true,ticks:{callback:function(v){return v>=1000?Math.round(v/1000)+"k":v;}}}}}});
+  var cr=document.getElementById("g-yield");
+  if(cr&&!cr._c){var blds=[{n:"ELNE",y:yp}];ob.forEach(function(b){if(b.value>0)blds.push({n:b.name.split(" ")[0],y:Math.round(b.annualRev/b.value*1000)/10});});cr._c=new Chart(cr,{type:"bar",data:{labels:blds.map(function(b){return b.n;}),datasets:[{data:blds.map(function(b){return b.y;}),backgroundColor:"#0F6E56",borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,indexAxis:"y",plugins:{legend:{display:false}},scales:{x:{ticks:{callback:function(v){return v+"%";}}}}}})}
+  var cpr=document.getElementById("g-proj");
+  if(cpr&&!cpr._c)cpr._c=new Chart(cpr,{type:"line",data:{labels:[curY-1+"",curY+"",(curY+1)+" (proj.)",(curY+2)+" (proj.)"],datasets:[{data:proj,borderColor:"#0F6E56",backgroundColor:"rgba(15,110,86,0.08)",fill:true,tension:0.4,pointRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:function(v){return Math.round(v/1000)+"k€";}}}}}});
+}
+
+function editEstVal(){
+  var v=prompt("Valeur estimee immeuble ELNE (euros):",localStorage.getItem("global_estvalue")||"850000");
+  if(v===null)return;var n=parseFloat(v);if(isNaN(n)||n<=0)return;
+  localStorage.setItem("global_estvalue",n);render();
+}
+
+function addBuilding(){
+  var name=prompt("Nom du bien:","");if(!name)return;
+  var loc=prompt("Localisation:","");if(loc===null)return;
+  var val=parseFloat(prompt("Valeur estimee (euros):","0")||"0");
+  var rev=parseFloat(prompt("Revenus annuels bruts (euros):","0")||"0");
+  var buildings=[];
+  try{var obs=localStorage.getItem("other_buildings");if(obs)buildings=JSON.parse(obs);}catch(e){}
+  buildings.push({name:name,location:loc,value:val,annualRev:rev});
+  localStorage.setItem("other_buildings",JSON.stringify(buildings));
+  render();
 }
 
 init();
