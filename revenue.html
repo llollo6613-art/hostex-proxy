@@ -448,7 +448,8 @@ function renderElne(){
   html+='<div><div style="font-size:10px;opacity:.7;">Loyers annuels</div><div style="font-size:20px;font-weight:700;">'+Math.round(totalCollected).toLocaleString('fr-FR')+'€</div></div>';
   html+='<div><div style="font-size:10px;opacity:.7;">Airbnb (Suite+Loft)</div><div style="font-size:20px;font-weight:700;">'+Math.round(airTotal).toLocaleString('fr-FR')+'€</div></div>';
   html+='<div><div style="font-size:10px;opacity:.7;">TOTAL REVENUS</div><div style="font-size:24px;font-weight:700;border-top:1px solid rgba(255,255,255,.3);padding-top:8px;">'+Math.round(totalImmeuble).toLocaleString('fr-FR')+'€</div></div>';
-  html+='<div><div style="font-size:10px;opacity:.7;">Cash flow net</div><div style="font-size:24px;font-weight:700;border-top:1px solid rgba(255,255,255,.3);padding-top:8px;color:'+(cashFlowAnnuel>=0?'#A7F3D0':'#FCA5A5')+';">'+(cashFlowAnnuel>=0?'+':'')+Math.round(cashFlowAnnuel).toLocaleString('fr-FR')+'€</div></div>';
+  html+='<div><div style="font-size:10px;opacity:.7;">Charges période</div><div style="font-size:24px;font-weight:700;border-top:1px solid rgba(255,255,255,.3);padding-top:8px;color:#FCA5A5;">-'+Math.round(totalChargesPeriode+totalMenagePeriode).toLocaleString('fr-FR')+'€</div></div>';
+  html+='<div style="grid-column:span 2"><div style="font-size:10px;opacity:.7;">CASH FLOW NET</div><div style="font-size:28px;font-weight:700;border-top:1px solid rgba(255,255,255,.3);padding-top:8px;color:'+(cashFlowAnnuel>=0?'#A7F3D0':'#FCA5A5')+';">'+(cashFlowAnnuel>=0?'+':'')+Math.round(cashFlowAnnuel).toLocaleString('fr-FR')+'€</div></div>';
   html+='</div></div>';
 
   // Barre résumé
