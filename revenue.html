@@ -392,6 +392,10 @@ function renderElne(){
   var totalCharges=ELNE_CHARGES.reduce(function(s,c){return s+(c.monthly?c.val:0);},0);
 
   var range=getDateRange();
+  if(state.pieMois>0){
+    var pm=state.pieMois;
+    range={from:new Date(ELNE_YEAR,pm-1,1),to:new Date(ELNE_YEAR,pm,0)};
+  }
   // airMonths complet pour le tableau (toute l'année)
   var airMonths={};
   state.reservations.forEach(function(r){
@@ -849,6 +853,10 @@ function fmt(n){return Math.round(n).toLocaleString('fr-FR');}
 function fmtC(n){return fmt(n)+'€';}
 
 
+function setPieMois(mo){
+  state.pieMois=parseInt(mo)||0;
+  render();
+}
 function render(){
   var range=getDateRange();
   var nbMois={"month":1,"3m":3,"6m":6,"year":12,"lastyear":12,"all":12}[state.period]||12;
@@ -925,10 +933,14 @@ function render(){
   html+="<div class='kpi-g'><div class='kg-l'>Rendement brut</div><div class='kg-v'>"+yieldPct+"%</div><div class='kg-s'>annualise</div></div>";
   html+="</div>";
   html+="<div style='display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;'>";
-  var pBtns="<div style='display:flex;gap:4px;flex-wrap:wrap;margin-bottom:10px;'>";
-  [["month","Mois"],["3m","3M"],["6m","6M"],["year","An"],["all","Tout"]].forEach(function(p){
+  var pBtns="<div style='display:flex;gap:4px;flex-wrap:wrap;margin-bottom:10px;align-items:center;'>";
+  [["month","Ce mois"],["3m","3M"],["6m","6M"],["year","Annee"],["all","Tout"]].forEach(function(p){
     pBtns+="<button onclick=\"setPeriod('"+p[0]+"')\" style=\"padding:3px 8px;border-radius:6px;font-size:11px;cursor:pointer;border:1px solid "+(state.period===p[0]?"#0F6E56":"#ddd")+";background:"+(state.period===p[0]?"#0F6E56":"#fff")+";color:"+(state.period===p[0]?"#fff":"#666")+";\">"+p[1]+"</button>";
   });
+  var moNames=["Janv","Fevr","Mars","Avr","Mai","Juin","Juil","Aout","Sep","Oct","Nov","Dec"];
+  pBtns+="<select onchange=\"setPieMois(this.value)\" style=\"padding:3px 6px;border-radius:6px;font-size:11px;border:1px solid #ddd;cursor:pointer;\"><option value=''>Mois...</option>";
+  moNames.forEach(function(m,i){pBtns+="<option value='"+(i+1)+"'"+(state.pieMois===(i+1)?" selected":"")+">"+m+"</option>";});
+  pBtns+="</select>";
   pBtns+="</div>";
   html+="<div class='chart-card'>"+pBtns+"<div class='chart-title'>Repartition revenus</div><div style='display:flex;justify-content:center;'><div style='position:relative;height:160px;width:160px;'><canvas id='g-pie' role='img' aria-label='Repartition revenus'>Suite Loft Loyers</canvas></div></div><div class='chart-legend' style='justify-content:center;margin-top:8px;'><div class='leg-item'><div class='leg-dot' style='background:#FF385C;'></div>Suite "+fmtC(Math.round(airRev11))+"</div><div class='leg-item'><div class='leg-dot' style='background:#003580;'></div>Loft "+fmtC(Math.round(airRev12))+"</div><div class='leg-item'><div class='leg-dot' style='background:#0F6E56;'></div>Loyers "+fmtC(Math.round(elneExpected))+"</div></div></div>";
   html+="<div class='chart-card'><div class='chart-title'>Revenus mensuels</div><div style='position:relative;height:200px;'><canvas id='g-bar' role='img' aria-label='Revenus mensuels'>Revenus</canvas></div><div class='chart-legend' style='margin-top:6px;'><div class='leg-item'><div class='leg-dot' style='background:#FF385C;'></div>Airbnb</div><div class='leg-item'><div class='leg-dot' style='background:#003580;'></div>Booking</div><div class='leg-item'><div class='leg-dot' style='background:#0F6E56;'></div>Loyers</div></div></div>";
