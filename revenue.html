@@ -387,19 +387,25 @@ function renderElne(){
   var isCurrentYear=(ELNE_YEAR===now.getFullYear());
   var totalCharges=ELNE_CHARGES.reduce(function(s,c){return s+(c.monthly?c.val:0);},0);
 
-  // Calculer airMonths filtre par periode
-  var airMonths={};
   var range=getDateRange();
-  var airTotal=0;
+  // airMonths complet pour le tableau (toute l'année)
+  var airMonths={};
   state.reservations.forEach(function(r){
     if(r.status==='cancelled')return;
     var ci=new Date((r.check_in_date||r.check_in||'')+'T00:00:00');
-    if(ci<range.from||ci>range.to)return;
+    if(ci.getFullYear()!==ELNE_YEAR)return;
     var moA=ci.getMonth()+1;
     var propA=String(r.property_id);
     var keyA=propA+'_'+moA;
     if(!airMonths[keyA])airMonths[keyA]=0;
     airMonths[keyA]+=(parseFloat(r.total_price)||0);
+  });
+  // airTotal filtré par période pour les KPIs
+  var airTotal=0;
+  state.reservations.forEach(function(r){
+    if(r.status==='cancelled')return;
+    var ci=new Date((r.check_in_date||r.check_in||'')+'T00:00:00');
+    if(ci<range.from||ci>range.to)return;
     airTotal+=(parseFloat(r.total_price)||0);
   });
 
