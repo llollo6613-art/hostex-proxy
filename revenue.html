@@ -868,17 +868,26 @@ function render(){
     if(!monthlyAir[mo])monthlyAir[mo]={air:0,bk:0};
     if(ia)monthlyAir[mo].air+=g;else monthlyAir[mo].bk+=g;
   });
-  var elneRents=0,monthlyRents={};
+  var elneRents=0,elneExpected=0,monthlyRents={};
   loadCustomData();
   var d=elneData();
   ELNE_APTS.forEach(function(apt){
+    var rk2='elne_rent_'+ELNE_YEAR+'_'+apt.id;
+    var cr2=localStorage.getItem(rk2);
+    var brent=cr2?parseFloat(cr2):apt.rent;
     for(var mo=1;mo<=12;mo++){
       var mDate=new Date(ELNE_YEAR,mo-1,1);
-      if(mDate>=range.from&&mDate<=range.to&&d[apt.id]&&d[apt.id][mo]){
-        var v=getPayAmount(apt.id,mo);
-        elneRents+=v;
-        if(!monthlyRents[mo-1])monthlyRents[mo-1]=0;
-        monthlyRents[mo-1]+=v;
+      if(mDate>=range.from&&mDate<=range.to){
+        if(mo>=apt.startMonth) elneExpected+=brent;
+        if(d[apt.id]&&d[apt.id][mo]){
+          var v=getPayAmount(apt.id,mo);
+          elneRents+=v;
+          if(!monthlyRents[mo-1])monthlyRents[mo-1]=0;
+          monthlyRents[mo-1]+=v;
+        } else if(mo>=apt.startMonth){
+          if(!monthlyRents[mo-1])monthlyRents[mo-1]=0;
+          monthlyRents[mo-1]+=brent;
+        }
       }
     }
   });
@@ -916,7 +925,7 @@ function render(){
   html+="<div class='kpi-g'><div class='kg-l'>Rendement brut</div><div class='kg-v'>"+yieldPct+"%</div><div class='kg-s'>annualise</div></div>";
   html+="</div>";
   html+="<div style='display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;'>";
-  html+="<div class='chart-card'><div class='chart-title'>Repartition revenus</div><div style='display:flex;justify-content:center;'><div style='position:relative;height:160px;width:160px;'><canvas id='g-pie' role='img' aria-label='Repartition revenus'>Suite Loft Loyers</canvas></div></div><div class='chart-legend' style='justify-content:center;margin-top:8px;'><div class='leg-item'><div class='leg-dot' style='background:#FF385C;'></div>Suite "+fmtC(Math.round(airRev11))+"</div><div class='leg-item'><div class='leg-dot' style='background:#003580;'></div>Loft "+fmtC(Math.round(airRev12))+"</div><div class='leg-item'><div class='leg-dot' style='background:#0F6E56;'></div>Loyers "+fmtC(Math.round(elneRents))+"</div></div></div>";
+  html+="<div class='chart-card'><div class='chart-title'>Repartition revenus</div><div style='display:flex;justify-content:center;'><div style='position:relative;height:160px;width:160px;'><canvas id='g-pie' role='img' aria-label='Repartition revenus'>Suite Loft Loyers</canvas></div></div><div class='chart-legend' style='justify-content:center;margin-top:8px;'><div class='leg-item'><div class='leg-dot' style='background:#FF385C;'></div>Suite "+fmtC(Math.round(airRev11))+"</div><div class='leg-item'><div class='leg-dot' style='background:#003580;'></div>Loft "+fmtC(Math.round(airRev12))+"</div><div class='leg-item'><div class='leg-dot' style='background:#0F6E56;'></div>Loyers "+fmtC(Math.round(elneExpected))+"</div></div></div>";
   html+="<div class='chart-card'><div class='chart-title'>Revenus mensuels</div><div style='position:relative;height:200px;'><canvas id='g-bar' role='img' aria-label='Revenus mensuels'>Revenus</canvas></div><div class='chart-legend' style='margin-top:6px;'><div class='leg-item'><div class='leg-dot' style='background:#FF385C;'></div>Airbnb</div><div class='leg-item'><div class='leg-dot' style='background:#003580;'></div>Booking</div><div class='leg-item'><div class='leg-dot' style='background:#0F6E56;'></div>Loyers</div></div></div>";
   html+="</div>";
   html+="<div class='chart-card' style='margin-bottom:16px;'><div class='chart-title' style='display:flex;justify-content:space-between;align-items:center;'>Portefeuille immobilier <button onclick='addBuilding()' style='font-size:12px;padding:5px 12px;border-radius:8px;border:1.5px solid #0F6E56;background:transparent;color:#0F6E56;cursor:pointer;'>+ Ajouter un bien</button></div><div style='overflow-x:auto;'><table style='width:100%;border-collapse:collapse;font-size:12px;'><tr style='background:#f8f9fa;'><th style='padding:8px;text-align:left;font-weight:500;'>Bien</th><th style='padding:8px;text-align:right;'>Valeur</th><th style='padding:8px;text-align:right;'>Rev. annuels</th><th style='padding:8px;text-align:right;'>Rendement</th><th style='padding:8px;text-align:right;'>Revente estimee</th></tr>";
@@ -941,8 +950,8 @@ function render(){
   });
   html+="</div></div>";
   document.getElementById("main").innerHTML=html;
-  if(window.Chart){_drawGC(bLbls,bAir,bBk,bRnt,airRev11,airRev12,elneRents,yieldPct,ob,proj,curY);}
-  else{var sc=document.createElement("script");sc.src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js";sc.onload=function(){_drawGC(bLbls,bAir,bBk,bRnt,airRev11,airRev12,elneRents,yieldPct,ob,proj,curY);};document.head.appendChild(sc);}
+  if(window.Chart){_drawGC(bLbls,bAir,bBk,bRnt,airRev11,airRev12,elneExpected,yieldPct,ob,proj,curY);}
+  else{var sc=document.createElement("script");sc.src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js";sc.onload=function(){_drawGC(bLbls,bAir,bBk,bRnt,airRev11,airRev12,elneExpected,yieldPct,ob,proj,curY);};document.head.appendChild(sc);}
 }
 
 function _drawGC(bL,bA,bB,bR,r11,r12,rnt,yp,ob,proj,curY){
