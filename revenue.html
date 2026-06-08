@@ -399,6 +399,7 @@ function renderElne(){
   var totalCharges=ELNE_CHARGES.reduce(function(s,c){return s+(c.monthly?c.val:0);},0);
 
   var range=getDateRange();
+  var nbMois={"month":1,"3m":3,"6m":6,"year":12,"lastyear":12,"all":12}[state.period]||12;
   if(state.pieMois>0){
     var pm=state.pieMois;
     var pmYear=new Date().getFullYear();
