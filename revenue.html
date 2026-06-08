@@ -446,7 +446,6 @@ function renderElne(){
   // Calcul revenus Airbnb pour l'année sélectionnée
   var totalImmeuble=totalCollected+airTotal;
   // Nombre de mois dans la période sélectionnée
-  var nbMois={'month':1,'3m':3,'6m':6,'year':12,'lastyear':12,'all':12}[state.period]||12;
   if(state.period==='all'){
     // Calculer le nombre de mois réel entre les résas
     var allMonths=Math.round((range.to-range.from)/86400000/30.5)||12;
