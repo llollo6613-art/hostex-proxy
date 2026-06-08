@@ -973,15 +973,16 @@ function render(){
   else{var sc=document.createElement("script");sc.src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js";sc.onload=function(){_drawGC(bLbls,bAir,bBk,bRnt,airRev11,airRev12,elneExpected,yieldPct,ob,proj,curY);};document.head.appendChild(sc);}
 }
 
+function _gc(id){var el=document.getElementById(id);if(!el)return null;var ex=Chart.getChart(el);if(ex)ex.destroy();return el;}
 function _drawGC(bL,bA,bB,bR,r11,r12,rnt,yp,ob,proj,curY){
-  var cp=document.getElementById("g-pie");
-  if(cp&&!cp._c)cp._c=new Chart(cp,{type:"doughnut",data:{labels:["Suite","Loft","Loyers"],datasets:[{data:[Math.round(r11),Math.round(r12),Math.round(rnt)],backgroundColor:["#FF385C","#003580","#0F6E56"],borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}}});
-  var cb=document.getElementById("g-bar");
-  if(cb&&!cb._c)cb._c=new Chart(cb,{type:"bar",data:{labels:bL,datasets:[{label:"Airbnb",data:bA,backgroundColor:"#FF385C"},{label:"Booking",data:bB,backgroundColor:"#003580"},{label:"Loyers",data:bR,backgroundColor:"#0F6E56"}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{stacked:true,ticks:{autoSkip:false,maxRotation:45}},y:{stacked:true,ticks:{callback:function(v){return v>=1000?Math.round(v/1000)+"k":v;}}}}}});
-  var cr=document.getElementById("g-yield");
-  if(cr&&!cr._c){var blds=[{n:"ELNE",y:yp}];ob.forEach(function(b){if(b.value>0)blds.push({n:b.name.split(" ")[0],y:Math.round(b.annualRev/b.value*1000)/10});});cr._c=new Chart(cr,{type:"bar",data:{labels:blds.map(function(b){return b.n;}),datasets:[{data:blds.map(function(b){return b.y;}),backgroundColor:"#0F6E56",borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,indexAxis:"y",plugins:{legend:{display:false}},scales:{x:{ticks:{callback:function(v){return v+"%";}}}}}})}
-  var cpr=document.getElementById("g-proj");
-  if(cpr&&!cpr._c)cpr._c=new Chart(cpr,{type:"line",data:{labels:[curY-1+"",curY+"",(curY+1)+" (proj.)",(curY+2)+" (proj.)"],datasets:[{data:proj,borderColor:"#0F6E56",backgroundColor:"rgba(15,110,86,0.08)",fill:true,tension:0.4,pointRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:function(v){return Math.round(v/1000)+"k€";}}}}}});
+  var cp=_gc("g-pie");
+  if(cp)new Chart(cp,{type:"doughnut",data:{labels:["Suite","Loft","Loyers"],datasets:[{data:[Math.round(r11),Math.round(r12),Math.round(rnt)],backgroundColor:["#FF385C","#003580","#0F6E56"],borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}}});
+  var cb=_gc("g-bar");
+  if(cb)new Chart(cb,{type:"bar",data:{labels:bL,datasets:[{label:"Airbnb",data:bA,backgroundColor:"#FF385C"},{label:"Booking",data:bB,backgroundColor:"#003580"},{label:"Loyers",data:bR,backgroundColor:"#0F6E56"}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{stacked:true,ticks:{autoSkip:false,maxRotation:45}},y:{stacked:true,ticks:{callback:function(v){return v>=1000?Math.round(v/1000)+"k":v;}}}}}});
+  var cr=_gc("g-yield");
+  if(cr){var blds=[{n:"ELNE",y:yp}];ob.forEach(function(b){if(b.value>0)blds.push({n:b.name.split(" ")[0],y:Math.round(b.annualRev/b.value*1000)/10});});new Chart(cr,{type:"bar",data:{labels:blds.map(function(b){return b.n;}),datasets:[{data:blds.map(function(b){return b.y;}),backgroundColor:"#0F6E56",borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,indexAxis:"y",plugins:{legend:{display:false}},scales:{x:{ticks:{callback:function(v){return v+"%";}}}}}})}
+  var cpr=_gc("g-proj");
+  if(cpr)new Chart(cpr,{type:"line",data:{labels:[curY-1+"",curY+"",(curY+1)+" (proj.)",(curY+2)+" (proj.)"],datasets:[{data:proj,borderColor:"#0F6E56",backgroundColor:"rgba(15,110,86,0.08)",fill:true,tension:0.4,pointRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:function(v){return Math.round(v/1000)+"k€";}}}}}});
 }
 
 function editEstVal(){
