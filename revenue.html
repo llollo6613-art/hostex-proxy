@@ -936,6 +936,7 @@ function render(){
   var proj=[Math.round(cfAnnuel*0.9),Math.round(cfAnnuel),Math.round(cfAnnuel*1.05),Math.round(cfAnnuel*1.10)];
   var ob=[];try{var obs=localStorage.getItem("other_buildings");if(obs)ob=JSON.parse(obs);}catch(e){}
   var html="";
+  html+="<div style='font-size:11px;color:#888;margin-bottom:8px;padding:4px 8px;background:#f0f0f0;border-radius:6px;'>Periode active: "+range.from.toLocaleDateString('fr-FR')+" → "+range.to.toLocaleDateString('fr-FR')+" (pieMois="+state.pieMois+")</div>";
   html+="<div style='display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:16px;'>";
   html+="<div class='kpi-g'><div class='kg-l'>Valeur estimee</div><div class='kg-v'>"+Math.round(estVal/1000)+"k€</div><div class='kg-s' style='cursor:pointer;' onclick='editEstVal()'>modifier</div></div>";
   html+="<div class='kpi-g'><div class='kg-l'>Revenus periode</div><div class='kg-v'>"+fmtC(totalRev)+"</div><div class='kg-s'>"+nbMois+" mois</div></div>";
