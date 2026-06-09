@@ -882,6 +882,7 @@ function setPieMois(mo){
 function render(){
   var range=getDateRange();
   var nbMois={"month":1,"3m":3,"6m":6,"year":12,"lastyear":12,"all":12}[state.period]||12;
+  if(state.pieMois>0){var pm=state.pieMois;range={from:new Date(new Date().getFullYear(),pm-1,1),to:new Date(new Date().getFullYear(),pm,0)};nbMois=1;}
   var airRevTotal=0,airRev11=0,airRev12=0,monthlyAir={};
   state.reservations.filter(function(r){
     if(r.status==="cancelled")return false;
