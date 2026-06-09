@@ -1148,8 +1148,8 @@ function generateBilan(){
   // Cash flow réel (résultat comptable + amortissements - IS)
   var cashFlowIS=resNet-totalIS;
 
-  h+='<h2>IV. ANALYSE FISCALE — SCI à l'IS — Exercice '+year+'</h2>';
-  h+='<div class="alrt">⚠ Document indicatif — SCI soumise à l'Impôt sur les Sociétés (IS). Régime réel obligatoire. Les amortissements sont calculés sur la valeur estimée du bien. La part intérêts du crédit est estimée à 60% de la mensualité — à ajuster avec votre comptable.</div>';
+  h+='<h2>IV. ANALYSE FISCALE — SCI a l IS — Exercice '+year+'</h2>';
+  h+='<div class="alrt">⚠ Document indicatif — SCI soumise à l Impot sur les Sociétés (IS). Régime réel obligatoire. Les amortissements sont calculés sur la valeur estimée du bien. La part intérêts du crédit est estimée à 60% de la mensualité — à ajuster avec votre comptable.</div>';
 
   h+='<h3>A. Compte de résultat fiscal SCI IS</h3>';
   h+='<div class="two"><div>';
@@ -1185,7 +1185,7 @@ function generateBilan(){
   h+='<tr><td>Résultat net comptable</td><td class="r '+(resNet>=0?'pos':'neg')+'">'+(resNet>=0?'+':'')+fc(resNet)+'</td></tr>';
   h+='<tr><td>IS dû</td><td class="r neg">-'+fc(totalIS)+'</td></tr>';
   h+='<tr class="tr"><td><b>Cash flow disponible après IS</b></td><td class="r '+(cashFlowIS>=0?'pos':'neg')+'"><b>'+(cashFlowIS>=0?'+':'')+fc(cashFlowIS)+'</b></td></tr>';
-  h+='<tr><td style="font-size:9px;color:#888;">Note: les amortissements ('+fc(totalAmort)+') sont une charge comptable non décaissée — ils réduisent l'IS sans impact trésorerie immédiat</td><td></td></tr></table>';
+  h+='<tr><td style="font-size:9px;color:#888;">Note: les amortissements ('+fc(totalAmort)+') sont une charge comptable non décaissée — ils réduisent l IS sans impact trésorerie immédiat</td><td></td></tr></table>';
 
   h+='<table style="margin-top:8px;"><tr><th colspan="2">INDICATEURS RENTABILITÉ IS</th></tr>';
   h+='<tr><td>Taux IS effectif</td><td class="r">'+(resFiscalIS>0?Math.round(totalIS/resFiscalIS*1000)/10:0)+'%</td></tr>';
