@@ -496,6 +496,7 @@ function renderElne(){
   html+='<h2>🏢 Suivi loyers '+ELNE_YEAR+'</h2>';
   html+='<div style="display:flex;align-items:center;gap:8px;">';
   html+='<div class="year-sel"><button class="year-btn" onclick="changeElneYear(-1)">‹</button><span class="year-lbl">'+ELNE_YEAR+'</span><button class="year-btn" onclick="changeElneYear(1)">›</button></div>';
+  html+='<button onclick="generateBilan()" style="padding:6px 12px;background:#0F6E56;color:#fff;border:none;border-radius:8px;font-size:11px;cursor:pointer;font-weight:600;">Bilan PDF</button>';
   html+='<button onclick="resetElne()" style="padding:6px 10px;border:1.5px solid #FCA5A5;background:#FEF2F2;color:#DC2626;border-radius:8px;font-size:11px;cursor:pointer;">🗑 Réinit</button>';
   html+='</div></div>';
   html+='<div style="overflow-x:auto"><table class="elne-table">';
@@ -950,6 +951,7 @@ function render(){
   var html="";
   html+="<div style='font-size:11px;color:#888;margin-bottom:8px;padding:4px 8px;background:#f0f0f0;border-radius:6px;'>Periode active: "+range.from.toLocaleDateString('fr-FR')+" → "+range.to.toLocaleDateString('fr-FR')+" (pieMois="+state.pieMois+")</div>";
   html+="<div style='display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:16px;'>";
+  html+="<div style='display:flex;justify-content:flex-end;margin-bottom:12px;'><button onclick='generateBilan()' style='padding:10px 20px;background:#0F6E56;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;'>Générer bilan fiscal PDF</button></div>";
   html+="<div class='kpi-g'><div class='kg-l'>Valeur estimee</div><div class='kg-v'>"+Math.round(estVal/1000)+"k€</div><div class='kg-s' style='cursor:pointer;' onclick='editEstVal()'>modifier</div></div>";
   html+="<div class='kpi-g'><div class='kg-l'>Revenus periode</div><div class='kg-v'>"+fmtC(totalRev)+"</div><div class='kg-s'>"+nbMois+" mois</div></div>";
   html+="<div class='kpi-g'><div class='kg-l'>Charges periode</div><div class='kg-v' style='color:#DC2626;'>"+fmtC(totalChargesP)+"</div></div>";
@@ -1015,6 +1017,136 @@ function addBuilding(){
   buildings.push({name:name,location:loc,value:val,annualRev:rev});
   localStorage.setItem("other_buildings",JSON.stringify(buildings));
   render();
+}
+
+
+function generateBilan(){
+  loadCustomData();
+  var d=elneData();
+  var now=new Date();
+  var year=ELNE_YEAR;
+  var loyers=[],totalLoyersEncaisses=0,totalLoyersAttendus=0;
+  ELNE_APTS.forEach(function(apt){
+    var rk='elne_rent_'+year+'_'+apt.id;
+    var cr=localStorage.getItem(rk);
+    var loyer=cr?parseFloat(cr):apt.rent;
+    var enc=0,att=0;
+    for(var mo=1;mo<=12;mo++){
+      if(mo>=apt.startMonth){att+=loyer;if(d[apt.id]&&d[apt.id][mo])enc+=getPayAmount(apt.id,mo);}
+    }
+    totalLoyersEncaisses+=enc;totalLoyersAttendus+=att;
+    loyers.push({id:apt.id,tenant:apt.tenant,loyer:loyer,startMonth:apt.startMonth,caution:apt.caution||'-',enc:enc,att:att});
+  });
+  var mo_air={},airSuiteT=0,airLoftT=0;
+  state.reservations.forEach(function(r){
+    if(r.status==='cancelled')return;
+    var ci=new Date((r.check_in_date||r.check_in||'')+'T00:00:00');
+    if(ci.getFullYear()!==year)return;
+    var mo=ci.getMonth()+1,g=parseFloat(r.total_price)||0,prop=String(r.property_id);
+    if(!mo_air[prop])mo_air[prop]={};
+    mo_air[prop][mo]=(mo_air[prop][mo]||0)+g;
+    if(prop==='12619011')airSuiteT+=g;if(prop==='12619012')airLoftT+=g;
+  });
+  var totalAir=airSuiteT+airLoftT;
+  var totalChgAnnuel=ELNE_CHARGES.reduce(function(s,c){return s+(c.monthly?c.val*12:0);},0);
+  var totalMenage=0;for(var mo=1;mo<=12;mo++)totalMenage+=getMenage(mo);
+  var totalChg=totalChgAnnuel+totalMenage;
+  var totalRev=totalLoyersEncaisses+totalAir;
+  var resNet=totalRev-totalChg;
+  var estVal=parseFloat(localStorage.getItem('global_estvalue')||'850000');
+  var mbfBase=Math.max(0,totalLoyersEncaisses*0.70);
+  var mbicBase=Math.max(0,totalAir*0.29);
+  var impotMicro=Math.round((mbfBase+mbicBase)*0.472);
+  var MO=['Jan','Fev','Mar','Avr','Mai','Juin','Juil','Aout','Sep','Oct','Nov','Dec'];
+  var MO_F=['Janvier','Fevrier','Mars','Avril','Mai','Juin','Juillet','Aout','Septembre','Octobre','Novembre','Decembre'];
+  function fc(n){return Math.round(n).toLocaleString('fr-FR')+'e';}
+  function fr(n){return Math.round(n).toLocaleString('fr-FR');}
+  var css='*{margin:0;padding:0;box-sizing:border-box;}body{font-family:Arial,sans-serif;font-size:11px;color:#1a1a1a;padding:20px;}';
+  css+='.hdr{border-bottom:3px solid #0F6E56;padding-bottom:12px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:flex-end;}';
+  css+='.hdr h1{font-size:20px;font-weight:700;color:#0F6E56;}h2{font-size:12px;font-weight:700;color:#0F6E56;border-left:3px solid #0F6E56;padding-left:8px;margin:18px 0 8px;}h3{font-size:11px;font-weight:700;margin:10px 0 5px;}';
+  css+='table{width:100%;border-collapse:collapse;margin-bottom:12px;font-size:10px;}th{background:#0F6E56;color:#fff;padding:5px 7px;text-align:left;font-weight:600;}th.r{text-align:right;}td{padding:4px 7px;border-bottom:0.5px solid #eee;}td.r{text-align:right;}';
+  css+='tr:nth-child(even){background:#f8fffe;}.tr{font-weight:700;background:#E1F5EE;border-top:1.5px solid #0F6E56;}.krow{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;}.kbox{flex:1;min-width:100px;border:1px solid #e5e5e5;border-radius:6px;padding:8px;text-align:center;}';
+  css+='.lbl{font-size:9px;color:#888;text-transform:uppercase;}.val{font-size:16px;font-weight:700;margin-top:2px;}.pos{color:#0F6E56;}.neg{color:#DC2626;}.two{display:grid;grid-template-columns:1fr 1fr;gap:12px;}';
+  css+='.box{border:1px solid #e5e5e5;border-radius:6px;padding:10px;margin-bottom:8px;}.box-g{border-color:#0F6E56;background:#f0faf6;}.alrt{background:#FEF3C7;border:1px solid #F59E0B;border-radius:6px;padding:8px;font-size:10px;margin-bottom:10px;}';
+  css+='.ft{margin-top:20px;padding-top:10px;border-top:1px solid #eee;font-size:9px;color:#999;text-align:center;}.bdg{display:inline-block;padding:1px 6px;border-radius:8px;font-size:9px;font-weight:600;}.bg{background:#D1FAE5;color:#065F46;}.bo{background:#FEF3C7;color:#92400E;}.br{background:#FEE2E2;color:#991B1B;}';
+  css+='@media print{body{padding:0;}@page{margin:12mm;size:A4;}.noprint{display:none;}}';
+  var h='<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><title>Bilan ELNE '+year+'</title><style>'+css+'</style></head><body>';
+  h+='<div class="hdr"><div><div style="font-size:9px;color:#888;margin-bottom:3px;">SAS PONTAC / SCI LP IMMO</div><h1>Bilan Immobilier — Immeuble ELNE</h1><div style="font-size:10px;color:#555;margin-top:3px;">Exercice '+year+' · 8 lots · Elne (66200)</div></div><div style="text-align:right;"><div style="font-size:9px;color:#888;">Généré le '+now.toLocaleDateString('fr-FR')+'</div><div style="font-size:18px;font-weight:700;color:#0F6E56;">'+fc(totalRev)+'</div><div style="font-size:9px;color:#888;">revenus bruts totaux</div></div></div>';
+  h+='<div class="krow">';
+  h+='<div class="kbox"><div class="lbl">Loyers encaissés</div><div class="val pos">'+fc(totalLoyersEncaisses)+'</div></div>';
+  h+='<div class="kbox"><div class="lbl">Revenus Airbnb</div><div class="val" style="color:#FF385C;">'+fc(totalAir)+'</div></div>';
+  h+='<div class="kbox"><div class="lbl">Total charges</div><div class="val neg">'+fc(totalChg)+'</div></div>';
+  h+='<div class="kbox '+(resNet>=0?'box-g':'')+'"><div class="lbl">Résultat net</div><div class="val '+(resNet>=0?'pos':'neg')+'">'+(resNet>=0?'+':'')+fc(resNet)+'</div></div>';
+  h+='<div class="kbox"><div class="lbl">Rendement brut</div><div class="val pos">'+(estVal>0?Math.round(totalRev/estVal*1000)/10:0)+'%</div></div>';
+  h+='</div>';
+
+  h+='<h2>I. REVENUS LOCATIFS — Loyers annuels '+year+'</h2>';
+  h+='<table><tr><th>Apt</th><th>Locataire</th><th class="r">Loyer/mois</th><th>Debut</th><th>Caution</th><th class="r">Attendu</th><th class="r">Encaissé</th><th class="r">Ecart</th><th>Taux</th></tr>';
+  loyers.forEach(function(l){
+    var pct=l.att>0?Math.round(l.enc/l.att*100):0;
+    h+='<tr><td><b>Apt '+l.id+'</b></td><td>'+l.tenant+'</td><td class="r">'+fc(l.loyer)+'</td><td>'+MO_F[l.startMonth-1]+'</td><td>'+l.caution+'</td><td class="r">'+fc(l.att)+'</td><td class="r '+(l.enc>=l.att?'pos':'')+'">'+fc(l.enc)+'</td><td class="r '+(l.enc-l.att<0?'neg':'pos')+'">'+(l.enc-l.att>=0?'+':'')+fc(l.enc-l.att)+'</td><td><span class="bdg '+(pct>=100?'bg':pct>50?'bo':'br')+'">'+pct+'%</span></td></tr>';
+  });
+  h+='<tr class="tr"><td colspan="5"><b>TOTAL</b></td><td class="r"><b>'+fc(totalLoyersAttendus)+'</b></td><td class="r"><b>'+fc(totalLoyersEncaisses)+'</b></td><td class="r '+(totalLoyersEncaisses-totalLoyersAttendus<0?'neg':'pos')+'"><b>'+(totalLoyersEncaisses-totalLoyersAttendus>=0?'+':'')+fc(totalLoyersEncaisses-totalLoyersAttendus)+'</b></td><td><span class="bdg '+(totalLoyersAttendus>0&&totalLoyersEncaisses/totalLoyersAttendus>=0.95?'bg':'bo')+'">'+(totalLoyersAttendus>0?Math.round(totalLoyersEncaisses/totalLoyersAttendus*100):0)+'%</span></td></tr></table>';
+
+  h+='<h2>II. REVENUS AIRBNB / BOOKING — '+year+'</h2>';
+  h+='<table><tr><th>Bien</th>';
+  MO.forEach(function(m){h+='<th class="r">'+m+'</th>';});
+  h+='<th class="r">Total</th></tr>';
+  [['12619011','Suite Illiberis',airSuiteT],['12619012','Loft Cinema',airLoftT]].forEach(function(p){
+    h+='<tr><td><b>'+p[1]+'</b></td>';
+    for(var mo=1;mo<=12;mo++){var v=(mo_air[p[0]]&&mo_air[p[0]][mo])||0;h+='<td class="r '+(v>0?'pos':'')+'">'+( v>0?fr(v):'—')+'</td>';}
+    h+='<td class="r"><b>'+fc(p[2])+'</b></td></tr>';
+  });
+  h+='<tr class="tr"><td><b>TOTAL AIRBNB</b></td>';
+  for(var mo=1;mo<=12;mo++){var v=((mo_air['12619011']&&mo_air['12619011'][mo])||0)+((mo_air['12619012']&&mo_air['12619012'][mo])||0);h+='<td class="r"><b>'+(v>0?fr(v):'—')+'</b></td>';}
+  h+='<td class="r"><b>'+fc(totalAir)+'</b></td></tr></table>';
+
+  h+='<h2>III. CHARGES DÉDUCTIBLES '+year+'</h2>';
+  h+='<div class="two">';
+  h+='<div><table><tr><th>Poste</th><th class="r">Mensuel</th><th class="r">Annuel</th></tr>';
+  ELNE_CHARGES.forEach(function(c){h+='<tr><td>'+c.label+'</td><td class="r">'+fc(c.val)+'</td><td class="r neg">'+fc(c.val*12)+'</td></tr>';});
+  h+='<tr><td>Ménage Airbnb</td><td class="r">variable</td><td class="r neg">'+fc(totalMenage)+'</td></tr>';
+  h+='<tr class="tr"><td><b>TOTAL CHARGES</b></td><td></td><td class="r"><b>'+fc(totalChg)+'</b></td></tr></table></div>';
+  h+='<div><div class="box box-g"><div style="font-size:10px;color:#0F6E56;font-weight:600;margin-bottom:6px;">RÉSULTAT NET</div><div style="font-size:24px;font-weight:700;color:'+(resNet>=0?'#0F6E56':'#DC2626')+';">'+(resNet>=0?'+':'')+fc(resNet)+'</div><div style="font-size:9px;color:#888;margin-top:4px;">Revenus '+fc(totalRev)+' — Charges '+fc(totalChg)+'</div></div></div>';
+  h+='</div>';
+
+  h+='<h2>IV. ANALYSE FISCALE — Exercice '+year+'</h2>';
+  h+='<div class="alrt">⚠ Estimations indicatives. TMI supposé 30%. Prélèvements sociaux 17,2%. Consultez votre expert-comptable.</div>';
+  h+='<div class="two">';
+  h+='<div><h3>A. Revenus fonciers (micro-foncier 30%)</h3><table><tr><th>Élément</th><th class="r">Montant</th></tr>';
+  h+='<tr><td>Revenus bruts loyers</td><td class="r">'+fc(totalLoyersEncaisses)+'</td></tr>';
+  h+='<tr><td>Abattement 30%</td><td class="r neg">-'+fc(totalLoyersEncaisses*0.30)+'</td></tr>';
+  h+='<tr class="tr"><td><b>Base imposable</b></td><td class="r"><b>'+fc(mbfBase)+'</b></td></tr>';
+  h+='<tr><td>TMI 30%</td><td class="r neg">-'+fc(mbfBase*0.30)+'</td></tr>';
+  h+='<tr><td>PS 17,2%</td><td class="r neg">-'+fc(mbfBase*0.172)+'</td></tr>';
+  h+='<tr class="tr"><td><b>Charge fiscale loyers</b></td><td class="r neg"><b>-'+fc(mbfBase*0.472)+'</b></td></tr></table>';
+  h+='<h3>B. BIC meublé touristique (micro-BIC 71%)</h3><table><tr><th>Élément</th><th class="r">Montant</th></tr>';
+  h+='<tr><td>Revenus bruts Airbnb</td><td class="r">'+fc(totalAir)+'</td></tr>';
+  h+='<tr><td>Abattement 71%</td><td class="r neg">-'+fc(totalAir*0.71)+'</td></tr>';
+  h+='<tr class="tr"><td><b>Base imposable</b></td><td class="r"><b>'+fc(mbicBase)+'</b></td></tr>';
+  h+='<tr><td>TMI 30%</td><td class="r neg">-'+fc(mbicBase*0.30)+'</td></tr>';
+  h+='<tr><td>PS 17,2%</td><td class="r neg">-'+fc(mbicBase*0.172)+'</td></tr>';
+  h+='<tr class="tr"><td><b>Charge fiscale Airbnb</b></td><td class="r neg"><b>-'+fc(mbicBase*0.472)+'</b></td></tr></table></div>';
+  h+='<div><h3>C. Synthèse fiscale</h3><table><tr><th>Indicateur</th><th class="r">Montant</th></tr>';
+  h+='<tr><td>Total revenus bruts</td><td class="r pos">'+fc(totalRev)+'</td></tr>';
+  h+='<tr><td>Total charges</td><td class="r neg">-'+fc(totalChg)+'</td></tr>';
+  h+='<tr><td>Résultat avant impôt</td><td class="r '+(resNet>=0?'pos':'neg')+'">'+(resNet>=0?'+':'')+fc(resNet)+'</td></tr>';
+  h+='<tr><td>Charge fiscale estimée</td><td class="r neg">-'+fc(impotMicro)+'</td></tr>';
+  h+='<tr class="tr"><td><b>Cash flow net après impôt</b></td><td class="r '+(resNet-impotMicro>=0?'pos':'neg')+'"><b>'+(resNet-impotMicro>=0?'+':'')+fc(resNet-impotMicro)+'</b></td></tr>';
+  h+='<tr><td>Valeur estimée</td><td class="r">'+fc(estVal)+'</td></tr>';
+  h+='<tr><td>Rendement brut</td><td class="r pos">'+(estVal>0?Math.round(totalRev/estVal*1000)/10:0)+'%</td></tr>';
+  h+='<tr><td>Rendement net après impôt</td><td class="r pos">'+(estVal>0?Math.round((resNet-impotMicro)/estVal*1000)/10:0)+'%</td></tr></table>';
+  h+='<h3>D. Projections '+( year+1)+' – '+(year+3)+'</h3><table><tr><th>Année</th><th class="r">Revenus</th><th class="r">Charges</th><th class="r">Résultat</th></tr>';
+  for(var py=0;py<3;py++){
+    var pR=Math.round(totalRev*Math.pow(1.05,py+1)),pC=Math.round(totalChg*Math.pow(1.02,py+1)),pRes=pR-pC;
+    h+='<tr><td>'+(year+py+1)+'</td><td class="r pos">'+fc(pR)+'</td><td class="r neg">'+fc(pC)+'</td><td class="r '+(pRes>=0?'pos':'neg')+'">'+(pRes>=0?'+':'')+fc(pRes)+'</td></tr>';
+  }
+  h+='</table></div></div>';
+  h+='<div class="ft">Bilan généré par Illiberis Channel Manager · '+now.toLocaleDateString('fr-FR')+' · Document indicatif non opposable · SAS Pontac / SCI LP IMMO · Elne (66200)</div>';
+  h+='<div class="noprint" style="text-align:center;margin-top:14px;"><button onclick="window.print()" style="padding:10px 24px;background:#0F6E56;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer;font-weight:600;">Imprimer / Sauvegarder en PDF</button> <button onclick="window.close()" style="padding:10px 24px;background:#f5f5f5;border:1px solid #ddd;border-radius:8px;font-size:14px;cursor:pointer;margin-left:8px;">Fermer</button></div>';
+  h+='</body></html>';
+  var w=window.open('','_blank','width=1100,height=820,scrollbars=yes');
+  w.document.write(h);w.document.close();
 }
 
 init();
