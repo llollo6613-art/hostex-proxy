@@ -1030,9 +1030,9 @@ function generateBilan(){
     var rk='elne_rent_'+year+'_'+apt.id;
     var cr=localStorage.getItem(rk);
     var loyer=cr?parseFloat(cr):apt.rent;
-    var enc=0,att=0;
+    var enc=0,att=loyer*12;
     for(var mo=1;mo<=12;mo++){
-      if(mo>=apt.startMonth){att+=loyer;if(d[apt.id]&&d[apt.id][mo])enc+=getPayAmount(apt.id,mo);}
+      if(d[apt.id]&&d[apt.id][mo])enc+=getPayAmount(apt.id,mo);
     }
     totalLoyersEncaisses+=enc;totalLoyersAttendus+=att;
     loyers.push({id:apt.id,tenant:apt.tenant,loyer:loyer,startMonth:apt.startMonth,caution:apt.caution||'-',enc:enc,att:att});
