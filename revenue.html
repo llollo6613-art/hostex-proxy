@@ -1159,7 +1159,7 @@ function generateBilan(){
   h+='<tr class="tr"><td><b>TOTAL PRODUITS</b></td><td class="r pos"><b>'+fc(totalRev)+'</b></td></tr></table>';
 
   h+='<table style="margin-top:8px;"><tr><th colspan="2">CHARGES DÉDUCTIBLES</th></tr>';
-  h+='<tr><td>Intérêts d'emprunt (estimés)</td><td class="r neg">-'+fc(interetsAnnuel)+'</td></tr>';
+  h+='<tr><td>Interets emprunt (estimés)</td><td class="r neg">-'+fc(interetsAnnuel)+'</td></tr>';
   ELNE_CHARGES.forEach(function(c){if(c.key!=='credit')h+='<tr><td>'+c.label+'</td><td class="r neg">-'+fc(c.val*12)+'</td></tr>';});
   h+='<tr><td>Ménage Airbnb</td><td class="r neg">-'+fc(totalMenage)+'</td></tr>';
   h+='<tr style="background:#FFF8E1;"><td>Amortissement immeuble (2,5%/an)</td><td class="r neg">-'+fc(amortImmeuble)+'</td></tr>';
