@@ -1110,38 +1110,103 @@ function generateBilan(){
   h+='<div><div class="box box-g"><div style="font-size:10px;color:#0F6E56;font-weight:600;margin-bottom:6px;">RÉSULTAT NET</div><div style="font-size:24px;font-weight:700;color:'+(resNet>=0?'#0F6E56':'#DC2626')+';">'+(resNet>=0?'+':'')+fc(resNet)+'</div><div style="font-size:9px;color:#888;margin-top:4px;">Revenus '+fc(totalRev)+' — Charges '+fc(totalChg)+'</div></div></div>';
   h+='</div>';
 
-  h+='<h2>IV. ANALYSE FISCALE — Exercice '+year+'</h2>';
-  h+='<div class="alrt">⚠ Estimations indicatives. TMI supposé 30%. Prélèvements sociaux 17,2%. Consultez votre expert-comptable.</div>';
-  h+='<div class="two">';
-  h+='<div><h3>A. Revenus fonciers (micro-foncier 30%)</h3><table><tr><th>Élément</th><th class="r">Montant</th></tr>';
-  h+='<tr><td>Revenus bruts loyers</td><td class="r">'+fc(totalLoyersEncaisses)+'</td></tr>';
-  h+='<tr><td>Abattement 30%</td><td class="r neg">-'+fc(totalLoyersEncaisses*0.30)+'</td></tr>';
-  h+='<tr class="tr"><td><b>Base imposable</b></td><td class="r"><b>'+fc(mbfBase)+'</b></td></tr>';
-  h+='<tr><td>TMI 30%</td><td class="r neg">-'+fc(mbfBase*0.30)+'</td></tr>';
-  h+='<tr><td>PS 17,2%</td><td class="r neg">-'+fc(mbfBase*0.172)+'</td></tr>';
-  h+='<tr class="tr"><td><b>Charge fiscale loyers</b></td><td class="r neg"><b>-'+fc(mbfBase*0.472)+'</b></td></tr></table>';
-  h+='<h3>B. BIC meublé touristique (micro-BIC 71%)</h3><table><tr><th>Élément</th><th class="r">Montant</th></tr>';
-  h+='<tr><td>Revenus bruts Airbnb</td><td class="r">'+fc(totalAir)+'</td></tr>';
-  h+='<tr><td>Abattement 71%</td><td class="r neg">-'+fc(totalAir*0.71)+'</td></tr>';
-  h+='<tr class="tr"><td><b>Base imposable</b></td><td class="r"><b>'+fc(mbicBase)+'</b></td></tr>';
-  h+='<tr><td>TMI 30%</td><td class="r neg">-'+fc(mbicBase*0.30)+'</td></tr>';
-  h+='<tr><td>PS 17,2%</td><td class="r neg">-'+fc(mbicBase*0.172)+'</td></tr>';
-  h+='<tr class="tr"><td><b>Charge fiscale Airbnb</b></td><td class="r neg"><b>-'+fc(mbicBase*0.472)+'</b></td></tr></table></div>';
-  h+='<div><h3>C. Synthèse fiscale</h3><table><tr><th>Indicateur</th><th class="r">Montant</th></tr>';
-  h+='<tr><td>Total revenus bruts</td><td class="r pos">'+fc(totalRev)+'</td></tr>';
-  h+='<tr><td>Total charges</td><td class="r neg">-'+fc(totalChg)+'</td></tr>';
-  h+='<tr><td>Résultat avant impôt</td><td class="r '+(resNet>=0?'pos':'neg')+'">'+(resNet>=0?'+':'')+fc(resNet)+'</td></tr>';
-  h+='<tr><td>Charge fiscale estimée</td><td class="r neg">-'+fc(impotMicro)+'</td></tr>';
-  h+='<tr class="tr"><td><b>Cash flow net après impôt</b></td><td class="r '+(resNet-impotMicro>=0?'pos':'neg')+'"><b>'+(resNet-impotMicro>=0?'+':'')+fc(resNet-impotMicro)+'</b></td></tr>';
-  h+='<tr><td>Valeur estimée</td><td class="r">'+fc(estVal)+'</td></tr>';
-  h+='<tr><td>Rendement brut</td><td class="r pos">'+(estVal>0?Math.round(totalRev/estVal*1000)/10:0)+'%</td></tr>';
-  h+='<tr><td>Rendement net après impôt</td><td class="r pos">'+(estVal>0?Math.round((resNet-impotMicro)/estVal*1000)/10:0)+'%</td></tr></table>';
-  h+='<h3>D. Projections '+( year+1)+' – '+(year+3)+'</h3><table><tr><th>Année</th><th class="r">Revenus</th><th class="r">Charges</th><th class="r">Résultat</th></tr>';
-  for(var py=0;py<3;py++){
-    var pR=Math.round(totalRev*Math.pow(1.05,py+1)),pC=Math.round(totalChg*Math.pow(1.02,py+1)),pRes=pR-pC;
-    h+='<tr><td>'+(year+py+1)+'</td><td class="r pos">'+fc(pR)+'</td><td class="r neg">'+fc(pC)+'</td><td class="r '+(pRes>=0?'pos':'neg')+'">'+(pRes>=0?'+':'')+fc(pRes)+'</td></tr>';
+
+  // ===== FISCAL SCI IS =====
+  // Amortissements
+  var terrainPct=0.20; // terrain non amortissable
+  var constructionVal=estVal*(1-terrainPct);
+  var amortImmeuble=Math.round(constructionVal*0.025); // 2.5% / 40 ans
+  var amortMobilier=Math.round(estVal*0.01*0.10); // mobilier estimé 1% valeur, amorti 10%
+  var totalAmort=amortImmeuble+amortMobilier;
+
+  // Part intérêts crédit (depuis localStorage ou estimation 60% de la mensualité)
+  var interetsAnnuel=parseFloat(localStorage.getItem('bilan_interets')||Math.round(3038.15*12*0.6));
+  
+  // Charges déductibles IS
+  var chgDeductIS=interetsAnnuel; // intérêts seulement (pas capital)
+  ELNE_CHARGES.forEach(function(c){if(c.key!=='credit')chgDeductIS+=c.val*12;});
+  chgDeductIS+=totalMenage;
+  var totalDeductIS=chgDeductIS+totalAmort;
+
+  // Résultat fiscal IS
+  var resFiscalIS=totalRev-totalDeductIS;
+
+  // Calcul IS
+  var isTrancheReduite=0,isTrancheNormale=0,totalIS=0;
+  if(resFiscalIS>0){
+    if(resFiscalIS<=42500){isTrancheReduite=Math.round(resFiscalIS*0.15);}
+    else{isTrancheReduite=Math.round(42500*0.15);isTrancheNormale=Math.round((resFiscalIS-42500)*0.25);}
+    totalIS=isTrancheReduite+isTrancheNormale;
   }
-  h+='</table></div></div>';
+  var resNetIS=resFiscalIS-totalIS;
+
+  // Distribution dividendes (flat tax 30%)
+  var dividendesBruts=Math.max(0,resNetIS);
+  var flatTaxDividendes=Math.round(dividendesBruts*0.30);
+  var dividendesNets=dividendesBruts-flatTaxDividendes;
+
+  // Cash flow réel (résultat comptable + amortissements - IS)
+  var cashFlowIS=resNet-totalIS;
+
+  h+='<h2>IV. ANALYSE FISCALE — SCI à l'IS — Exercice '+year+'</h2>';
+  h+='<div class="alrt">⚠ Document indicatif — SCI soumise à l'Impôt sur les Sociétés (IS). Régime réel obligatoire. Les amortissements sont calculés sur la valeur estimée du bien. La part intérêts du crédit est estimée à 60% de la mensualité — à ajuster avec votre comptable.</div>';
+
+  h+='<h3>A. Compte de résultat fiscal SCI IS</h3>';
+  h+='<div class="two"><div>';
+  h+='<table><tr><th colspan="2">PRODUITS</th></tr>';
+  h+='<tr><td>Loyers encaissés</td><td class="r pos">'+fc(totalLoyersEncaisses)+'</td></tr>';
+  h+='<tr><td>Revenus Airbnb / Booking</td><td class="r pos">'+fc(totalAir)+'</td></tr>';
+  h+='<tr class="tr"><td><b>TOTAL PRODUITS</b></td><td class="r pos"><b>'+fc(totalRev)+'</b></td></tr></table>';
+
+  h+='<table style="margin-top:8px;"><tr><th colspan="2">CHARGES DÉDUCTIBLES</th></tr>';
+  h+='<tr><td>Intérêts d'emprunt (estimés)</td><td class="r neg">-'+fc(interetsAnnuel)+'</td></tr>';
+  ELNE_CHARGES.forEach(function(c){if(c.key!=='credit')h+='<tr><td>'+c.label+'</td><td class="r neg">-'+fc(c.val*12)+'</td></tr>';});
+  h+='<tr><td>Ménage Airbnb</td><td class="r neg">-'+fc(totalMenage)+'</td></tr>';
+  h+='<tr style="background:#FFF8E1;"><td>Amortissement immeuble (2,5%/an)</td><td class="r neg">-'+fc(amortImmeuble)+'</td></tr>';
+  h+='<tr style="background:#FFF8E1;"><td>Amortissement mobilier (10%/an)</td><td class="r neg">-'+fc(amortMobilier)+'</td></tr>';
+  h+='<tr class="tr"><td><b>TOTAL CHARGES</b></td><td class="r neg"><b>-'+fc(totalDeductIS)+'</b></td></tr></table>';
+
+  h+='<table style="margin-top:8px;"><tr><th colspan="2">RÉSULTAT IS</th></tr>';
+  h+='<tr><td>Résultat fiscal avant IS</td><td class="r '+(resFiscalIS>=0?'pos':'neg')+'">'+(resFiscalIS>=0?'+':'')+fc(resFiscalIS)+'</td></tr>';
+  if(resFiscalIS>0){
+    h+='<tr><td>IS tranche réduite (15% ≤ 42 500€)</td><td class="r neg">-'+fc(isTrancheReduite)+'</td></tr>';
+    if(isTrancheNormale>0)h+='<tr><td>IS taux normal (25% > 42 500€)</td><td class="r neg">-'+fc(isTrancheNormale)+'</td></tr>';
+  }
+  h+='<tr class="tr"><td><b>IS TOTAL DÛ</b></td><td class="r neg"><b>-'+fc(totalIS)+'</b></td></tr>';
+  h+='<tr class="tr"><td><b>RÉSULTAT NET APRÈS IS</b></td><td class="r '+(resNetIS>=0?'pos':'neg')+'"><b>'+(resNetIS>=0?'+':'')+fc(resNetIS)+'</b></td></tr></table></div>';
+
+  h+='<div>';
+  h+='<table><tr><th colspan="2">DISTRIBUTION DIVIDENDES (optionnel)</th></tr>';
+  h+='<tr><td>Résultat net distribuable</td><td class="r">'+fc(dividendesBruts)+'</td></tr>';
+  h+='<tr><td>Flat tax dividendes (PFU 30%)</td><td class="r neg">-'+fc(flatTaxDividendes)+'</td></tr>';
+  h+='<tr class="tr"><td><b>Dividendes nets perçus</b></td><td class="r pos"><b>'+fc(dividendesNets)+'</b></td></tr></table>';
+
+  h+='<table style="margin-top:8px;"><tr><th colspan="2">SYNTHÈSE CASH FLOW IS</th></tr>';
+  h+='<tr><td>Résultat net comptable</td><td class="r '+(resNet>=0?'pos':'neg')+'">'+(resNet>=0?'+':'')+fc(resNet)+'</td></tr>';
+  h+='<tr><td>IS dû</td><td class="r neg">-'+fc(totalIS)+'</td></tr>';
+  h+='<tr class="tr"><td><b>Cash flow disponible après IS</b></td><td class="r '+(cashFlowIS>=0?'pos':'neg')+'"><b>'+(cashFlowIS>=0?'+':'')+fc(cashFlowIS)+'</b></td></tr>';
+  h+='<tr><td style="font-size:9px;color:#888;">Note: les amortissements ('+fc(totalAmort)+') sont une charge comptable non décaissée — ils réduisent l'IS sans impact trésorerie immédiat</td><td></td></tr></table>';
+
+  h+='<table style="margin-top:8px;"><tr><th colspan="2">INDICATEURS RENTABILITÉ IS</th></tr>';
+  h+='<tr><td>Taux IS effectif</td><td class="r">'+(resFiscalIS>0?Math.round(totalIS/resFiscalIS*1000)/10:0)+'%</td></tr>';
+  h+='<tr><td>Rendement brut</td><td class="r pos">'+(estVal>0?Math.round(totalRev/estVal*1000)/10:0)+'%</td></tr>';
+  h+='<tr><td>Rendement net après IS</td><td class="r pos">'+(estVal>0?Math.round(cashFlowIS/estVal*1000)/10:0)+'%</td></tr>';
+  h+='<tr><td>Économie fiscale vs IR (TMI 30%)</td><td class="r pos">+'+fc(Math.max(0,impotMicro-totalIS))+'</td></tr></table>';
+
+  h+='<div class="box" style="margin-top:8px;font-size:10px;"><b>Avantages SCI IS :</b><br>✓ Amortissements déductibles ('+fc(totalAmort)+'/an)<br>✓ Taux IS 15% sur premiers 42 500€<br>✓ Déficits reportables sans limite<br>✓ Capital emprunt non imposable<br><br><b>Points de vigilance :</b><br>⚠ Plus-value à la revente calculée sur valeur nette comptable (après amortissements) → fiscalité plus lourde en cas de cession<br>⚠ Dividendes soumis à flat tax 30%</div></div></div>';
+
+  h+='<h3>B. Projections IS — '+(year+1)+' à '+(year+3)+'</h3>';
+  h+='<table><tr><th>Année</th><th class="r">Produits</th><th class="r">Charges déd.</th><th class="r">Résultat fiscal</th><th class="r">IS dû</th><th class="r">Résultat net IS</th><th class="r">Cash flow</th></tr>';
+  for(var py=0;py<3;py++){
+    var pR=Math.round(totalRev*Math.pow(1.05,py+1));
+    var pC=Math.round(totalDeductIS*Math.pow(1.02,py+1));
+    var pRes=pR-pC;
+    var pIS=pRes>0?(pRes<=42500?Math.round(pRes*0.15):(Math.round(42500*0.15)+Math.round((pRes-42500)*0.25))):0;
+    var pNet=pRes-pIS;
+    var pCF=Math.round(resNet*Math.pow(1.04,py+1))-pIS;
+    h+='<tr><td>'+(year+py+1)+'</td><td class="r pos">'+fc(pR)+'</td><td class="r neg">'+fc(pC)+'</td><td class="r '+(pRes>=0?'pos':'neg')+'">'+(pRes>=0?'+':'')+fc(pRes)+'</td><td class="r neg">-'+fc(pIS)+'</td><td class="r '+(pNet>=0?'pos':'neg')+'">'+(pNet>=0?'+':'')+fc(pNet)+'</td><td class="r '+(pCF>=0?'pos':'neg')+'">'+(pCF>=0?'+':'')+fc(pCF)+'</td></tr>';
+  }
+  h+='</table>';
   h+='<div class="ft">Bilan généré par Illiberis Channel Manager · '+now.toLocaleDateString('fr-FR')+' · Document indicatif non opposable · SAS Pontac / SCI LP IMMO · Elne (66200)</div>';
   h+='<div class="noprint" style="text-align:center;margin-top:14px;"><button onclick="window.print()" style="padding:10px 24px;background:#0F6E56;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer;font-weight:600;">Imprimer / Sauvegarder en PDF</button> <button onclick="window.close()" style="padding:10px 24px;background:#f5f5f5;border:1px solid #ddd;border-radius:8px;font-size:14px;cursor:pointer;margin-left:8px;">Fermer</button></div>';
   h+='</body></html>';
