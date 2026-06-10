@@ -158,6 +158,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 </div>
 
 <!-- APP -->
+<div id="notif-banner-menage" style="display:none;position:fixed;bottom:80px;left:12px;right:12px;background:#0F6E56;color:#fff;border-radius:14px;padding:14px 16px;z-index:100;align-items:center;gap:12px;box-shadow:0 4px 20px rgba(0,0,0,.2);">
+  <div style="font-size:22px;">🔔</div>
+  <div style="flex:1;"><div style="font-weight:600;font-size:14px;">Activer les notifications</div><div style="font-size:12px;opacity:.9;">Soyez alerté des nouvelles réservations</div></div>
+  <button onclick="initPushMenage(false)" style="background:#fff;color:#0F6E56;border:none;border-radius:8px;padding:8px 14px;font-weight:700;font-size:13px;cursor:pointer;">Activer</button>
+  <button onclick="document.getElementById('notif-banner-menage').style.display='none'" style="background:transparent;border:none;color:#fff;font-size:20px;cursor:pointer;padding:0 4px;">✕</button>
+</div>
 <div id="app-screen">
   <div class="header">
     <div>
@@ -637,11 +643,62 @@ function deleteNote(i){
   renderNotes();
 }
 
+
+// ==== WEB PUSH MENAGE ====
+function urlBase64ToUint8Array(b){
+  const pad='='.repeat((4-b.length%4)%4);
+  const base64=(b+pad).replace(/-/g,'+').replace(/_/g,'/');
+  const raw=window.atob(base64);
+  const arr=new Uint8Array(raw.length);
+  for(let i=0;i<raw.length;i++) arr[i]=raw.charCodeAt(i);
+  return arr;
+}
+
+async function initPushMenage(silent){
+  if(!('serviceWorker' in navigator)||!('PushManager' in window)) return;
+  try{
+    const reg=await navigator.serviceWorker.register('/sw.js');
+    await navigator.serviceWorker.ready;
+    const existing=await reg.pushManager.getSubscription();
+    if(existing){updateNotifBannerMenage(true);return;}
+    const perm=await Notification.requestPermission();
+    if(perm!=='granted'){if(!silent)alert('Permission notifications refusée.');return;}
+    const keyRes=await fetch('/vapid-key');
+    const {publicKey}=await keyRes.json();
+    const sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:urlBase64ToUint8Array(publicKey)});
+    const subData=Object.assign({role:'menage'},JSON.parse(JSON.stringify(sub)));
+    await fetch('/subscribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(subData)});
+    updateNotifBannerMenage(true);
+    if(!silent) alert('Notifications activées ! Vous serez alerté des nouvelles réservations et départs.');
+  }catch(e){console.log('Push error:',e);}
+}
+
+function updateNotifBannerMenage(active){
+  var banner=document.getElementById('notif-banner-menage');
+  if(!banner) return;
+  if(active){
+    banner.style.display='none';
+  }
+}
+
+async function checkAndAutoSubscribe(){
+  if(!('Notification' in window)) return;
+  if(Notification.permission==='granted'){
+    await initPushMenage(true);
+  } else if(Notification.permission==='default'){
+    // Afficher bannière
+    var banner=document.getElementById('notif-banner-menage');
+    if(banner) banner.style.display='flex';
+  }
+}
+
 try{
   if(localStorage.getItem("menage_auth")==="1"){
     document.getElementById("login-screen").style.display="none";
     document.getElementById("app-screen").style.display="block";
     initApp();
+    // Auto-subscribe aux notifications
+    setTimeout(function(){checkAndAutoSubscribe();}, 2000);
   }
 }catch(e){}
 </script>
