@@ -681,6 +681,31 @@ function updateNotifBannerMenage(active){
   }
 }
 
+async function handleNotifBtnMenage(){
+  var isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent);
+  var isStandalone=window.navigator.standalone===true||window.matchMedia('(display-mode: standalone)').matches;
+  if(isIOS&&!isStandalone){
+    alert('Sur iPhone/iPad :\n1. Appuyez sur le bouton Partager (carré avec flèche)\n2. Sélectionnez "Sur l\'écran d\'accueil"\n3. Ouvrez l\'app depuis l\'écran d\'accueil\n4. Les notifications s\'activeront automatiquement');
+    return;
+  }
+  await initPushMenage(false);
+}
+
+async function updateNotifButtonState(){
+  var btn=document.getElementById('notif-btn-menage');
+  if(!btn)return;
+  if(!('Notification' in window)){btn.style.display='none';return;}
+  var reg=await navigator.serviceWorker.getRegistration('/sw.js').catch(function(){return null;});
+  var sub=reg?await reg.pushManager.getSubscription().catch(function(){return null;}):null;
+  if(sub&&Notification.permission==='granted'){
+    btn.textContent='🔔 Notifs actives';
+    btn.style.background='rgba(255,255,255,0.35)';
+    btn.style.borderColor='rgba(255,255,255,0.8)';
+    btn.onclick=null;
+    btn.style.cursor='default';
+  }
+}
+
 async function checkAndAutoSubscribe(){
   if(!('Notification' in window)) return;
   if(Notification.permission==='granted'){
@@ -698,7 +723,7 @@ try{
     document.getElementById("app-screen").style.display="block";
     initApp();
     // Auto-subscribe aux notifications
-    setTimeout(function(){checkAndAutoSubscribe();}, 2000);
+    setTimeout(function(){checkAndAutoSubscribe();updateNotifButtonState();}, 1500);
   }
 }catch(e){}
 </script>
