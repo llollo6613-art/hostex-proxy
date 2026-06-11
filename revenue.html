@@ -197,6 +197,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 </div>
 
 <script>
+function getNet(r){
+  var n=parseFloat(r.net_amount)||0;
+  if(n>0) return n;
+  var g=parseFloat(r.total_price)||0;
+  if(!g) return 0;
+  var ia=(r.channel_type||'').toLowerCase().includes('airbnb');
+  return ia ? g*(1-0.0488) : g*(1-0.164);
+}
 var PROPS = {"12619011":{name:"Suite Illiberis",clean:25}, "12619012":{name:"Loft Cinema",clean:45}};
 var MONTHS = ["Jan","Fév","Mar","Avr","Mai","Juin","Juil","Août","Sep","Oct","Nov","Déc"];
 var state = {tab:"all", period:"month", reservations:[]};
@@ -424,7 +432,7 @@ function renderElne(){
     var propA=String(r.property_id);
     var keyA=propA+'_'+moA;
     if(!airMonths[keyA])airMonths[keyA]=0;
-    airMonths[keyA]+=(parseFloat(r.total_price)||0);
+    airMonths[keyA]+=getNet(r);
   });
   // airTotal filtré par période pour les KPIs
   var airTotal=0;
@@ -432,7 +440,7 @@ function renderElne(){
     if(r.status==='cancelled')return;
     var ci=new Date((r.check_in_date||r.check_in||'')+'T00:00:00');
     if(ci<range.from||ci>range.to)return;
-    airTotal+=(parseFloat(r.total_price)||0);
+    airTotal+=getNet(r);
   });
 
   // Calcul récapitulatif
@@ -892,7 +900,7 @@ function render(){
     var ci=new Date((r.check_in_date||r.check_in||"")+"T00:00:00");
     return ci>=range.from&&ci<=range.to;
   }).forEach(function(r){
-    var g=parseFloat(r.total_price)||0;
+    var g=getNet(r);
     var ia=(r.channel_type||"").toLowerCase().includes("airbnb");
     airRevTotal+=g;
     if(String(r.property_id)==="12619011")airRev11+=g;
@@ -1044,7 +1052,7 @@ function generateBilan(){
     if(r.status==='cancelled')return;
     var ci=new Date((r.check_in_date||r.check_in||'')+'T00:00:00');
     if(ci.getFullYear()!==year)return;
-    var mo=ci.getMonth()+1,g=parseFloat(r.total_price)||0,prop=String(r.property_id);
+    var mo=ci.getMonth()+1,g=getNet(r),prop=String(r.property_id);
     if(!mo_air[prop])mo_air[prop]={};
     mo_air[prop][mo]=(mo_air[prop][mo]||0)+g;
     if(prop==='12619011')airSuiteT+=g;if(prop==='12619012')airLoftT+=g;
