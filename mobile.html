@@ -232,7 +232,12 @@ async function checkNotifStatus(){
     const reg=await navigator.serviceWorker.getRegistration('/sw.js');
     if(reg){
       const sub=await reg.pushManager.getSubscription();
-      if(sub) updateNotifBtn(true);
+      if(sub){
+        updateNotifBtn(true);
+        // Re-souscrire avec role owner pour corriger un eventuel mauvais role
+        const subData=Object.assign({role:'owner'},JSON.parse(JSON.stringify(sub)));
+        fetch('/subscribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(subData)}).catch(function(){});
+      }
     }
   }catch(e){}
 }
