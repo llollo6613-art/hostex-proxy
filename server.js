@@ -808,7 +808,11 @@ app.post('/sync-from-browser', async function(req, res) {
 });
 
 app.post('/test-push', async function(req, res) {
-  await sendPushNotif('🧹 Test notification', 'Ça fonctionne ! Vous recevrez les alertes ménage ici.', '/menage', 'test');
+  const prop = 'Suite Illiberis';
+  const msgOwner = prop + ' · Airbnb · 320€\nArrivée 2026-06-15 (3 nuits)\nJean Dupont';
+  const msgMenage = prop + '\nJean Dupont · 3 nuits\nArrivée le 2026-06-15 · Ménage le 2026-06-18';
+  await sendPushNotif('🏠 Nouvelle réservation !', msgOwner, '/mobile', 'test-resa', 'owner');
+  await sendPushNotif('🏠 Nouvelle arrivée à préparer', msgMenage, '/menage', 'test-resa', 'menage');
   res.json({ok: true, subscribers: pushSubscriptions.length});
 });
 
