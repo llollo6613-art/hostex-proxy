@@ -911,16 +911,17 @@ async function syncHostexToSupabase() {
       for (const r of newRes) {
         const prop = r.property_id === '12619011' ? 'Suite Illiberis' : 'Loft Cinema';
         const ch = r.channel_type === 'airbnb' ? 'Airbnb' : 'Booking';
-        const price = r.total_price ? Math.round(r.total_price) + 'EUR' : '';
-        const msg = prop + ' - ' + ch + '\n' + (r.guest_name||'') + '\n' + (r.check_in_date||'') + ' → ' + (r.check_out_date||'');
-        await sendPushNotif('🏠 Nouvelle réservation !', msg, '/mobile', 'new-resa', 'owner');
-        await sendPushNotif('🏠 Nouvelle réservation !', msg, '/menage', 'new-resa', 'menage');
-        // Alerter ménage si départ dans moins de 3 jours
+        const price = r.total_price ? Math.round(r.total_price) + '€' : '';
+        // Calcul durée séjour
+        const ciDate = new Date((r.check_in_date||'') + 'T12:00:00');
         const coDate = new Date((r.check_out_date||'') + 'T12:00:00');
-        const diff = Math.round((coDate - new Date()) / 86400000);
-        if(diff >= 0 && diff <= 2) {
-          await sendPushNotif('🧹 Départ dans '+diff+'j - '+prop, (r.guest_name||'')+' quitte le '+(r.check_out_date||''), '/menage', 'depart-menage', 'menage');
-        }
+        const nights = Math.round((coDate - ciDate) / 86400000);
+        // Notif propriétaire : infos complètes avec prix
+        const msgOwner = prop + ' · ' + ch + ' · ' + price + '\nArrivée ' + (r.check_in_date||'') + ' (' + nights + ' nuits)\n' + (r.guest_name||'');
+        await sendPushNotif('🏠 Nouvelle réservation !', msgOwner, '/mobile', 'new-resa', 'owner');
+        // Notif ménage : arrivée + durée + prochain ménage
+        const msgMenage = prop + '\n' + (r.guest_name||'') + ' · ' + nights + ' nuits\nArrivée le ' + (r.check_in_date||'') + ' · Ménage le ' + (r.check_out_date||'');
+        await sendPushNotif('🏠 Nouvelle arrivée à préparer', msgMenage, '/menage', 'new-resa', 'menage');
       }
     }
   } catch(e) {
