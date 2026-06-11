@@ -382,9 +382,27 @@ function renderToday(){
 }
 
 function toggleDone(key){
-  STATE.done[key] = !STATE.done[key];
+  var wasDone = STATE.done[key];
+  STATE.done[key] = !wasDone;
   try{localStorage.setItem("menage_done",JSON.stringify(STATE.done));}catch(e){}
   renderToday();
+  // Notifier le propriétaire quand un ménage est validé (pas quand on décoche)
+  if(!wasDone){
+    var parts = key.split('_');
+    var dateStr = parts[0];
+    // Trouver la résa pour identifier la propriété
+    var propId = '';
+    try{
+      (STATE.reservations||[]).forEach(function(r){
+        if(key.indexOf(r.id) !== -1) propId = String(r.property_id||'');
+      });
+    }catch(e){}
+    fetch('/menage-done', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({prop: propId, date: dateStr})
+    }).catch(function(e){console.log('notif error', e);});
+  }
 }
 
 function nextDay(ds){
