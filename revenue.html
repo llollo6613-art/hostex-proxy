@@ -1561,38 +1561,48 @@ function calYearDelta(d){
 }
 
 function getMonthCashflow(year, mo){
-  // Cash flow approximatif du mois : loyers ELNE + Soler + Airbnb net - charges
-  var income=0;
+  // Cash flow du mois selon l'onglet actif
+  var income=0, charges=0;
+  var includeElne=(state.tab==='all'||state.tab==='elne');
+  var includeSoler=(state.tab==='all'||state.tab==='soler');
   try{
-    var dE=JSON.parse(localStorage.getItem('elne_'+year)||'{}');
-    ELNE_APTS.forEach(function(apt){
-      if(dE[apt.id]&&dE[apt.id][mo]){
-        var v=dE[apt.id][mo];
-        if(v===true){var rk=localStorage.getItem('elne_rent_'+year+'_'+apt.id);income+=rk?parseFloat(rk):apt.rent;}
-        else income+=parseFloat(v)||0;
-      }
-    });
-    var dS=JSON.parse(localStorage.getItem('soler_'+year)||'{}');
-    SOLER_APTS.forEach(function(apt){
-      if(dS[apt.id]&&dS[apt.id][mo]){
-        var v=dS[apt.id][mo];
-        if(v===true){var rk=localStorage.getItem('soler_rent_'+year+'_'+apt.id);income+=rk?parseFloat(rk):apt.rent;}
-        else income+=parseFloat(v)||0;
-      }
-    });
+    if(includeElne){
+      loadCustomData();
+      var dE=JSON.parse(localStorage.getItem('elne_'+year)||'{}');
+      ELNE_APTS.forEach(function(apt){
+        if(dE[apt.id]&&dE[apt.id][mo]){
+          var v=dE[apt.id][mo];
+          if(v===true){var rk=localStorage.getItem('elne_rent_'+year+'_'+apt.id);income+=rk?parseFloat(rk):apt.rent;}
+          else income+=parseFloat(v)||0;
+        }
+      });
+    }
+    if(includeSoler){
+      loadSolerCustom();
+      var dS=JSON.parse(localStorage.getItem('soler_'+year)||'{}');
+      SOLER_APTS.forEach(function(apt){
+        if(dS[apt.id]&&dS[apt.id][mo]){
+          var v=dS[apt.id][mo];
+          if(v===true){var rk=localStorage.getItem('soler_rent_'+year+'_'+apt.id);income+=rk?parseFloat(rk):apt.rent;}
+          else income+=parseFloat(v)||0;
+        }
+      });
+    }
   }catch(e){}
-  // Airbnb net du mois
-  (state.reservations||[]).forEach(function(r){
-    if(r.status==='cancelled')return;
-    var ci=new Date((r.check_in_date||r.check_in||'')+'T00:00:00');
-    if(ci.getFullYear()!==year||ci.getMonth()+1!==mo)return;
-    income+=getNet(r);
-  });
-  // Charges
-  var charges=ELNE_CHARGES.reduce(function(s,c){return s+(c.monthly?c.val:0);},0);
-  charges+=SOLER_CHARGES.reduce(function(s,c){return s+(c.monthly?c.val:0);},0);
-  var menageKey='elne_menage_'+year+'_'+mo;
-  charges+=parseFloat(localStorage.getItem(menageKey)||'0')||0;
+  // Airbnb net du mois (ELNE uniquement)
+  if(includeElne){
+    (state.reservations||[]).forEach(function(r){
+      if(r.status==='cancelled')return;
+      var ci=new Date((r.check_in_date||r.check_in||'')+'T00:00:00');
+      if(ci.getFullYear()!==year||ci.getMonth()+1!==mo)return;
+      income+=getNet(r);
+    });
+    charges+=ELNE_CHARGES.reduce(function(s,c){return s+(c.monthly?c.val:0);},0);
+    charges+=parseFloat(localStorage.getItem('elne_menage_'+year+'_'+mo)||'0')||0;
+  }
+  if(includeSoler){
+    charges+=SOLER_CHARGES.reduce(function(s,c){return s+(c.monthly?c.val:0);},0);
+  }
   return income-charges;
 }
 
