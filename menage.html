@@ -601,10 +601,10 @@ async function loadNotesFromSupabase(){
   try{
     var r = await fetch("/notes-list");
     var d = await r.json();
-    if(d.notes && d.notes.length){
-      STATE.notes = d.notes.map(function(n){
+    if(d.ok){
+      STATE.notes = (d.notes||[]).map(function(n){
         return {prop:n.prop_id,text:n.text,date:new Date(n.created_at).toLocaleDateString("fr-FR"),author:n.author||"menage",id:n.id};
-      });
+      }).reverse();
       try{localStorage.setItem("menage_notes",JSON.stringify(STATE.notes));}catch(e){}
     }
   }catch(e){}
@@ -625,13 +625,14 @@ function renderNotes(){
   if(STATE.notes.length){
     h += "<div class=\"section-card\">";
     h += "<h3>📋 Notes ("+STATE.notes.length+")</h3>";
-    STATE.notes.slice().reverse().forEach(function(n,i){
+    STATE.notes.slice().reverse().forEach(function(n,ri){
+      var realIdx = STATE.notes.length-1-ri;
       var prop = PROPS[n.prop||n.prop_id]||{short:"Apt",color:"#888"};
       var authorBadge = n.author==="owner" ? "<span style=\"font-size:10px;background:#6366F1;color:#fff;border-radius:4px;padding:1px 5px;margin-left:4px;\">Propriétaire</span>" : "";
       h += "<div class=\"note-item\">";
       h += "<span class=\"note-apt\" style=\"background:"+prop.color+"\">"+prop.short+"</span>";
       h += "<div style=\"flex:1;\"><div class=\"note-text\">"+n.text+authorBadge+"</div><div class=\"note-date\">"+n.date+"</div></div>";
-      h += "<button class=\"note-delete-btn\" onclick=\"deleteNote("+i+")\" aria-label=\"Supprimer\">×</button>";
+      h += "<button class=\"note-delete-btn\" onclick=\"deleteNote("+realIdx+")\" aria-label=\"Supprimer\">×</button>";
       h += "</div>";
     });
     h += "</div>";
@@ -647,19 +648,29 @@ async function addNote(){
   if(!text)return;
   var now = new Date();
   var note = {prop:prop,text:text,date:now.toLocaleDateString("fr-FR"),author:"menage"};
-  STATE.notes.push(note);
-  try{localStorage.setItem("menage_notes",JSON.stringify(STATE.notes));}catch(e){}
-  // Sauvegarder dans Supabase
+  document.getElementById("note-text").value="";
+  // Sauvegarder dans Supabase puis recharger pour avoir l'id
   try{
     await fetch("/note-add",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prop_id:prop,text:text,author:"menage"})});
-  }catch(e){}
-  renderNotes();
+    await loadNotesFromSupabase();
+  }catch(e){
+    STATE.notes.push(note);
+    try{localStorage.setItem("menage_notes",JSON.stringify(STATE.notes));}catch(e2){}
+    renderNotes();
+  }
 }
 
-function deleteNote(i){
+async function deleteNote(i){
+  var note = STATE.notes[i];
   STATE.notes.splice(i,1);
   try{localStorage.setItem("menage_notes",JSON.stringify(STATE.notes));}catch(e){}
   renderNotes();
+  // Supprimer aussi dans Supabase
+  if(note && note.id){
+    try{
+      await fetch("/note-delete",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({id:note.id})});
+    }catch(e){console.log("delete error",e);}
+  }
 }
 
 
