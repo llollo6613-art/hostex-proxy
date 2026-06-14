@@ -733,6 +733,7 @@ function setTab(t){
   document.querySelectorAll('.tab').forEach(function(b,i){
     b.classList.toggle('on', ['all','elne','soler'][i]===t);
   });
+  if(CAL.open) renderCalPicker();
   var subbar = document.getElementById('subbar');
   if(t==='elne'){
     subbar.style.display='flex';
