@@ -178,12 +178,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
       <button class="tab active" onclick="showTab('today')"><span class="tab-icon">📋</span>Aujourd'hui</button>
       <button class="tab" onclick="showTab('calendar')"><span class="tab-icon">📅</span>Calendrier</button>
       <button class="tab" onclick="showTab('checklist')"><span class="tab-icon">✅</span>Check-list</button>
+      <button class="tab" onclick="showTab('messages')"><span class="tab-icon">💬</span>Messages</button>
       <button class="tab" onclick="showTab('notes')"><span class="tab-icon">📝</span>Notes</button>
     </div>
     <div id="tab-today"></div>
     <div id="tab-calendar" style="display:none;"></div>
     <div id="tab-checklist" style="display:none;"></div>
-    <div id="tab-notes" style="display:none;"></div>
+    <div id="tab-messages" style="display:none;"></div>
+      <div id="tab-notes" style="display:none;"></div>
   </div>
 </div>
 
@@ -208,6 +210,8 @@ var STATE = {
   calMonth: new Date(),
   done: {},
   notes: [],
+  msgProp: "12619011",
+  messages: [],
   checks: {},
   checkProp: "12619011"
 };
@@ -297,15 +301,16 @@ function dFmt(ds){
 }
 
 function showTab(tab){
-  ["today","calendar","checklist","notes"].forEach(function(t){
+  ["today","calendar","checklist","messages","notes"].forEach(function(t){
     document.getElementById("tab-"+t).style.display = t===tab?"block":"none";
   });
   document.querySelectorAll(".tab").forEach(function(b,i){
-    b.classList.toggle("active", ["today","calendar","checklist","notes"][i]===tab);
+    b.classList.toggle("active", ["today","calendar","checklist","messages","notes"][i]===tab);
   });
   if(tab==="today") renderToday();
   else if(tab==="calendar") renderCalendar();
   else if(tab==="checklist") renderChecklist();
+  else if(tab==="messages") renderMessages();
   else if(tab==="notes") loadNotesFromSupabase();
 }
 

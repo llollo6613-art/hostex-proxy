@@ -528,8 +528,47 @@ app.post('/note-delete', async function(req, res) {
   } catch(e) { res.status(500).json({error:e.message}); }
 });
 
+// ===== MESSAGERIE PAR LOGEMENT =====
+app.get('/messages-list', async function(req, res) {
+  try {
+    const prop = req.query.prop;
+    let path = 'messages?select=*&order=created_at.asc&limit=200';
+    if(prop) path = 'messages?prop_id=eq.'+encodeURIComponent(prop)+'&select=*&order=created_at.asc&limit=200';
+    const messages = await supaFetch(path);
+    res.json({ok:true, messages});
+  } catch(e) { res.json({ok:false, messages:[]}); }
+});
+
+app.post('/message-send', async function(req, res) {
+  try {
+    const {prop_id, text, author} = req.body;
+    if(!prop_id || !text || !author) return res.status(400).json({error:'Missing fields'});
+    await supaFetch('messages', 'POST', [{prop_id, text, author}]);
+    const propName = prop_id==='12619011' ? 'Suite Illiberis' : (prop_id==='12619012' ? 'Loft Cinema' : 'Général');
+    if(author==='owner'){
+      await sendPushNotif('💬 '+propName, text, '/menage?msg='+prop_id, 'msg-'+prop_id, 'menage');
+    } else {
+      await sendPushNotif('💬 '+propName, text, '/mobile?msg='+prop_id, 'msg-'+prop_id, 'owner');
+    }
+    res.json({ok:true});
+  } catch(e) { res.status(500).json({error:e.message}); }
+});
+
+app.post('/message-delete', async function(req, res) {
+  try {
+    const {id} = req.body;
+    if(!id) return res.status(400).json({error:'Missing id'});
+    await supaFetch('messages?id=eq.'+encodeURIComponent(id), 'DELETE');
+    res.json({ok:true});
+  } catch(e) { res.status(500).json({error:e.message}); }
+});
+
 app.get('/revenue', function(req, res) {
   res.sendFile(__dirname+'/revenue.html');
+});
+
+app.get('/messagerie', function(req, res) {
+  res.sendFile(__dirname+'/messagerie.html');
 });
 
 app.get('/tarifs-mobile', function(req, res) {
