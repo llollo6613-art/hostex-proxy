@@ -752,6 +752,92 @@ async function checkAndAutoSubscribe(){
   }
 }
 
+
+function renderMessages(){
+  var h = "";
+  h += "<div style=\'display:flex;gap:8px;margin-bottom:14px;\'>";
+  Object.keys(PROPS).forEach(function(pid){
+    var p = PROPS[pid];
+    var active = STATE.msgProp===pid;
+    h += "<button onclick=\"switchMsgProp(\'"+pid+"\')\" style=\'flex:1;padding:10px;border-radius:12px;border:1.5px solid "+(active?p.color:"#e5e4e0")+";background:"+(active?p.color:"#fff")+";color:"+(active?"#fff":"#666")+";font-size:13px;font-weight:600;cursor:pointer;\'>"+p.name+"</button>";
+  });
+  h += "</div>";
+  h += "<div id=\'msg-thread\' style=\'display:flex;flex-direction:column;gap:10px;min-height:300px;max-height:55vh;overflow-y:auto;padding:4px;\'></div>";
+  h += "<div style=\'display:flex;align-items:center;gap:8px;margin-top:12px;\'>";
+  h += "<input id=\'msg-input\' placeholder=\'Ecrire un message...\' style=\'flex:1;border:1.5px solid #ddd;border-radius:20px;padding:11px 16px;font-size:14px;outline:none;\' onkeydown=\"if(event.key===\'Enter\')sendMessage();\">";
+  h += "<button onclick=\'sendMessage()\' style=\'width:42px;height:42px;border-radius:50%;background:#0F6E56;color:#fff;border:none;font-size:18px;cursor:pointer;flex-shrink:0;\'>&#10148;</button>";
+  h += "</div>";
+  document.getElementById("tab-messages").innerHTML = h;
+  loadMessages();
+}
+function switchMsgProp(pid){
+  STATE.msgProp = pid;
+  renderMessages();
+}
+async function loadMessages(){
+  try{
+    var r = await fetch("/messages-list?prop="+STATE.msgProp);
+    var d = await r.json();
+    STATE.messages = d.messages||[];
+  }catch(e){STATE.messages=[];}
+  renderThread();
+}
+function escapeHtmlMsg(s){
+  return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/\"/g,"&quot;");
+}
+function renderThread(){
+  var thread = document.getElementById("msg-thread");
+  if(!thread) return;
+  if(!STATE.messages.length){
+    thread.innerHTML = "<div style=\'text-align:center;color:#aaa;font-size:13px;padding:40px 0;\'>Aucun message pour ce logement.<br>Demarrez la conversation !</div>";
+    return;
+  }
+  var h = "";
+  var lastDate = "";
+  STATE.messages.forEach(function(m){
+    var dt = new Date(m.created_at);
+    var dateStr = dt.toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"});
+    if(dateStr!==lastDate){
+      h += "<div style=\'text-align:center;margin:6px 0;\'><span style=\'font-size:10px;color:#999;background:#fff;padding:2px 10px;border-radius:10px;\'>"+dateStr+"</span></div>";
+      lastDate = dateStr;
+    }
+    var isMe = m.author==="menage";
+    var time = dt.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"});
+    var lbl = isMe ? "Vous" : "Proprietaire";
+    if(isMe){
+      h += "<div style=\'align-self:flex-end;max-width:80%;\'><div style=\'background:#0F6E56;color:#fff;border-radius:14px 4px 14px 14px;padding:9px 13px;font-size:14px;line-height:1.4;word-wrap:break-word;\' onclick=\'confirmDeleteMsg("+m.id+")\'>"+escapeHtmlMsg(m.text)+"</div><div style=\'font-size:10px;color:#aaa;text-align:right;margin-top:3px;margin-right:4px;\'>"+lbl+" &middot; "+time+"</div></div>";
+    } else {
+      h += "<div style=\'align-self:flex-start;max-width:80%;\'><div style=\'background:#fff;border:1px solid #eee;border-radius:4px 14px 14px 14px;padding:9px 13px;font-size:14px;line-height:1.4;word-wrap:break-word;\'>"+escapeHtmlMsg(m.text)+"</div><div style=\'font-size:10px;color:#aaa;margin-top:3px;margin-left:4px;\'>"+lbl+" &middot; "+time+"</div></div>";
+    }
+  });
+  thread.innerHTML = h;
+  thread.scrollTop = thread.scrollHeight;
+}
+async function sendMessage(){
+  var input = document.getElementById("msg-input");
+  var text = input.value.trim();
+  if(!text) return;
+  input.value = "";
+  STATE.messages.push({id:"tmp",prop_id:STATE.msgProp,text:text,author:"menage",created_at:new Date().toISOString()});
+  renderThread();
+  try{
+    await fetch("/message-send",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prop_id:STATE.msgProp,text:text,author:"menage"})});
+    await loadMessages();
+  }catch(e){}
+}
+function confirmDeleteMsg(id){
+  if(id==="tmp")return;
+  if(!confirm("Supprimer ce message ?"))return;
+  deleteMessage(id);
+}
+async function deleteMessage(id){
+  STATE.messages = STATE.messages.filter(function(m){return m.id!==id;});
+  renderThread();
+  try{
+    await fetch("/message-delete",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({id:id})});
+  }catch(e){}
+}
+
 try{
   if(localStorage.getItem("menage_auth")==="1"){
     document.getElementById("login-screen").style.display="none";
