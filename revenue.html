@@ -904,6 +904,7 @@ function render(){
   var nbMois={"month":1,"3m":3,"6m":6,"year":12,"lastyear":12,"all":12}[state.period]||12;
   if(state.pieMois>0){var pm=state.pieMois;range={from:new Date(new Date().getFullYear(),pm-1,1),to:new Date(new Date().getFullYear(),pm,0)};nbMois=1;}
   if(state.calRange){nbMois=Math.max(1,Math.round((state.calRange.to-state.calRange.from)/86400000/30.4));}
+  window._nbMoisGlobal=nbMois;
   var airRevTotal=0,airRev11=0,airRev12=0,monthlyAir={};
   state.reservations.filter(function(r){
     if(r.status==="cancelled")return false;
@@ -953,7 +954,7 @@ function render(){
   var totalChargesP=chargesP+menageP;
   var totalRev=airRevTotal+elneRents+solerRents;
   var cashFlow=totalRev-totalChargesP;
-  var estVal=parseFloat(localStorage.getItem("global_estvalue")||"850000");
+  var estVal=parseFloat(localStorage.getItem("global_estvalue")||"900000");
   var annualRev=nbMois>0?totalRev/nbMois*12:0;
   var yieldPct=estVal>0?Math.round(annualRev/estVal*1000)/10:0;
   var valMin=annualRev>0?Math.round(annualRev/0.065/1000)*1000:0;
@@ -989,7 +990,7 @@ function render(){
   html+="<div class='chart-card' style='margin-bottom:16px;'><div class='chart-title' style='display:flex;justify-content:space-between;align-items:center;'>Portefeuille immobilier <button onclick='addBuilding()' style='font-size:12px;padding:5px 12px;border-radius:8px;border:1.5px solid #0F6E56;background:transparent;color:#0F6E56;cursor:pointer;'>+ Ajouter un bien</button></div><div style='overflow-x:auto;'><table style='width:100%;border-collapse:collapse;font-size:12px;'><tr style='background:#f8f9fa;'><th style='padding:8px;text-align:left;font-weight:500;'>Bien</th><th style='padding:8px;text-align:right;'>Valeur</th><th style='padding:8px;text-align:right;'>Rev. annuels</th><th style='padding:8px;text-align:right;'>Rendement</th><th style='padding:8px;text-align:right;'>Revente estimee</th></tr>";
   html+="<tr style='border-bottom:0.5px solid #eee;'><td style='padding:10px 8px;font-weight:500;'>Immeuble ELNE<div style='font-size:10px;color:#888;'>Elne 66 · 8 lots</div></td><td style='padding:10px 8px;text-align:right;cursor:pointer;' onclick='editEstVal()'>"+Math.round(estVal/1000)+"k€ ✏</td><td style='padding:10px 8px;text-align:right;'>"+fmtC(Math.round(annualRev))+"/an</td><td style='padding:10px 8px;text-align:right;color:#0F6E56;font-weight:500;'>"+yieldPct+"%</td><td style='padding:10px 8px;text-align:right;font-size:11px;'>"+(valMin>0?fmtC(valMin)+" – "+fmtC(valMax):"—")+"</td></tr>";
   // Ligne Le Soler
-  var solerVal=parseFloat(localStorage.getItem('soler_estvalue')||'180000');
+  var solerVal=parseFloat(localStorage.getItem('soler_estvalue')||'430000');
   var solerAnnual=Math.round(solerT.collected/nbMois*12);
   var solerYield=solerVal>0?Math.round(solerAnnual/solerVal*1000)/10:0;
   html+="<tr style='border-bottom:0.5px solid #eee;'><td style='padding:10px 8px;font-weight:500;'>🏘 Immeuble Le Soler<div style='font-size:10px;color:#888;'>Le Soler 66 · 3 lots</div></td><td style='padding:10px 8px;text-align:right;cursor:pointer;' onclick='editSolerVal()'>"+Math.round(solerVal/1000)+"k€ ✏</td><td style='padding:10px 8px;text-align:right;'>"+fmtC(solerAnnual)+"/an</td><td style='padding:10px 8px;text-align:right;color:#0F6E56;font-weight:500;'>"+solerYield+"%</td><td style='padding:10px 8px;text-align:right;font-size:11px;'>"+(solerAnnual>0?fmtC(Math.round(solerAnnual/0.065/1000)*1000)+" – "+fmtC(Math.round(solerAnnual/0.050/1000)*1000):"—")+"</td></tr>";
@@ -999,7 +1000,11 @@ function render(){
   });
   html+="</table></div></div>";
   html+="<div style='display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;'>";
-  html+="<div class='chart-card'><div class='chart-title'>Rendement par bien</div><div style='position:relative;height:120px;'><canvas id='g-yield' role='img' aria-label='Rendement'>ELNE "+yieldPct+"%</canvas></div></div>";
+  var periodeLbl={'month':'ce mois','3m':'3 mois','6m':'6 mois','year':'annee','lastyear':'an dernier','all':'tout'}[state.period]||'annee';
+  if(state.calRange)periodeLbl='periode';
+  if(state.pieMois>0)periodeLbl='mois';
+  html+="<div class='chart-card'><div class='chart-title' style='display:flex;justify-content:space-between;align-items:center;'><span>Rendement par bien</span><span style='font-size:10px;color:#888;font-weight:400;'>annualise · "+nbMois+" mois</span></div><div style='position:relative;height:130px;'><canvas id='g-yield' role='img' aria-label='Rendement par bien'>ELNE "+yieldPct+"%</canvas></div><div style='font-size:10px;color:#999;margin-top:6px;text-align:center;'>Rendement = revenus annualises / valeur estimee</div></div>";
+  html+="<div class='chart-card'><div class='chart-title'>Références marché juin 2026</div><div style='display:grid;gap:6px;font-size:11px;'><div style='display:flex;justify-content:space-between;padding:7px;background:#f8f9fa;border-radius:8px;'><span>Elne — appart.</span><span style='font-weight:500;'>~2 000 €/m²</span></div><div style='display:flex;justify-content:space-between;padding:7px;background:#f8f9fa;border-radius:8px;'><span>Le Soler — appart.</span><span style='font-weight:500;'>~2 400 €/m²</span></div><div style='display:flex;justify-content:space-between;padding:7px;background:#f8f9fa;border-radius:8px;'><span>Local commercial</span><span style='font-weight:500;'>~1 200 €/m²</span></div><div style='font-size:9px;color:#999;padding:2px 7px;'>Source MeilleursAgents / PAP. Vente en bloc : décote 10-15% vs lot-par-lot.</div></div></div>";
   html+="<div class='chart-card'><div class='chart-title'>Valorisation ELNE</div><div style='display:grid;gap:6px;'><div style='display:flex;justify-content:space-between;padding:8px;background:#f8f9fa;border-radius:8px;font-size:12px;'><span>Cap rate 5%</span><span style='font-weight:500;'>"+(annualRev>0?fmtC(Math.round(annualRev/0.05/1000)*1000):"—")+"</span></div><div style='display:flex;justify-content:space-between;padding:8px;background:#f8f9fa;border-radius:8px;font-size:12px;'><span>Cap rate 6,5%</span><span style='font-weight:500;'>"+(annualRev>0?fmtC(Math.round(annualRev/0.065/1000)*1000):"—")+"</span></div><div style='display:flex;justify-content:space-between;padding:8px;background:#E1F5EE;border-radius:8px;font-size:12px;font-weight:500;'><span>Fourchette</span><span style='color:#0F6E56;'>"+(valMin>0?fmtC(valMin)+" – "+fmtC(valMax):"—")+"</span></div></div></div>";
   html+="</div>";
   var arbMsg=cashFlow>0?"Cash flow positif ("+fmtC(cashFlow)+"). Rendement "+yieldPct+"%. "+(yieldPct>7?"Actif performant — conserver et reinvestir.":"Optimiser les tarifs Airbnb pour ameliorer le rendement."):"Cash flow negatif. Analyser les charges pour ameliorer la rentabilite.";
@@ -1024,18 +1029,26 @@ function _drawGC(bL,bA,bB,bR,r11,r12,rnt,yp,ob,proj,curY,soler){
   var cb=_gc("g-bar");
   if(cb)new Chart(cb,{type:"bar",data:{labels:bL,datasets:[{label:"Airbnb",data:bA,backgroundColor:"#FF385C"},{label:"Booking",data:bB,backgroundColor:"#003580"},{label:"Loyers",data:bR,backgroundColor:"#0F6E56"}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{stacked:true,ticks:{autoSkip:false,maxRotation:45}},y:{stacked:true,ticks:{callback:function(v){return v>=1000?Math.round(v/1000)+"k":v;}}}}}});
   var cr=_gc("g-yield");
-  if(cr){var blds=[{n:"ELNE",y:yp}];ob.forEach(function(b){if(b.value>0)blds.push({n:b.name.split(" ")[0],y:Math.round(b.annualRev/b.value*1000)/10});});new Chart(cr,{type:"bar",data:{labels:blds.map(function(b){return b.n;}),datasets:[{data:blds.map(function(b){return b.y;}),backgroundColor:"#0F6E56",borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,indexAxis:"y",plugins:{legend:{display:false}},scales:{x:{ticks:{callback:function(v){return v+"%";}}}}}})}
+  if(cr){
+    var blds=[{n:"ELNE",y:yp}];
+    var solerVal2=parseFloat(localStorage.getItem('soler_estvalue')||'430000');
+    var solerY=solerVal2>0&&typeof soler!=='undefined'?Math.round((soler/(window._nbMoisGlobal||12)*12)/solerVal2*1000)/10:0;
+    if(solerY>0)blds.push({n:"Le Soler",y:solerY});
+    ob.forEach(function(b){if(b.value>0)blds.push({n:b.name.split(" ")[0],y:Math.round(b.annualRev/b.value*1000)/10});});
+    var cols=["#0F6E56","#7C3AED","#3b82f6","#f59e0b","#FF385C"];
+    new Chart(cr,{type:"bar",data:{labels:blds.map(function(b){return b.n;}),datasets:[{data:blds.map(function(b){return b.y;}),backgroundColor:blds.map(function(b,i){return cols[i%cols.length];}),borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,indexAxis:"y",plugins:{legend:{display:false}},scales:{x:{ticks:{callback:function(v){return v+"%";}}}}}});
+  }
   var cpr=_gc("g-proj");
   if(cpr)new Chart(cpr,{type:"line",data:{labels:[curY-1+"",curY+"",(curY+1)+" (proj.)",(curY+2)+" (proj.)"],datasets:[{data:proj,borderColor:"#0F6E56",backgroundColor:"rgba(15,110,86,0.08)",fill:true,tension:0.4,pointRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:function(v){return Math.round(v/1000)+"k€";}}}}}});
 }
 
 function editSolerVal(){
-  var v=prompt("Valeur estimee immeuble Le Soler (euros):",localStorage.getItem("soler_estvalue")||"180000");
+  var v=prompt("Valeur estimee immeuble Le Soler (euros):",localStorage.getItem("soler_estvalue")||"430000");
   if(v===null)return;var n=parseFloat(v);if(isNaN(n)||n<=0)return;
   localStorage.setItem("soler_estvalue",n);render();
 }
 function editEstVal(){
-  var v=prompt("Valeur estimee immeuble ELNE (euros):",localStorage.getItem("global_estvalue")||"850000");
+  var v=prompt("Valeur estimee immeuble ELNE (euros):",localStorage.getItem("global_estvalue")||"900000");
   if(v===null)return;var n=parseFloat(v);if(isNaN(n)||n<=0)return;
   localStorage.setItem("global_estvalue",n);render();
 }
