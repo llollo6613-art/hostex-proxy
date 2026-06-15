@@ -160,6 +160,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <div class="tabs">
     <button class="tab on" onclick="setTab('all')">📊 Global</button>
     <button class="tab" onclick="setTab('elne')">🏢 ELNE</button>
+  <button class="tab" onclick="setTab('soler')">🏘 LE SOLER</button>
   </div>
 </div>
 
@@ -176,20 +177,19 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <button class="pbtn" onclick="setPeriod('year')">Cette année</button>
   <button class="pbtn" onclick="setPeriod('lastyear')">An dernier</button>
   <button class="pbtn" onclick="setPeriod('all')">Tout</button>
-  <div id="mois-btns" style="display:flex;gap:4px;flex-wrap:wrap;">
-    <button class="pbtn" onclick="setPieMois(1)">Jan</button>
-    <button class="pbtn" onclick="setPieMois(2)">Fév</button>
-    <button class="pbtn" onclick="setPieMois(3)">Mar</button>
-    <button class="pbtn" onclick="setPieMois(4)">Avr</button>
-    <button class="pbtn" onclick="setPieMois(5)">Mai</button>
-    <button class="pbtn" onclick="setPieMois(6)">Juin</button>
-    <button class="pbtn" onclick="setPieMois(7)">Juil</button>
-    <button class="pbtn" onclick="setPieMois(8)">Août</button>
-    <button class="pbtn" onclick="setPieMois(9)">Sep</button>
-    <button class="pbtn" onclick="setPieMois(10)">Oct</button>
-    <button class="pbtn" onclick="setPieMois(11)">Nov</button>
-    <button class="pbtn" onclick="setPieMois(12)">Déc</button>
+  <button class="pbtn" id="cal-toggle" onclick="toggleCalPicker()" style="display:flex;align-items:center;gap:5px;">📅 Calendrier<span id="cal-label" style="font-weight:700;"></span></button>
+</div>
+<div id="cal-picker" style="display:none;background:#fff;border-bottom:1px solid var(--border);padding:14px 16px;">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;max-width:560px;margin-left:auto;margin-right:auto;">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <button onclick="calYearDelta(-1)" style="width:32px;height:32px;border-radius:50%;border:1.5px solid #ddd;background:#fff;cursor:pointer;font-size:15px;">‹</button>
+      <span id="cal-year-lbl" style="font-size:16px;font-weight:700;"></span>
+      <button onclick="calYearDelta(1)" style="width:32px;height:32px;border-radius:50%;border:1.5px solid #ddd;background:#fff;cursor:pointer;font-size:15px;">›</button>
+    </div>
+    <span id="cal-range-lbl" style="font-size:12px;color:#085041;background:#E1F5EE;padding:5px 12px;border-radius:20px;font-weight:600;"></span>
   </div>
+  <div id="cal-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;max-width:560px;margin:0 auto;"></div>
+  <div style="text-align:center;margin-top:10px;font-size:11px;color:#888;">1er tap = début · 2e tap = fin de la plage · tap sur le mois sélectionné = annuler</div>
 </div>
 
 <div class="main" id="main">
@@ -197,6 +197,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 </div>
 
 <script>
+function getNet(r){
+  var n=parseFloat(r.net_amount)||0;
+  if(n>0) return n;
+  var g=parseFloat(r.total_price)||0;
+  if(!g) return 0;
+  var ia=(r.channel_type||'').toLowerCase().includes('airbnb');
+  return ia ? g*(1-0.0488) : g*(1-0.164);
+}
 var PROPS = {"12619011":{name:"Suite Illiberis",clean:25}, "12619012":{name:"Loft Cinema",clean:45}};
 var MONTHS = ["Jan","Fév","Mar","Avr","Mai","Juin","Juil","Août","Sep","Oct","Nov","Déc"];
 var state = {tab:"all", period:"month", reservations:[]};
@@ -424,7 +432,7 @@ function renderElne(){
     var propA=String(r.property_id);
     var keyA=propA+'_'+moA;
     if(!airMonths[keyA])airMonths[keyA]=0;
-    airMonths[keyA]+=(parseFloat(r.total_price)||0);
+    airMonths[keyA]+=getNet(r);
   });
   // airTotal filtré par période pour les KPIs
   var airTotal=0;
@@ -432,7 +440,7 @@ function renderElne(){
     if(r.status==='cancelled')return;
     var ci=new Date((r.check_in_date||r.check_in||'')+'T00:00:00');
     if(ci<range.from||ci>range.to)return;
-    airTotal+=(parseFloat(r.total_price)||0);
+    airTotal+=getNet(r);
   });
 
   // Calcul récapitulatif
@@ -723,12 +731,16 @@ async function init(){
 function setTab(t){
   state.tab = t;
   document.querySelectorAll('.tab').forEach(function(b,i){
-    b.classList.toggle('on', ['all','elne'][i]===t);
+    b.classList.toggle('on', ['all','elne','soler'][i]===t);
   });
+  if(CAL.open) renderCalPicker();
   var subbar = document.getElementById('subbar');
   if(t==='elne'){
     subbar.style.display='flex';
     renderElne();
+  } else if(t==='soler'){
+    subbar.style.display='none';
+    renderSoler();
   } else {
     subbar.style.display='none';
     render();
@@ -807,14 +819,19 @@ function renderProp(propId){
 function setPeriod(p){
   state.period = p;
   state.pieMois=0;
+  state.calRange=null;
+  CAL.start=0;CAL.end=0;
+  var cl=document.getElementById('cal-label');if(cl)cl.textContent='';
+  var ct=document.getElementById('cal-toggle');if(ct)ct.classList.remove('on');
   document.querySelectorAll('#mois-btns .pbtn').forEach(function(b){b.classList.remove('on');});
   document.querySelectorAll('.pbtn').forEach(function(b){
     b.classList.toggle('on', b.getAttribute('onclick').includes("'"+p+"'"));
   });
-  if(state.tab==='elne'){if(state.subtab==='suite')renderProp('12619011');else if(state.subtab==='loft')renderProp('12619012');else renderElne();}else render();
+  if(state.tab==='elne'){if(state.subtab==='suite')renderProp('12619011');else if(state.subtab==='loft')renderProp('12619012');else if(state.subtab==='factures')renderFacturesPage();else renderElne();}else if(state.tab==='soler'){renderSoler();}else render();
 }
 
 function getDateRange(){
+  if(state.calRange) return state.calRange;
   var now = new Date();
   var y = now.getFullYear(), m = now.getMonth();
   if(state.period==='month') return {from:new Date(y,m,1), to:new Date(y,m+1,0)};
@@ -880,19 +897,21 @@ function setPieMois(mo){
     b.classList.toggle('on', i+1===state.pieMois);
   });
   document.querySelectorAll('.pbtn:not(#mois-btns .pbtn)').forEach(function(b){b.classList.remove('on');});
-  if(state.tab==='elne'){renderElne();}else{render();}
+  if(state.tab==='elne'){renderElne();}else if(state.tab==='soler'){renderSoler();}else{render();}
 }
 function render(){
   var range=getDateRange();
   var nbMois={"month":1,"3m":3,"6m":6,"year":12,"lastyear":12,"all":12}[state.period]||12;
   if(state.pieMois>0){var pm=state.pieMois;range={from:new Date(new Date().getFullYear(),pm-1,1),to:new Date(new Date().getFullYear(),pm,0)};nbMois=1;}
+  if(state.calRange){nbMois=Math.max(1,Math.round((state.calRange.to-state.calRange.from)/86400000/30.4));}
+  window._nbMoisGlobal=nbMois;
   var airRevTotal=0,airRev11=0,airRev12=0,monthlyAir={};
   state.reservations.filter(function(r){
     if(r.status==="cancelled")return false;
     var ci=new Date((r.check_in_date||r.check_in||"")+"T00:00:00");
     return ci>=range.from&&ci<=range.to;
   }).forEach(function(r){
-    var g=parseFloat(r.total_price)||0;
+    var g=getNet(r);
     var ia=(r.channel_type||"").toLowerCase().includes("airbnb");
     airRevTotal+=g;
     if(String(r.property_id)==="12619011")airRev11+=g;
@@ -925,18 +944,41 @@ function render(){
       }
     }
   });
-  var totalChargesM=ELNE_CHARGES.reduce(function(s,c){return s+(c.monthly?c.val:0);},0);
+  // Le Soler
+  var solerT=getSolerTotals(range);
+  var solerRents=solerT.collected;
+  var totalChargesM=ELNE_CHARGES.reduce(function(s,c){return s+(c.monthly?c.val:0);},0)+solerT.chargesMonthly;
   var chargesP=totalChargesM*nbMois;
   var menageP=0;
   for(var mo=1;mo<=12;mo++){var mDate=new Date(ELNE_YEAR,mo-1,1);if(mDate>=range.from&&mDate<=range.to)menageP+=getMenage(mo);}
   var totalChargesP=chargesP+menageP;
-  var totalRev=airRevTotal+elneRents;
+  var totalRev=airRevTotal+elneRents+solerRents;
   var cashFlow=totalRev-totalChargesP;
-  var estVal=parseFloat(localStorage.getItem("global_estvalue")||"850000");
   var annualRev=nbMois>0?totalRev/nbMois*12:0;
-  var yieldPct=estVal>0?Math.round(annualRev/estVal*1000)/10:0;
-  var valMin=annualRev>0?Math.round(annualRev/0.065/1000)*1000:0;
-  var valMax=annualRev>0?Math.round(annualRev/0.050/1000)*1000:0;
+  // Potentiel locatif annuel THEORIQUE ELNE (stable, independant periode)
+  loadCustomData();
+  var elnePotentiel=0;
+  ELNE_APTS.forEach(function(apt){
+    var rk='elne_rent_'+ELNE_YEAR+'_'+apt.id;
+    var cr=localStorage.getItem(rk);
+    elnePotentiel+=(cr?parseFloat(cr):apt.rent)*12;
+  });
+  var airAnnuelNet=0;
+  state.reservations.forEach(function(r){
+    if(r.status==='cancelled')return;
+    var ci=new Date((r.check_in_date||r.check_in||'')+'T00:00:00');
+    if(ci.getFullYear()!==ELNE_YEAR)return;
+    airAnnuelNet+=getNet(r);
+  });
+  var elneRevAnnuel=elnePotentiel+airAnnuelNet;
+  // Valorisation combinee : prix au m2 (500m2 x 1900 EUR, decote 20% bloc) + capitalisation revenus
+  var elneValM2=500*1900*0.80;
+  var elneValCapHaut=elneRevAnnuel>0?elneRevAnnuel/0.07:0;
+  var elneValCapBas=elneRevAnnuel>0?elneRevAnnuel/0.085:0;
+  var valMax=Math.round(((elneValM2+elneValCapHaut)/2)/1000)*1000;
+  var valMin=Math.round(((elneValM2*0.85+elneValCapBas)/2)/1000)*1000;
+  var estVal=parseFloat(localStorage.getItem("global_estvalue")||String(valMax||"881000"));
+  var yieldPct=estVal>0?Math.round(elneRevAnnuel/estVal*1000)/10:0;
   var allMonths={};
   for(var k in monthlyAir){if(!allMonths[k])allMonths[k]={air:0,bk:0,rent:0};allMonths[k].air=monthlyAir[k].air;allMonths[k].bk=monthlyAir[k].bk;}
   for(var k in monthlyRents){if(!allMonths[k])allMonths[k]={air:0,bk:0,rent:0};allMonths[k].rent=monthlyRents[k];}
@@ -962,19 +1004,41 @@ function render(){
   html+="</div>";
   html+="<div style='display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;'>";
 
-  html+="<div class='chart-card'><div class='chart-title'>Repartition revenus</div><div style='display:flex;justify-content:center;'><div style='position:relative;height:160px;width:160px;'><canvas id='g-pie' role='img' aria-label='Repartition revenus'>Suite Loft Loyers</canvas></div></div><div class='chart-legend' style='justify-content:center;margin-top:8px;'><div class='leg-item'><div class='leg-dot' style='background:#FF385C;'></div>Suite "+fmtC(Math.round(airRev11))+"</div><div class='leg-item'><div class='leg-dot' style='background:#003580;'></div>Loft "+fmtC(Math.round(airRev12))+"</div><div class='leg-item'><div class='leg-dot' style='background:#0F6E56;'></div>Loyers "+fmtC(Math.round(elneExpected))+"</div></div></div>";
+  html+="<div class='chart-card'><div class='chart-title'>Repartition revenus</div><div style='display:flex;justify-content:center;'><div style='position:relative;height:160px;width:160px;'><canvas id='g-pie' role='img' aria-label='Repartition revenus'>Suite Loft Loyers</canvas></div></div><div class='chart-legend' style='justify-content:center;margin-top:8px;'><div class='leg-item'><div class='leg-dot' style='background:#FF385C;'></div>Suite "+fmtC(Math.round(airRev11))+"</div><div class='leg-item'><div class='leg-dot' style='background:#003580;'></div>Loft "+fmtC(Math.round(airRev12))+"</div><div class='leg-item'><div class='leg-dot' style='background:#0F6E56;'></div>Loyers ELNE "+fmtC(Math.round(elneExpected))+"</div><div class='leg-item'><div class='leg-dot' style='background:#7C3AED;'></div>Le Soler "+fmtC(Math.round(solerRents))+"</div></div></div>";
   html+="<div class='chart-card'><div class='chart-title'>Revenus mensuels</div><div style='position:relative;height:200px;'><canvas id='g-bar' role='img' aria-label='Revenus mensuels'>Revenus</canvas></div><div class='chart-legend' style='margin-top:6px;'><div class='leg-item'><div class='leg-dot' style='background:#FF385C;'></div>Airbnb</div><div class='leg-item'><div class='leg-dot' style='background:#003580;'></div>Booking</div><div class='leg-item'><div class='leg-dot' style='background:#0F6E56;'></div>Loyers</div></div></div>";
   html+="</div>";
   html+="<div class='chart-card' style='margin-bottom:16px;'><div class='chart-title' style='display:flex;justify-content:space-between;align-items:center;'>Portefeuille immobilier <button onclick='addBuilding()' style='font-size:12px;padding:5px 12px;border-radius:8px;border:1.5px solid #0F6E56;background:transparent;color:#0F6E56;cursor:pointer;'>+ Ajouter un bien</button></div><div style='overflow-x:auto;'><table style='width:100%;border-collapse:collapse;font-size:12px;'><tr style='background:#f8f9fa;'><th style='padding:8px;text-align:left;font-weight:500;'>Bien</th><th style='padding:8px;text-align:right;'>Valeur</th><th style='padding:8px;text-align:right;'>Rev. annuels</th><th style='padding:8px;text-align:right;'>Rendement</th><th style='padding:8px;text-align:right;'>Revente estimee</th></tr>";
   html+="<tr style='border-bottom:0.5px solid #eee;'><td style='padding:10px 8px;font-weight:500;'>Immeuble ELNE<div style='font-size:10px;color:#888;'>Elne 66 · 8 lots</div></td><td style='padding:10px 8px;text-align:right;cursor:pointer;' onclick='editEstVal()'>"+Math.round(estVal/1000)+"k€ ✏</td><td style='padding:10px 8px;text-align:right;'>"+fmtC(Math.round(annualRev))+"/an</td><td style='padding:10px 8px;text-align:right;color:#0F6E56;font-weight:500;'>"+yieldPct+"%</td><td style='padding:10px 8px;text-align:right;font-size:11px;'>"+(valMin>0?fmtC(valMin)+" – "+fmtC(valMax):"—")+"</td></tr>";
+  // Ligne Le Soler
+  // Le Soler : potentiel locatif annuel theorique stable
+  loadSolerCustom();
+  var solerPotentiel=0;
+  SOLER_APTS.forEach(function(apt){
+    var srk='soler_rent_'+SOLER_YEAR+'_'+apt.id;
+    var scr=localStorage.getItem(srk);
+    solerPotentiel+=(scr?parseFloat(scr):apt.rent)*12;
+  });
+  var solerValM2=(155*2400+70*1200)*0.80;
+  var solerValCapHaut=solerPotentiel>0?solerPotentiel/0.07:0;
+  var solerValCapBas=solerPotentiel>0?solerPotentiel/0.085:0;
+  var solerReventeMax=Math.round(((solerValM2+solerValCapHaut)/2)/1000)*1000;
+  var solerReventeMin=Math.round(((solerValM2*0.85+solerValCapBas)/2)/1000)*1000;
+  var solerVal=parseFloat(localStorage.getItem('soler_estvalue')||String(solerReventeMax||'309000'));
+  var solerAnnual=solerPotentiel;
+  var solerYield=solerVal>0?Math.round(solerAnnual/solerVal*1000)/10:0;
+  html+="<tr style='border-bottom:0.5px solid #eee;'><td style='padding:10px 8px;font-weight:500;'>🏘 Immeuble Le Soler<div style='font-size:10px;color:#888;'>Le Soler 66 · 3 lots</div></td><td style='padding:10px 8px;text-align:right;cursor:pointer;' onclick='editSolerVal()'>"+Math.round(solerVal/1000)+"k€ ✏</td><td style='padding:10px 8px;text-align:right;'>"+fmtC(solerAnnual)+"/an</td><td style='padding:10px 8px;text-align:right;color:#0F6E56;font-weight:500;'>"+solerYield+"%</td><td style='padding:10px 8px;text-align:right;font-size:11px;'>"+(solerReventeMin>0?fmtC(solerReventeMin)+" – "+fmtC(solerReventeMax):"—")+"</td></tr>";
   ob.forEach(function(b){
     var by=b.value>0?Math.round(b.annualRev/b.value*1000)/10:0;
-    html+="<tr style='border-bottom:0.5px solid #eee;'><td style='padding:10px 8px;font-weight:500;'>"+b.name+"<div style='font-size:10px;color:#888;'>"+b.location+"</div></td><td style='padding:10px 8px;text-align:right;'>"+Math.round(b.value/1000)+"k€</td><td style='padding:10px 8px;text-align:right;'>"+fmtC(b.annualRev)+"/an</td><td style='padding:10px 8px;text-align:right;color:#0F6E56;font-weight:500;'>"+by+"%</td><td style='padding:10px 8px;text-align:right;font-size:11px;'>"+(b.annualRev>0?fmtC(Math.round(b.annualRev/0.065/1000)*1000)+" – "+fmtC(Math.round(b.annualRev/0.050/1000)*1000):"—")+"</td></tr>";
+    html+="<tr style='border-bottom:0.5px solid #eee;'><td style='padding:10px 8px;font-weight:500;'>"+b.name+"<div style='font-size:10px;color:#888;'>"+b.location+"</div></td><td style='padding:10px 8px;text-align:right;'>"+Math.round(b.value/1000)+"k€</td><td style='padding:10px 8px;text-align:right;'>"+fmtC(b.annualRev)+"/an</td><td style='padding:10px 8px;text-align:right;color:#0F6E56;font-weight:500;'>"+by+"%</td><td style='padding:10px 8px;text-align:right;font-size:11px;'>"+(b.annualRev>0?fmtC(Math.round(b.annualRev/0.08/1000)*1000)+" – "+fmtC(Math.round(b.annualRev/0.06/1000)*1000):"—")+"</td></tr>";
   });
   html+="</table></div></div>";
   html+="<div style='display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;'>";
-  html+="<div class='chart-card'><div class='chart-title'>Rendement par bien</div><div style='position:relative;height:120px;'><canvas id='g-yield' role='img' aria-label='Rendement'>ELNE "+yieldPct+"%</canvas></div></div>";
-  html+="<div class='chart-card'><div class='chart-title'>Valorisation ELNE</div><div style='display:grid;gap:6px;'><div style='display:flex;justify-content:space-between;padding:8px;background:#f8f9fa;border-radius:8px;font-size:12px;'><span>Cap rate 5%</span><span style='font-weight:500;'>"+(annualRev>0?fmtC(Math.round(annualRev/0.05/1000)*1000):"—")+"</span></div><div style='display:flex;justify-content:space-between;padding:8px;background:#f8f9fa;border-radius:8px;font-size:12px;'><span>Cap rate 6,5%</span><span style='font-weight:500;'>"+(annualRev>0?fmtC(Math.round(annualRev/0.065/1000)*1000):"—")+"</span></div><div style='display:flex;justify-content:space-between;padding:8px;background:#E1F5EE;border-radius:8px;font-size:12px;font-weight:500;'><span>Fourchette</span><span style='color:#0F6E56;'>"+(valMin>0?fmtC(valMin)+" – "+fmtC(valMax):"—")+"</span></div></div></div>";
+  var periodeLbl={'month':'ce mois','3m':'3 mois','6m':'6 mois','year':'annee','lastyear':'an dernier','all':'tout'}[state.period]||'annee';
+  if(state.calRange)periodeLbl='periode';
+  if(state.pieMois>0)periodeLbl='mois';
+  html+="<div class='chart-card'><div class='chart-title' style='display:flex;justify-content:space-between;align-items:center;'><span>Rendement par bien</span><span style='font-size:10px;color:#888;font-weight:400;'>annualise · "+nbMois+" mois</span></div><div style='position:relative;height:130px;'><canvas id='g-yield' role='img' aria-label='Rendement par bien'>ELNE "+yieldPct+"%</canvas></div><div style='font-size:10px;color:#999;margin-top:6px;text-align:center;'>Rendement = revenus annualises / valeur estimee</div></div>";
+  html+="<div class='chart-card'><div class='chart-title'>Références marché juin 2026</div><div style='display:grid;gap:6px;font-size:11px;'><div style='display:flex;justify-content:space-between;padding:7px;background:#f8f9fa;border-radius:8px;'><span>Elne — appart.</span><span style='font-weight:500;'>~2 000 €/m²</span></div><div style='display:flex;justify-content:space-between;padding:7px;background:#f8f9fa;border-radius:8px;'><span>Le Soler — appart.</span><span style='font-weight:500;'>~2 400 €/m²</span></div><div style='display:flex;justify-content:space-between;padding:7px;background:#f8f9fa;border-radius:8px;'><span>Local commercial</span><span style='font-weight:500;'>~1 200 €/m²</span></div><div style='font-size:9px;color:#999;padding:2px 7px;'>Source MeilleursAgents / PAP. Immeuble de rapport valorise au rendement (cap rate 6-8%), valeur inferieure au lot-par-lot.</div></div></div>";
+  html+="<div class='chart-card'><div class='chart-title'>Valorisation ELNE</div><div style='display:grid;gap:6px;'><div style='display:flex;justify-content:space-between;padding:8px;background:#f0faf6;border-radius:8px;font-size:12px;'><span>Revenus annuels (loyers+Airbnb)</span><span style='font-weight:500;'>"+fmtC(elneRevAnnuel)+"</span></div><div style='display:flex;justify-content:space-between;padding:8px;background:#f8f9fa;border-radius:8px;font-size:12px;'><span>Approche revenus (cap 7-8,5%)</span><span style='font-weight:500;'>"+(elneValCapBas>0?fmtC(Math.round(elneValCapBas/1000)*1000)+" – "+fmtC(Math.round(elneValCapHaut/1000)*1000):"—")+"</span></div><div style='display:flex;justify-content:space-between;padding:8px;background:#f8f9fa;border-radius:8px;font-size:12px;'><span>Approche prix/m2 (500m2 bloc)</span><span style='font-weight:500;'>"+fmtC(Math.round(elneValM2/1000)*1000)+"</span></div><div style='display:flex;justify-content:space-between;padding:8px;background:#E1F5EE;border-radius:8px;font-size:12px;font-weight:500;'><span>Estimation revente</span><span style='color:#0F6E56;'>"+(valMin>0?fmtC(valMin)+" – "+fmtC(valMax):"—")+"</span></div></div></div>";
   html+="</div>";
   var arbMsg=cashFlow>0?"Cash flow positif ("+fmtC(cashFlow)+"). Rendement "+yieldPct+"%. "+(yieldPct>7?"Actif performant — conserver et reinvestir.":"Optimiser les tarifs Airbnb pour ameliorer le rendement."):"Cash flow negatif. Analyser les charges pour ameliorer la rentabilite.";
   html+="<div style='display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;'>";
@@ -987,24 +1051,37 @@ function render(){
   });
   html+="</div></div>";
   document.getElementById("main").innerHTML=html;
-  if(window.Chart){_drawGC(bLbls,bAir,bBk,bRnt,airRev11,airRev12,elneExpected,yieldPct,ob,proj,curY);}
-  else{var sc=document.createElement("script");sc.src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js";sc.onload=function(){_drawGC(bLbls,bAir,bBk,bRnt,airRev11,airRev12,elneExpected,yieldPct,ob,proj,curY);};document.head.appendChild(sc);}
+  if(window.Chart){_drawGC(bLbls,bAir,bBk,bRnt,airRev11,airRev12,elneExpected,yieldPct,ob,proj,curY,solerRents);}
+  else{var sc=document.createElement("script");sc.src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js";sc.onload=function(){_drawGC(bLbls,bAir,bBk,bRnt,airRev11,airRev12,elneExpected,yieldPct,ob,proj,curY,solerRents);};document.head.appendChild(sc);}
 }
 
 function _gc(id){var el=document.getElementById(id);if(!el)return null;var ex=Chart.getChart(el);if(ex)ex.destroy();return el;}
-function _drawGC(bL,bA,bB,bR,r11,r12,rnt,yp,ob,proj,curY){
+function _drawGC(bL,bA,bB,bR,r11,r12,rnt,yp,ob,proj,curY,soler){
   var cp=_gc("g-pie");
-  if(cp)new Chart(cp,{type:"doughnut",data:{labels:["Suite","Loft","Loyers"],datasets:[{data:[Math.round(r11),Math.round(r12),Math.round(rnt)],backgroundColor:["#FF385C","#003580","#0F6E56"],borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}}});
+  if(cp)new Chart(cp,{type:"doughnut",data:{labels:["Suite","Loft","Loyers ELNE","Le Soler"],datasets:[{data:[Math.round(r11),Math.round(r12),Math.round(rnt),Math.round(soler||0)],backgroundColor:["#FF385C","#003580","#0F6E56","#7C3AED"],borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}}});
   var cb=_gc("g-bar");
   if(cb)new Chart(cb,{type:"bar",data:{labels:bL,datasets:[{label:"Airbnb",data:bA,backgroundColor:"#FF385C"},{label:"Booking",data:bB,backgroundColor:"#003580"},{label:"Loyers",data:bR,backgroundColor:"#0F6E56"}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{stacked:true,ticks:{autoSkip:false,maxRotation:45}},y:{stacked:true,ticks:{callback:function(v){return v>=1000?Math.round(v/1000)+"k":v;}}}}}});
   var cr=_gc("g-yield");
-  if(cr){var blds=[{n:"ELNE",y:yp}];ob.forEach(function(b){if(b.value>0)blds.push({n:b.name.split(" ")[0],y:Math.round(b.annualRev/b.value*1000)/10});});new Chart(cr,{type:"bar",data:{labels:blds.map(function(b){return b.n;}),datasets:[{data:blds.map(function(b){return b.y;}),backgroundColor:"#0F6E56",borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,indexAxis:"y",plugins:{legend:{display:false}},scales:{x:{ticks:{callback:function(v){return v+"%";}}}}}})}
+  if(cr){
+    var blds=[{n:"ELNE",y:yp}];
+    var solerVal2=parseFloat(localStorage.getItem('soler_estvalue')||'340000');
+    var solerY=solerVal2>0&&typeof soler!=='undefined'?Math.round((soler/(window._nbMoisGlobal||12)*12)/solerVal2*1000)/10:0;
+    if(solerY>0)blds.push({n:"Le Soler",y:solerY});
+    ob.forEach(function(b){if(b.value>0)blds.push({n:b.name.split(" ")[0],y:Math.round(b.annualRev/b.value*1000)/10});});
+    var cols=["#0F6E56","#7C3AED","#3b82f6","#f59e0b","#FF385C"];
+    new Chart(cr,{type:"bar",data:{labels:blds.map(function(b){return b.n;}),datasets:[{data:blds.map(function(b){return b.y;}),backgroundColor:blds.map(function(b,i){return cols[i%cols.length];}),borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,indexAxis:"y",plugins:{legend:{display:false}},scales:{x:{ticks:{callback:function(v){return v+"%";}}}}}});
+  }
   var cpr=_gc("g-proj");
   if(cpr)new Chart(cpr,{type:"line",data:{labels:[curY-1+"",curY+"",(curY+1)+" (proj.)",(curY+2)+" (proj.)"],datasets:[{data:proj,borderColor:"#0F6E56",backgroundColor:"rgba(15,110,86,0.08)",fill:true,tension:0.4,pointRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:function(v){return Math.round(v/1000)+"k€";}}}}}});
 }
 
+function editSolerVal(){
+  var v=prompt("Valeur estimee immeuble Le Soler (euros):",localStorage.getItem("soler_estvalue")||"430000");
+  if(v===null)return;var n=parseFloat(v);if(isNaN(n)||n<=0)return;
+  localStorage.setItem("soler_estvalue",n);render();
+}
 function editEstVal(){
-  var v=prompt("Valeur estimee immeuble ELNE (euros):",localStorage.getItem("global_estvalue")||"850000");
+  var v=prompt("Valeur estimee immeuble ELNE (euros):",localStorage.getItem("global_estvalue")||"720000");
   if(v===null)return;var n=parseFloat(v);if(isNaN(n)||n<=0)return;
   localStorage.setItem("global_estvalue",n);render();
 }
@@ -1044,7 +1121,7 @@ function generateBilan(){
     if(r.status==='cancelled')return;
     var ci=new Date((r.check_in_date||r.check_in||'')+'T00:00:00');
     if(ci.getFullYear()!==year)return;
-    var mo=ci.getMonth()+1,g=parseFloat(r.total_price)||0,prop=String(r.property_id);
+    var mo=ci.getMonth()+1,g=getNet(r),prop=String(r.property_id);
     if(!mo_air[prop])mo_air[prop]={};
     mo_air[prop][mo]=(mo_air[prop][mo]||0)+g;
     if(prop==='12619011')airSuiteT+=g;if(prop==='12619012')airLoftT+=g;
@@ -1052,7 +1129,14 @@ function generateBilan(){
   var totalAir=airSuiteT+airLoftT;
   var totalChgAnnuel=ELNE_CHARGES.reduce(function(s,c){return s+(c.monthly?c.val*12:0);},0);
   var totalMenage=0;for(var mo=1;mo<=12;mo++)totalMenage+=getMenage(mo);
-  var totalChg=totalChgAnnuel+totalMenage;
+  var factDed=0,factAmort=0,factTotaux={};
+  getFactures().forEach(function(f){
+    if(!f.date||f.date.slice(0,4)!==year+'')return;
+    var ded=FACTURES_DED[f.cat]!==false;
+    factTotaux[f.cat]=(factTotaux[f.cat]||0)+f.montant;
+    if(ded)factDed+=f.montant;else factAmort+=f.montant;
+  });
+  var totalChg=totalChgAnnuel+totalMenage+factDed;
   var totalRev=totalLoyersEncaisses+totalAir;
   var resNet=totalRev-totalChg;
   var estVal=parseFloat(localStorage.getItem('global_estvalue')||'850000');
@@ -1108,7 +1192,10 @@ function generateBilan(){
   h+='<div><table><tr><th>Poste</th><th class="r">Mensuel</th><th class="r">Annuel</th></tr>';
   ELNE_CHARGES.forEach(function(c){h+='<tr><td>'+c.label+'</td><td class="r">'+fc(c.val)+'</td><td class="r neg">'+fc(c.val*12)+'</td></tr>';});
   h+='<tr><td>Ménage Airbnb</td><td class="r">variable</td><td class="r neg">'+fc(totalMenage)+'</td></tr>';
-  h+='<tr class="tr"><td><b>TOTAL CHARGES</b></td><td></td><td class="r"><b>'+fc(totalChg)+'</b></td></tr></table></div>';
+  if(factDed>0)h+='<tr style="background:#E1F5EE;"><td><b>Factures deductibles ('+year+')</b></td><td class="r">variable</td><td class="r neg"><b>'+fc(factDed)+'</b></td></tr>';
+  h+='<tr class="tr"><td><b>TOTAL CHARGES</b></td><td></td><td class="r"><b>'+fc(totalChg)+'</b></td></tr></table>';
+  if(Object.keys(factTotaux).length>0){h+='<table style="margin-top:8px;"><tr><th colspan="3">DETAIL FACTURES '+year+'</th></tr>';Object.keys(factTotaux).sort(function(a,b){return factTotaux[b]-factTotaux[a];}).forEach(function(c){var ded=FACTURES_DED[c]!==false;h+='<tr><td>'+c+'</td><td><span style="font-size:9px;padding:2px 6px;border-radius:8px;background:'+(ded?'#D1FAE5':'#FEF3C7')+';color:'+(ded?'#065F46':'#92400E')+'">'+(ded?'Ded.':'Amort.')+'</span></td><td class="r neg">'+fc(factTotaux[c])+'</td></tr>';});h+='</table>';}
+  h+='</div>';
   h+='<div><div class="box box-g"><div style="font-size:10px;color:#0F6E56;font-weight:600;margin-bottom:6px;">RÉSULTAT NET</div><div style="font-size:24px;font-weight:700;color:'+(resNet>=0?'#0F6E56':'#DC2626')+';">'+(resNet>=0?'+':'')+fc(resNet)+'</div><div style="font-size:9px;color:#888;margin-top:4px;">Revenus '+fc(totalRev)+' — Charges '+fc(totalChg)+'</div></div></div>';
   h+='</div>';
 
@@ -1227,6 +1314,429 @@ function showAddFacture(){var ov=document.createElement('div');ov.id='edit-apt-m
 function renderFactures(){var facts=getFactures();var yEl=document.getElementById('fact-year');var cEl=document.getElementById('fact-cat');var year=yEl?parseInt(yEl.value)||0:0;var cat=cEl?cEl.value:'';var filtered=facts.filter(function(f){if(year&&(!f.date||f.date.slice(0,4)!=year+''))return false;if(cat&&f.cat!==cat)return false;return true;});var totaux={};filtered.forEach(function(f){totaux[f.cat]=(totaux[f.cat]||0)+f.montant;});var grandTotal=filtered.reduce(function(s,f){return s+f.montant;},0);var dedTotal=filtered.filter(function(f){return FACTURES_DED[f.cat]!==false;}).reduce(function(s,f){return s+f.montant;},0);var amtTotal=grandTotal-dedTotal;function fc(n){return Math.round(n).toLocaleString('fr-FR')+'e';}var html='';html+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:14px;"><div class="kpi-g"><div class="kg-l">Total</div><div class="kg-v">'+fc(grandTotal)+'</div><div class="kg-s">'+filtered.length+' factures</div></div><div class="kpi-g" style="background:#E1F5EE;"><div class="kg-l">Deductibles IS</div><div class="kg-v" style="color:#0F6E56;">'+fc(dedTotal)+'</div><div class="kg-s">charges imm.</div></div><div class="kpi-g" style="background:#FEF3C7;"><div class="kg-l">Amortissables</div><div class="kg-v" style="color:#D97706;">'+fc(amtTotal)+'</div><div class="kg-s">immobilisations</div></div></div>';html+='<div class="elne-wrap" style="margin-bottom:12px;"><div class="section-title">Par categorie</div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:6px;padding:10px;">';Object.keys(totaux).sort(function(a,b){return totaux[b]-totaux[a];}).forEach(function(c){var ded=FACTURES_DED[c]!==false;html+='<div style="background:'+(ded?'#f0faf6':'#fffbeb')+';border-radius:8px;padding:8px;border-left:3px solid '+(ded?'#0F6E56':'#D97706')+';"><div style="font-size:10px;color:#888;">'+c+'</div><div style="font-size:15px;font-weight:600;">'+fc(totaux[c])+'</div><div style="font-size:9px;color:'+(ded?'#0F6E56':'#D97706')+'">'+(ded?'Deductible':'Amortissable')+'</div></div>';});html+='</div></div>';html+='<div class="elne-wrap"><div class="section-title" style="display:flex;justify-content:space-between;align-items:center;">Detail <span style="font-size:11px;font-weight:400;color:#888;">'+filtered.length+'/'+facts.length+'</span></div><div style="overflow-x:auto;"><table class="elne-table"><tr><th>Date</th><th>Description</th><th>Categorie</th><th style="text-align:right;">Montant</th><th>IS</th></tr>';filtered.slice().sort(function(a,b){return (b.date||'').localeCompare(a.date||'');}).forEach(function(f){var ded=FACTURES_DED[f.cat]!==false;html+='<tr><td style="font-size:11px;white-space:nowrap;">'+(f.date||'')+'</td><td style="font-size:11px;">'+(f.desc||'')+'</td><td style="font-size:11px;">'+f.cat+'</td><td style="text-align:right;font-weight:600;font-size:11px;">'+f.montant.toLocaleString('fr-FR')+'e</td><td><span style="font-size:9px;padding:2px 6px;border-radius:8px;background:'+(ded?'#D1FAE5':'#FEF3C7')+';color:'+(ded?'#065F46':'#92400E')+'">'+(ded?'Ded.':'Amort.')+'</span></td></tr>';});html+='</table></div></div>';var tgt=document.getElementById('facts-content')||document.getElementById('main');if(tgt)tgt.innerHTML=html;}
 function renderFacturesPage(){var years=[2023,2024,2025,2026];var html='<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:14px;"><div style="display:flex;gap:8px;flex-wrap:wrap;"><select id="fact-year" onchange="renderFactures()" style="padding:7px 10px;border-radius:8px;border:1.5px solid #ddd;font-size:13px;"><option value="">Toutes annees</option>';years.forEach(function(y){html+='<option value="'+y+'">'+y+'</option>';});html+='</select><select id="fact-cat" onchange="renderFactures()" style="padding:7px 10px;border-radius:8px;border:1.5px solid #ddd;font-size:13px;"><option value="">Toutes categories</option>';FACTURES_CATS.forEach(function(c){html+='<option>'+c+'</option>';});html+='</select></div><button onclick="showAddFacture()" style="padding:8px 16px;background:#0F6E56;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;">+ Ajouter</button></div><div id="facts-content"></div>';document.getElementById('main').innerHTML=html;renderFactures();}
 // ===== FIN MODULE FACTURES =====
+
+
+// ===== MODULE LE SOLER =====
+var SOLER_YEAR = new Date().getFullYear();
+var SOLER_APTS = [
+  {id:1, name:"Pressing", tenant:"PRESSING", rent:230.09, startMonth:1, email:"", caution:""},
+  {id:2, name:"Appartement 1", tenant:"APPARTEMENT 1", rent:700, startMonth:1, email:"", caution:""},
+  {id:3, name:"Appartement 2", tenant:"APPARTEMENT 2", rent:550, startMonth:1, email:"", caution:""}
+];
+var SOLER_CHARGES = [
+  {label:"Crédit", key:"credit", val:564.40, monthly:true},
+  {label:"Taxe foncière", key:"taxe", val:287, monthly:true},
+  {label:"Assurances (crédit + PNO)", key:"assurance", val:12.79, monthly:true},
+  {label:"Eau", key:"eau", val:0, monthly:true}
+];
+
+function solerKey(){return 'soler_'+SOLER_YEAR;}
+function solerData(){
+  try{var d=localStorage.getItem(solerKey());return d?JSON.parse(d):{};}
+  catch(e){return {};}
+}
+function solerSet(aptId, month, val){
+  loadSolerCustom();
+  var d=solerData();
+  if(!d[aptId])d[aptId]={};
+  if(val===null) delete d[aptId][month];
+  else d[aptId][month]=val;
+  try{localStorage.setItem(solerKey(),JSON.stringify(d));}catch(e){}
+  renderSoler();
+}
+function getSolerPay(aptId, month){
+  var d=solerData();
+  var val=d[aptId]&&d[aptId][month];
+  if(!val) return 0;
+  if(val===true){
+    var rk='soler_rent_'+SOLER_YEAR+'_'+aptId;
+    var cr=localStorage.getItem(rk);
+    var apt=SOLER_APTS.find(function(a){return a.id===aptId;})||{rent:0};
+    return cr?parseFloat(cr):apt.rent;
+  }
+  return parseFloat(val)||0;
+}
+function togglePaySoler(aptId, month){
+  var d=solerData();
+  var cur=d[aptId]&&d[aptId][month];
+  var rk='soler_rent_'+SOLER_YEAR+'_'+aptId;
+  var cr=localStorage.getItem(rk);
+  var baseRent=cr?parseFloat(cr):(SOLER_APTS.find(function(a){return a.id===aptId;})||{rent:0}).rent;
+  if(cur){solerSet(aptId, month, null);}
+  else{
+    var val=prompt('Montant reçu pour ce mois (€) :', baseRent);
+    if(val===null) return;
+    var n=parseFloat(val);
+    if(isNaN(n)||n<0) return;
+    solerSet(aptId, month, n);
+  }
+}
+function getSolerAptData(aptId){
+  try{var s=localStorage.getItem('soler_apt_'+aptId);if(s)return JSON.parse(s);}catch(e){}
+  return null;
+}
+function loadSolerCustom(){
+  SOLER_APTS.forEach(function(apt){
+    var c=getSolerAptData(apt.id);
+    if(c){
+      if(c.tenant)apt.tenant=c.tenant;
+      if(c.rent)apt.rent=c.rent;
+      if(c.caution!==undefined)apt.caution=c.caution;
+      if(c.email)apt.email=c.email;
+      if(c.startMonth)apt.startMonth=c.startMonth;
+    }
+  });
+  try{var cc=localStorage.getItem('soler_charges');if(cc){JSON.parse(cc).forEach(function(c,i){if(SOLER_CHARGES[i])SOLER_CHARGES[i].val=c.val;});}}catch(e){}
+}
+function editSolerApt(aptId){
+  loadSolerCustom();
+  var apt=SOLER_APTS.find(function(a){return a.id===aptId;})||{};
+  var ov=document.createElement('div');
+  ov.id='edit-apt-modal';
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:500;display:flex;align-items:flex-end;justify-content:center;';
+  ov.innerHTML='<div style="background:#fff;border-radius:24px 24px 0 0;padding:20px;width:100%;max-width:500px;padding-bottom:40px;">'
+    +'<div style="width:40px;height:4px;background:#ddd;border-radius:2px;margin:0 auto 16px;"></div>'
+    +'<h3 style="font-size:17px;font-weight:700;margin-bottom:16px;">Modifier '+(apt.name||('Lot '+aptId))+'</h3>'
+    +'<div style="display:grid;gap:10px;">'
+    +'<div><label style="font-size:11px;color:#888;display:block;margin-bottom:4px;">Nom du locataire</label><input id="es-tenant" style="width:100%;border:1.5px solid #ddd;border-radius:10px;padding:11px;font-size:15px;" value="'+(apt.tenant||'')+'"></div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">'
+    +'<div><label style="font-size:11px;color:#888;display:block;margin-bottom:4px;">Loyer (€/mois)</label><input id="es-rent" type="number" step="0.01" style="width:100%;border:1.5px solid #ddd;border-radius:10px;padding:11px;font-size:15px;" value="'+(apt.rent||0)+'"></div>'
+    +'<div><label style="font-size:11px;color:#888;display:block;margin-bottom:4px;">Mois début (1-12)</label><input id="es-start" type="number" min="1" max="12" style="width:100%;border:1.5px solid #ddd;border-radius:10px;padding:11px;font-size:15px;" value="'+(apt.startMonth||1)+'"></div>'
+    +'</div>'
+    +'<div><label style="font-size:11px;color:#888;display:block;margin-bottom:4px;">Caution</label><input id="es-caution" style="width:100%;border:1.5px solid #ddd;border-radius:10px;padding:11px;font-size:15px;" value="'+(apt.caution||'')+'"></div>'
+    +'<div><label style="font-size:11px;color:#888;display:block;margin-bottom:4px;">Email</label><input id="es-email" style="width:100%;border:1.5px solid #ddd;border-radius:10px;padding:11px;font-size:15px;" value="'+(apt.email||'')+'"></div>'
+    +'</div>'
+    +'<div style="display:flex;gap:8px;margin-top:16px;">'
+    +'<button onclick="closeEditModal()" style="flex:1;padding:14px;border:none;border-radius:12px;background:#f5f5f5;font-size:15px;font-weight:600;cursor:pointer;">Annuler</button>'
+    +'<button onclick="saveSolerApt('+aptId+')" style="flex:1;padding:14px;border:none;border-radius:12px;background:var(--green);color:#fff;font-size:15px;font-weight:600;cursor:pointer;">✓ Enregistrer</button>'
+    +'</div></div>';
+  document.body.appendChild(ov);
+}
+function saveSolerApt(aptId){
+  var name=document.getElementById('es-tenant').value.trim();
+  var rent=parseFloat(document.getElementById('es-rent').value)||0;
+  var caution=document.getElementById('es-caution').value.trim();
+  var email=document.getElementById('es-email').value.trim();
+  var startM=parseInt(document.getElementById('es-start').value)||1;
+  if(!name||!rent)return;
+  localStorage.setItem('soler_apt_'+aptId,JSON.stringify({tenant:name,rent:rent,caution:caution,email:email,startMonth:startM}));
+  for(var i=0;i<SOLER_APTS.length;i++){
+    if(SOLER_APTS[i].id===aptId){
+      SOLER_APTS[i].tenant=name;SOLER_APTS[i].rent=rent;
+      SOLER_APTS[i].caution=caution;SOLER_APTS[i].email=email;
+      SOLER_APTS[i].startMonth=startM;break;
+    }
+  }
+  closeEditModal();
+  renderSoler();
+}
+function editSolerCharge(idx){
+  var c=SOLER_CHARGES[idx];
+  var val=parseFloat(prompt('Nouveau montant pour "'+c.label+'" (€/mois):',c.val));
+  if(isNaN(val)||val<0)return;
+  SOLER_CHARGES[idx].val=val;
+  try{localStorage.setItem('soler_charges',JSON.stringify(SOLER_CHARGES));}catch(e){}
+  renderSoler();
+}
+function resetSoler(){
+  if(!confirm('Effacer toutes les données de loyers Le Soler '+SOLER_YEAR+' ?')) return;
+  localStorage.removeItem(solerKey());
+  renderSoler();
+}
+function changeSolerYear(delta){
+  SOLER_YEAR+=delta;
+  renderSoler();
+}
+function getSolerTotals(range){
+  loadSolerCustom();
+  var d=solerData();
+  var collected=0, expected=0;
+  SOLER_APTS.forEach(function(apt){
+    var rk='soler_rent_'+SOLER_YEAR+'_'+apt.id;
+    var cr=localStorage.getItem(rk);
+    var brent=cr?parseFloat(cr):apt.rent;
+    for(var mo=1;mo<=12;mo++){
+      var mDate=new Date(SOLER_YEAR,mo-1,1);
+      var inR=!range||(mDate>=range.from&&mDate<=range.to);
+      if(inR){
+        if(mo>=apt.startMonth) expected+=brent;
+        if(d[apt.id]&&d[apt.id][mo]) collected+=getSolerPay(apt.id,mo);
+      }
+    }
+  });
+  var chargesM=SOLER_CHARGES.reduce(function(s,c){return s+(c.monthly?c.val:0);},0);
+  return {collected:collected, expected:expected, chargesMonthly:chargesM};
+}
+function renderSoler(){
+  loadSolerCustom();
+  var d=solerData();
+  var now=new Date();
+  var curMonth=now.getMonth()+1;
+  var isCurrentYear=(SOLER_YEAR===now.getFullYear());
+  var totalCharges=SOLER_CHARGES.reduce(function(s,c){return s+(c.monthly?c.val:0);},0);
+  var range=getDateRange();
+  var totalExpected=0, totalCollected=0;
+  SOLER_APTS.forEach(function(apt){
+    var rk='soler_rent_'+SOLER_YEAR+'_'+apt.id;
+    var cr=localStorage.getItem(rk);
+    var brent=cr?parseFloat(cr):apt.rent;
+    for(var mo=1;mo<=12;mo++){
+      var mDate=new Date(SOLER_YEAR,mo-1,1);
+      var inR=(mDate>=range.from&&mDate<=range.to);
+      if(inR){
+        if(mo>=apt.startMonth) totalExpected+=brent;
+        if(d[apt.id]&&d[apt.id][mo]) totalCollected+=getSolerPay(apt.id,mo);
+      }
+    }
+  });
+  var nbMois={'month':1,'3m':3,'6m':6,'year':12,'lastyear':12,'all':12}[state.period]||12;
+  if(state.calRange){nbMois=Math.max(1,Math.round((state.calRange.to-state.calRange.from)/86400000/30.4));}
+  if(state.pieMois>0)nbMois=1;
+  var chargesPeriode=totalCharges*nbMois;
+  var cashFlow=totalCollected-chargesPeriode;
+  var html='';
+  // Bandeau récap
+  html+='<div style="background:var(--green);border-radius:14px;padding:14px;margin-bottom:14px;color:#fff;">';
+  html+='<div style="font-size:12px;font-weight:600;opacity:.8;margin-bottom:10px;">🏢 TOTAL IMMEUBLE LE SOLER '+SOLER_YEAR+'</div>';
+  html+='<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;">';
+  html+='<div><div style="font-size:10px;opacity:.7;">Loyers encaissés</div><div style="font-size:20px;font-weight:700;">'+Math.round(totalCollected).toLocaleString('fr-FR')+'€</div></div>';
+  html+='<div><div style="font-size:10px;opacity:.7;">Charges période</div><div style="font-size:20px;font-weight:700;color:#FCA5A5;">-'+Math.round(chargesPeriode).toLocaleString('fr-FR')+'€</div></div>';
+  html+='<div style="grid-column:span 2;"><div style="font-size:10px;opacity:.7;">CASH FLOW NET</div><div style="font-size:26px;font-weight:700;border-top:1px solid rgba(255,255,255,.3);padding-top:8px;color:'+(cashFlow>=0?'#A7F3D0':'#FCA5A5')+';">'+(cashFlow>=0?'+':'')+Math.round(cashFlow).toLocaleString('fr-FR')+'€</div></div>';
+  html+='</div></div>';
+  // KPIs
+  html+='<div class="kpi-grid" style="margin-bottom:16px;">';
+  html+='<div class="kpi"><div class="kpi-label">Loyers attendus</div><div class="kpi-value" style="color:var(--bk)">'+Math.round(totalExpected).toLocaleString('fr-FR')+'€</div></div>';
+  html+='<div class="kpi green"><div class="kpi-label">Encaissés</div><div class="kpi-value">'+Math.round(totalCollected).toLocaleString('fr-FR')+'€</div><div class="kpi-sub">'+(totalExpected>0?Math.round(totalCollected/totalExpected*100):0)+'% collecté</div></div>';
+  html+='<div class="kpi"><div class="kpi-label">Restant</div><div class="kpi-value" style="color:'+(totalExpected-totalCollected>0?'#DC2626':'#059669')+'">'+(totalExpected-totalCollected).toLocaleString('fr-FR')+'€</div></div>';
+  html+='<div class="kpi"><div class="kpi-label">Charges/mois</div><div class="kpi-value" style="color:#DC2626">'+Math.round(totalCharges).toLocaleString('fr-FR')+'€</div></div>';
+  html+='</div>';
+  // Tableau loyers
+  html+='<div class="elne-wrap">';
+  html+='<div class="elne-hdr">';
+  html+='<h2>🏢 Suivi loyers Le Soler '+SOLER_YEAR+'</h2>';
+  html+='<div style="display:flex;align-items:center;gap:8px;">';
+  html+='<div class="year-sel"><button class="year-btn" onclick="changeSolerYear(-1)">‹</button><span class="year-lbl">'+SOLER_YEAR+'</span><button class="year-btn" onclick="changeSolerYear(1)">›</button></div>';
+  html+='<button onclick="resetSoler()" style="padding:6px 10px;border:1.5px solid #FCA5A5;background:#FEF2F2;color:#DC2626;border-radius:8px;font-size:11px;cursor:pointer;">🗑 Réinit</button>';
+  html+='</div></div>';
+  html+='<div style="overflow-x:auto"><table class="elne-table">';
+  html+='<tr><th class="apt-col">Lot</th>';
+  MONTHS_FULL.forEach(function(mo){html+='<th>'+mo+'</th>';});
+  html+='<th>Total</th></tr>';
+  SOLER_APTS.forEach(function(apt){
+    html+='<tr>';
+    var rk='soler_rent_'+SOLER_YEAR+'_'+apt.id;
+    var cr=localStorage.getItem(rk);
+    var displayRent=cr?parseFloat(cr):apt.rent;
+    html+='<td class="apt-cell"><div style="display:flex;align-items:center;gap:6px;"><div class="apt-name">'+apt.name+' — '+apt.tenant+'</div><button onclick="editSolerApt('+apt.id+')" style="border:none;background:none;cursor:pointer;font-size:14px;padding:0;">✏️</button></div>';
+    html+='<div class="apt-rent">'+displayRent+'€/mois</div></td>';
+    var aptTotal=0;
+    for(var mo=1;mo<=12;mo++){
+      var payVal=d[apt.id]&&d[apt.id][mo];
+      var isActive=mo>=apt.startMonth;
+      var isPartial=payVal&&payVal!==true&&payVal<displayRent;
+      var cls='', content2='';
+      if(payVal){
+        if(isPartial){cls='partial';content2=payVal+'€';}
+        else{cls='paid';content2='✓';}
+        aptTotal+=getSolerPay(apt.id,mo);
+      } else {
+        cls=isActive?'unpaid':'na'; content2=isActive?'✗':'—';
+      }
+      html+='<td><div class="pay-cell '+cls+'" onclick="togglePaySoler('+apt.id+','+mo+')">'+content2+'</div></td>';
+    }
+    html+='<td class="month-total">'+Math.round(aptTotal).toLocaleString('fr-FR')+'€</td>';
+    html+='</tr>';
+  });
+  // Total mensuel
+  html+='<tr style="background:#f8f9fa;">';
+  html+='<td class="apt-cell" style="font-weight:700;font-size:12px;">TOTAL MENSUEL</td>';
+  var grandTotal=0;
+  for(var mo=1;mo<=12;mo++){
+    var moTotal=0;
+    SOLER_APTS.forEach(function(apt){
+      if(d[apt.id]&&d[apt.id][mo])moTotal+=getSolerPay(apt.id,mo);
+    });
+    grandTotal+=moTotal;
+    var isFut=isCurrentYear&&mo>curMonth;
+    html+='<td style="font-size:11px;font-weight:700;color:'+(isFut?'#ccc':(moTotal>0?'#059669':'#DC2626'))+';">'+(isFut?'—':Math.round(moTotal).toLocaleString('fr-FR')+'€')+'</td>';
+  }
+  html+='<td class="month-total" style="color:var(--green);font-size:13px;">'+Math.round(grandTotal).toLocaleString('fr-FR')+'€</td>';
+  html+='</tr>';
+  html+='</table></div></div>';
+  // Charges
+  html+='<div class="elne-wrap" style="margin-top:16px;"><div class="section-title">CHARGES MENSUELLES FIXES</div>';
+  html+='<div class="charges-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;padding:14px;">';
+  SOLER_CHARGES.forEach(function(c,ci){
+    html+='<div class="charge-item"><div class="charge-label">'+c.label+' <button onclick="editSolerCharge('+ci+')" style="border:none;background:none;cursor:pointer;font-size:12px;">✏️</button></div>';
+    html+='<div class="charge-val">'+c.val.toLocaleString('fr-FR',{minimumFractionDigits:0,maximumFractionDigits:2})+'€</div></div>';
+  });
+  html+='<div class="charge-item"><div class="charge-label">TOTAL CHARGES</div>';
+  html+='<div class="charge-val" style="font-size:20px;">'+Math.round(totalCharges).toLocaleString('fr-FR')+'€</div></div>';
+  html+='</div></div>';
+  // Cash flow mensuel
+  html+='<div class="elne-wrap" style="margin-top:16px;"><div class="section-title">CASH FLOW MENSUEL (loyers - charges fixes)</div>';
+  html+='<div class="cashflow-grid">';
+  for(var mo=1;mo<=12;mo++){
+    var moIncome=0;
+    SOLER_APTS.forEach(function(apt){
+      if(d[apt.id]&&d[apt.id][mo])moIncome+=getSolerPay(apt.id,mo);
+    });
+    var cf=moIncome-totalCharges;
+    var isFut=isCurrentYear&&mo>curMonth;
+    var cls=isFut?'zero':cf>0?'pos':cf<0?'neg':'zero';
+    html+='<div class="cf-item '+cls+'"><div class="cf-month">'+MONTHS_FULL[mo-1]+'</div>';
+    html+='<div class="cf-val">'+(isFut?'—':(cf>0?'+':'')+Math.round(cf).toLocaleString('fr-FR')+'€')+'</div></div>';
+  }
+  html+='</div></div>';
+  document.getElementById('main').innerHTML=html;
+}
+// ===== FIN MODULE LE SOLER =====
+
+
+// ===== CALENDRIER PLAGE DE MOIS =====
+var CAL = {year:new Date().getFullYear(), start:0, end:0, open:false};
+
+function toggleCalPicker(){
+  CAL.open=!CAL.open;
+  document.getElementById('cal-picker').style.display=CAL.open?'block':'none';
+  if(CAL.open) renderCalPicker();
+}
+
+function calYearDelta(d){
+  CAL.year+=d;
+  renderCalPicker();
+}
+
+function getMonthCashflow(year, mo){
+  // Cash flow du mois selon l'onglet actif
+  var income=0, charges=0;
+  var includeElne=(state.tab==='all'||state.tab==='elne');
+  var includeSoler=(state.tab==='all'||state.tab==='soler');
+  try{
+    if(includeElne){
+      loadCustomData();
+      var dE=JSON.parse(localStorage.getItem('elne_'+year)||'{}');
+      ELNE_APTS.forEach(function(apt){
+        if(dE[apt.id]&&dE[apt.id][mo]){
+          var v=dE[apt.id][mo];
+          if(v===true){var rk=localStorage.getItem('elne_rent_'+year+'_'+apt.id);income+=rk?parseFloat(rk):apt.rent;}
+          else income+=parseFloat(v)||0;
+        }
+      });
+    }
+    if(includeSoler){
+      loadSolerCustom();
+      var dS=JSON.parse(localStorage.getItem('soler_'+year)||'{}');
+      SOLER_APTS.forEach(function(apt){
+        if(dS[apt.id]&&dS[apt.id][mo]){
+          var v=dS[apt.id][mo];
+          if(v===true){var rk=localStorage.getItem('soler_rent_'+year+'_'+apt.id);income+=rk?parseFloat(rk):apt.rent;}
+          else income+=parseFloat(v)||0;
+        }
+      });
+    }
+  }catch(e){}
+  // Airbnb net du mois (ELNE uniquement)
+  if(includeElne){
+    (state.reservations||[]).forEach(function(r){
+      if(r.status==='cancelled')return;
+      var ci=new Date((r.check_in_date||r.check_in||'')+'T00:00:00');
+      if(ci.getFullYear()!==year||ci.getMonth()+1!==mo)return;
+      income+=getNet(r);
+    });
+    charges+=ELNE_CHARGES.reduce(function(s,c){return s+(c.monthly?c.val:0);},0);
+    charges+=parseFloat(localStorage.getItem('elne_menage_'+year+'_'+mo)||'0')||0;
+  }
+  if(includeSoler){
+    charges+=SOLER_CHARGES.reduce(function(s,c){return s+(c.monthly?c.val:0);},0);
+  }
+  return income-charges;
+}
+
+function renderCalPicker(){
+  document.getElementById('cal-year-lbl').textContent=CAL.year;
+  var MO=['Janv','Févr','Mars','Avr','Mai','Juin','Juil','Août','Sep','Oct','Nov','Déc'];
+  var now=new Date();
+  var curY=now.getFullYear(), curM=now.getMonth()+1;
+  var html='';
+  for(var mo=1;mo<=12;mo++){
+    var isFut=(CAL.year>curY)||(CAL.year===curY&&mo>curM);
+    var isSel=(CAL.start&&mo===CAL.start)||(CAL.end&&mo===CAL.end);
+    var inRange=CAL.start&&CAL.end&&mo>CAL.start&&mo<CAL.end;
+    var cf=isFut?null:getMonthCashflow(CAL.year,mo);
+    var bg='#fff', border='#e5e5e5', color='#1a1a1a';
+    if(isSel){bg='#0F6E56';border='#0F6E56';color='#fff';}
+    else if(inRange){bg='#E1F5EE';border='#9FE1CB';color='#085041';}
+    var cfHtml='';
+    if(isFut){cfHtml='<div style="font-size:10px;margin-top:2px;opacity:.5;">—</div>';}
+    else if(cf!==null){
+      var cfColor=isSel?'rgba(255,255,255,.85)':(cf>=0?'#3B6D11':'#A32D2D');
+      var cfTxt=(cf>=0?'+':'')+(Math.abs(cf)>=1000?(Math.round(cf/100)/10).toLocaleString('fr-FR')+'k€':Math.round(cf)+'€');
+      cfHtml='<div style="font-size:10px;margin-top:2px;font-weight:600;color:'+cfColor+';">'+cfTxt+'</div>';
+    }
+    html+='<div onclick="calMonthTap('+mo+')" style="padding:10px 4px;text-align:center;border-radius:10px;font-size:13px;cursor:pointer;border:1.5px solid '+border+';background:'+bg+';color:'+color+';'+(isFut?'opacity:.45;':'')+'">';
+    html+='<div style="font-weight:'+(isSel?'700':'500')+';">'+MO[mo-1]+'</div>'+cfHtml+'</div>';
+  }
+  document.getElementById('cal-grid').innerHTML=html;
+  // Label plage
+  var lbl=document.getElementById('cal-range-lbl');
+  if(CAL.start&&CAL.end){
+    var n=CAL.end-CAL.start+1;
+    lbl.textContent=MO[CAL.start-1]+' → '+MO[CAL.end-1]+' ('+n+' mois)';
+    lbl.style.display='inline-block';
+  } else if(CAL.start){
+    lbl.textContent=MO[CAL.start-1]+' (choisir fin...)';
+    lbl.style.display='inline-block';
+  } else {
+    lbl.style.display='none';
+  }
+}
+
+function calMonthTap(mo){
+  if(CAL.start&&!CAL.end){
+    if(mo===CAL.start){CAL.start=0;applyCalRange();renderCalPicker();return;}
+    if(mo<CAL.start){CAL.end=CAL.start;CAL.start=mo;}
+    else{CAL.end=mo;}
+  } else {
+    CAL.start=mo;CAL.end=0;
+  }
+  renderCalPicker();
+  if(CAL.start&&CAL.end) applyCalRange();
+  else if(CAL.start&&!CAL.end){
+    // Sélection d'un seul mois immédiate aussi
+    CAL.end=CAL.start;
+    applyCalRange();
+    CAL.end=0;
+  }
+}
+
+function applyCalRange(){
+  if(!CAL.start){
+    state.calRange=null;
+    document.getElementById('cal-label').textContent='';
+    refreshCurrentView();
+    return;
+  }
+  var endM=CAL.end||CAL.start;
+  state.calRange={from:new Date(CAL.year,CAL.start-1,1),to:new Date(CAL.year,endM,0)};
+  state.pieMois=0;
+  document.querySelectorAll('.pbtn').forEach(function(b){if(b.id!=='cal-toggle')b.classList.remove('on');});
+  document.getElementById('cal-toggle').classList.add('on');
+  var MO=['Janv','Févr','Mars','Avr','Mai','Juin','Juil','Août','Sep','Oct','Nov','Déc'];
+  document.getElementById('cal-label').textContent=CAL.end&&CAL.end!==CAL.start?(' '+MO[CAL.start-1]+'→'+MO[CAL.end-1]):(' '+MO[CAL.start-1]+' '+CAL.year);
+  refreshCurrentView();
+}
+
+function refreshCurrentView(){
+  if(state.tab==='elne'){
+    if(state.subtab==='suite')renderProp('12619011');
+    else if(state.subtab==='loft')renderProp('12619012');
+    else if(state.subtab==='factures')renderFacturesPage();
+    else renderElne();
+  } else if(state.tab==='soler'){renderSoler();}
+  else render();
+}
+// ===== FIN CALENDRIER =====
 
 init();
 </script>
