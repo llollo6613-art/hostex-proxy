@@ -1192,7 +1192,8 @@ function generateBilan(){
   h+='<div><table><tr><th>Poste</th><th class="r">Mensuel</th><th class="r">Annuel</th></tr>';
   ELNE_CHARGES.forEach(function(c){h+='<tr><td>'+c.label+'</td><td class="r">'+fc(c.val)+'</td><td class="r neg">'+fc(c.val*12)+'</td></tr>';});
   h+='<tr><td>Ménage Airbnb</td><td class="r">variable</td><td class="r neg">'+fc(totalMenage)+'</td></tr>';
-  if(factDed>0)h+='<tr style="background:#E1F5EE;"><td><b>Factures deductibles ('+year+')</b></td><td class="r">variable</td><td class="r neg"><b>'+fc(factDed)+'</b></td></tr>';
+  if(factDed>0)h+='<tr style="background:#E1F5EE;"><td><b>Travaux dentretien deductibles ('+year+')</b></td><td class="r">variable</td><td class="r neg"><b>'+fc(factDed)+'</b></td></tr>';
+  if(factAmort>0)h+='<tr><td style="font-size:9px;color:#888;">Les gros travaux ('+fc(factAmort)+') ne sont pas deduits ici mais amortis (voir section amortissements ci-dessous)</td><td></td><td></td></tr>';
   h+='<tr class="tr"><td><b>TOTAL CHARGES</b></td><td></td><td class="r"><b>'+fc(totalChg)+'</b></td></tr></table>';
   if(Object.keys(factTotaux).length>0){h+='<table style="margin-top:8px;"><tr><th colspan="3">DETAIL FACTURES '+year+'</th></tr>';Object.keys(factTotaux).sort(function(a,b){return factTotaux[b]-factTotaux[a];}).forEach(function(c){var ded=FACTURES_DED[c]!==false;h+='<tr><td>'+c+'</td><td><span style="font-size:9px;padding:2px 6px;border-radius:8px;background:'+(ded?'#D1FAE5':'#FEF3C7')+';color:'+(ded?'#065F46':'#92400E')+'">'+(ded?'Ded.':'Amort.')+'</span></td><td class="r neg">'+fc(factTotaux[c])+'</td></tr>';});h+='</table>';}
   h+='</div>';
@@ -1205,8 +1206,15 @@ function generateBilan(){
   var terrainPct=0.20; // terrain non amortissable
   var constructionVal=estVal*(1-terrainPct);
   var amortImmeuble=Math.round(constructionVal*0.025); // 2.5% / 40 ans
-  var amortMobilier=Math.round(estVal*0.01*0.10); // mobilier estimé 1% valeur, amorti 10%
-  var totalAmort=amortImmeuble+amortMobilier;
+  // Amortissement des TRAVAUX (toutes factures cumulees, etalees sur 12 ans)
+  var totalTravaux=0,totalMobilier=0;
+  getFactures().forEach(function(f){
+    if(f.cat==='Ammeublement'||f.cat==='electromenager'){totalMobilier+=f.montant;}
+    else if(FACTURES_DED[f.cat]===false){totalTravaux+=f.montant;}
+  });
+  var amortTravaux=Math.round(totalTravaux/12);   // travaux amortis sur 12 ans
+  var amortMobilier=Math.round(totalMobilier/7);   // mobilier amorti sur 7 ans
+  var totalAmort=amortImmeuble+amortTravaux+amortMobilier;
 
   // Part intérêts crédit (depuis localStorage ou estimation 60% de la mensualité)
   var interetsAnnuel=parseFloat(localStorage.getItem('bilan_interets')||Math.round(3038.15*12*0.6));
@@ -1251,8 +1259,9 @@ function generateBilan(){
   h+='<tr><td>Interets emprunt (estimés)</td><td class="r neg">-'+fc(interetsAnnuel)+'</td></tr>';
   ELNE_CHARGES.forEach(function(c){if(c.key!=='credit')h+='<tr><td>'+c.label+'</td><td class="r neg">-'+fc(c.val*12)+'</td></tr>';});
   h+='<tr><td>Ménage Airbnb</td><td class="r neg">-'+fc(totalMenage)+'</td></tr>';
-  h+='<tr style="background:#FFF8E1;"><td>Amortissement immeuble (2,5%/an)</td><td class="r neg">-'+fc(amortImmeuble)+'</td></tr>';
-  h+='<tr style="background:#FFF8E1;"><td>Amortissement mobilier (10%/an)</td><td class="r neg">-'+fc(amortMobilier)+'</td></tr>';
+  h+='<tr style="background:#FFF8E1;"><td>Amortissement immeuble (2,5%/an sur '+fc(constructionVal)+')</td><td class="r neg">-'+fc(amortImmeuble)+'</td></tr>';
+  h+='<tr style="background:#FFF8E1;"><td>Amortissement travaux ('+fc(totalTravaux)+' / 12 ans)</td><td class="r neg">-'+fc(amortTravaux)+'</td></tr>';
+  h+='<tr style="background:#FFF8E1;"><td>Amortissement mobilier ('+fc(totalMobilier)+' / 7 ans)</td><td class="r neg">-'+fc(amortMobilier)+'</td></tr>';
   h+='<tr class="tr"><td><b>TOTAL CHARGES</b></td><td class="r neg"><b>-'+fc(totalDeductIS)+'</b></td></tr></table>';
 
   h+='<table style="margin-top:8px;"><tr><th colspan="2">RÉSULTAT IS</th></tr>';
