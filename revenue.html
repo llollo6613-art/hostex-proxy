@@ -1099,6 +1099,109 @@ function addBuilding(){
 }
 
 
+function generateSolerBilan(){
+  loadSolerCustom();
+  var now=new Date();
+  var year=SOLER_YEAR;
+  var d=solerData();
+  var loyers=[],totalEncaisses=0,totalAttendus=0;
+  SOLER_APTS.forEach(function(apt){
+    var rk='soler_rent_'+year+'_'+apt.id;
+    var cr=localStorage.getItem(rk);
+    var loyer=cr?parseFloat(cr):apt.rent;
+    var enc=0;
+    for(var mo=1;mo<=12;mo++){if(d[apt.id]&&d[apt.id][mo])enc+=getSolerPay(apt.id,mo);}
+    totalEncaisses+=enc;totalAttendus+=loyer*12;
+    loyers.push({name:apt.name,tenant:apt.tenant,loyer:loyer,enc:enc,att:loyer*12});
+  });
+  var totalChgAnnuel=SOLER_CHARGES.reduce(function(s,c){return s+(c.monthly?c.val*12:0);},0);
+  var creditCharge=SOLER_CHARGES.find(function(c){return c.key==='credit';});
+  var creditAnnuel=creditCharge?creditCharge.val*12:0;
+  // En LMNP : interets deductibles (estimes 50% mensualite credit), pas le capital
+  var interetsAnnuel=parseFloat(localStorage.getItem('soler_interets')||Math.round(creditAnnuel*0.5));
+  // Charges deductibles : tout sauf le capital du credit
+  var chgDeduct=interetsAnnuel;
+  SOLER_CHARGES.forEach(function(c){if(c.key!=='credit')chgDeduct+=c.val*12;});
+  // Amortissements LMNP
+  var solerVal=parseFloat(localStorage.getItem('soler_estvalue')||'309000');
+  var terrainPct=0.15;
+  var bati=solerVal*(1-terrainPct);
+  var amortBati=Math.round(bati*0.025);   // 2.5%/an (40 ans)
+  var amortMeubles=Math.round((parseFloat(localStorage.getItem('soler_mobilier')||'8000'))/7); // mobilier amorti 7 ans
+  var amortTotal=amortBati+amortMeubles;
+  // Resultat avant amortissement
+  var resAvantAmort=totalEncaisses-chgDeduct;
+  // En LMNP l amortissement est plafonne au benefice (ne cree pas de deficit)
+  var amortUtilise=Math.max(0,Math.min(amortTotal,resAvantAmort));
+  var amortReporte=amortTotal-amortUtilise;
+  var resultatFiscal=Math.max(0,resAvantAmort-amortUtilise);
+  // Imposition : TMI 30% + prelevements sociaux 17.2%
+  var tmi=0.30;
+  var ps=0.172;
+  var impotRevenu=Math.round(resultatFiscal*tmi);
+  var prelSociaux=Math.round(resultatFiscal*ps);
+  var impotTotal=impotRevenu+prelSociaux;
+  // Comparaison micro-BIC (abattement 50%)
+  var baseMicro=totalEncaisses*0.5;
+  var impotMicro=Math.round(baseMicro*(tmi+ps));
+  // Cash flow reel
+  var cashFlowReel=totalEncaisses-chgDeduct-(creditAnnuel-interetsAnnuel)-impotTotal;
+
+  function fc(n){return Math.round(n).toLocaleString('fr-FR')+' EUR';}
+  var h='<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><title>Bilan LMNP Le Soler '+year+'</title>';
+  h+='<style>body{font-family:-apple-system,Arial,sans-serif;max-width:900px;margin:0 auto;padding:30px;color:#1a1a1a;font-size:13px;}h1{font-size:22px;color:#7C3AED;border-bottom:3px solid #7C3AED;padding-bottom:8px;}h2{font-size:16px;color:#7C3AED;margin-top:24px;}h3{font-size:14px;margin-top:18px;}table{width:100%;border-collapse:collapse;margin:10px 0;}th,td{padding:7px 10px;text-align:left;border-bottom:0.5px solid #e5e5e5;font-size:12px;}th{background:#f5f3ff;font-weight:600;}td.r,th.r{text-align:right;}.pos{color:#059669;}.neg{color:#DC2626;}.tr{border-top:2px solid #7C3AED;font-weight:700;}.box{background:#f5f3ff;border-radius:8px;padding:12px;margin:10px 0;}.alrt{background:#FEF3C7;border-radius:8px;padding:10px;font-size:11px;margin:10px 0;}.ft{margin-top:30px;font-size:10px;color:#999;border-top:0.5px solid #ddd;padding-top:10px;}@media print{.noprint{display:none;}}</style></head><body>';
+  h+='<h1>Bilan fiscal LMNP — Immeuble Le Soler</h1>';
+  h+='<div style="font-size:12px;color:#666;">Exercice '+year+' · Loueur Meublé Non Professionnel · Régime réel · Le Soler (66270)</div>';
+  h+='<div class="alrt">Document indicatif non opposable. Le régime LMNP au réel permet d amortir le bien et le mobilier. L amortissement ne peut pas créer de déficit (il est plafonné au bénéfice et l excédent est reporté). Estimations à valider avec votre comptable.</div>';
+
+  h+='<h2>I. Revenus locatifs (BIC)</h2><table><tr><th>Lot</th><th>Locataire</th><th class="r">Loyer/mois</th><th class="r">Attendu/an</th><th class="r">Encaissé</th></tr>';
+  loyers.forEach(function(l){h+='<tr><td>'+l.name+'</td><td>'+l.tenant+'</td><td class="r">'+fc(l.loyer)+'</td><td class="r">'+fc(l.att)+'</td><td class="r pos">'+fc(l.enc)+'</td></tr>';});
+  h+='<tr class="tr"><td colspan="3"><b>TOTAL</b></td><td class="r">'+fc(totalAttendus)+'</td><td class="r pos">'+fc(totalEncaisses)+'</td></tr></table>';
+
+  h+='<h2>II. Charges déductibles</h2><table>';
+  h+='<tr><td>Intérêts d emprunt (estimés)</td><td class="r neg">-'+fc(interetsAnnuel)+'</td></tr>';
+  SOLER_CHARGES.forEach(function(c){if(c.key!=='credit'&&c.val>0)h+='<tr><td>'+c.label+'</td><td class="r neg">-'+fc(c.val*12)+'</td></tr>';});
+  h+='<tr class="tr"><td><b>TOTAL CHARGES</b></td><td class="r neg"><b>-'+fc(chgDeduct)+'</b></td></tr></table>';
+
+  h+='<h2>III. Amortissements LMNP</h2><table>';
+  h+='<tr><td>Amortissement bâti (2,5%/an sur '+fc(bati)+')</td><td class="r neg">-'+fc(amortBati)+'</td></tr>';
+  h+='<tr><td>Amortissement mobilier (7 ans)</td><td class="r neg">-'+fc(amortMeubles)+'</td></tr>';
+  h+='<tr class="tr"><td><b>Amortissement total calculé</b></td><td class="r neg"><b>-'+fc(amortTotal)+'</b></td></tr>';
+  h+='<tr><td>Amortissement utilisé (plafonné au bénéfice)</td><td class="r neg">-'+fc(amortUtilise)+'</td></tr>';
+  if(amortReporte>0)h+='<tr><td style="font-size:10px;color:#888;">Amortissement reporté sur années suivantes</td><td class="r">'+fc(amortReporte)+'</td></tr>';
+  h+='</table>';
+
+  h+='<h2>IV. Résultat fiscal & imposition</h2><table>';
+  h+='<tr><td>Revenus encaissés</td><td class="r pos">'+fc(totalEncaisses)+'</td></tr>';
+  h+='<tr><td>− Charges déductibles</td><td class="r neg">-'+fc(chgDeduct)+'</td></tr>';
+  h+='<tr><td>= Résultat avant amortissement</td><td class="r '+(resAvantAmort>=0?'pos':'neg')+'">'+fc(resAvantAmort)+'</td></tr>';
+  h+='<tr><td>− Amortissement utilisé</td><td class="r neg">-'+fc(amortUtilise)+'</td></tr>';
+  h+='<tr class="tr"><td><b>= RÉSULTAT FISCAL IMPOSABLE</b></td><td class="r '+(resultatFiscal>0?'neg':'pos')+'"><b>'+fc(resultatFiscal)+'</b></td></tr>';
+  h+='</table>';
+  h+='<table><tr><th>Imposition</th><th class="r">Montant</th></tr>';
+  h+='<tr><td>Impôt sur le revenu (TMI 30%)</td><td class="r neg">-'+fc(impotRevenu)+'</td></tr>';
+  h+='<tr><td>Prélèvements sociaux (17,2%)</td><td class="r neg">-'+fc(prelSociaux)+'</td></tr>';
+  h+='<tr class="tr"><td><b>TOTAL IMPÔTS</b></td><td class="r neg"><b>-'+fc(impotTotal)+'</b></td></tr></table>';
+
+  h+='<div class="box"><b>Comparaison des régimes :</b><br>';
+  h+='• <b>LMNP réel</b> (ce bilan) : impôt ≈ '+fc(impotTotal)+'<br>';
+  h+='• <b>Micro-BIC</b> (abattement 50%) : base '+fc(baseMicro)+' → impôt ≈ '+fc(impotMicro)+'<br>';
+  h+='<b style="color:#7C3AED;">→ '+(impotTotal<impotMicro?'Le régime réel est plus avantageux ('+fc(impotMicro-impotTotal)+' économisés)':'Le micro-BIC serait plus avantageux')+'</b></div>';
+
+  h+='<h2>V. Synthèse</h2><table>';
+  h+='<tr><td>Revenus locatifs</td><td class="r pos">'+fc(totalEncaisses)+'</td></tr>';
+  h+='<tr><td>Cash flow net (après impôts et capital)</td><td class="r '+(cashFlowReel>=0?'pos':'neg')+'">'+(cashFlowReel>=0?'+':'')+fc(cashFlowReel)+'</td></tr>';
+  h+='<tr><td>Rendement net</td><td class="r pos">'+(solerVal>0?Math.round(cashFlowReel/solerVal*1000)/10:0)+'%</td></tr>';
+  h+='</table>';
+  h+='<div class="box" style="font-size:10px;"><b>Avantages LMNP :</b><br>✓ Amortissement du bien et mobilier (réduit fortement l imposable)<br>✓ Souvent 0 impôt pendant des années grâce à l amortissement<br>✓ Pas de plus-value sur amortissements à la revente (contrairement à la SCI IS)<br><br><b>Points de vigilance :</b><br>⚠ Plafond LMNP : recettes < 23 000 EUR/an ou < autres revenus du foyer<br>⚠ Tenue d une comptabilité commerciale obligatoire au réel</div>';
+
+  h+='<div class="ft">Bilan généré par Illiberis Channel Manager · '+now.toLocaleDateString('fr-FR')+' · Document indicatif non opposable · Le Soler (66270) · Régime LMNP réel</div>';
+  h+='<div class="noprint" style="text-align:center;margin-top:14px;"><button onclick="window.print()" style="padding:10px 24px;background:#7C3AED;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer;font-weight:600;">Imprimer / Sauvegarder en PDF</button> <button onclick="window.close()" style="padding:10px 24px;background:#f5f5f5;border:1px solid #ddd;border-radius:8px;font-size:14px;cursor:pointer;margin-left:8px;">Fermer</button></div>';
+  h+='</body></html>';
+  var w=window.open('','_blank','width=1100,height=820,scrollbars=yes');
+  w.document.write(h);w.document.close();
+}
+
 function generateBilan(){
   loadCustomData();
   var d=elneData();
@@ -1512,6 +1615,8 @@ function renderSoler(){
   html+='<div><div style="font-size:10px;opacity:.7;">Charges période</div><div style="font-size:20px;font-weight:700;color:#FCA5A5;">-'+Math.round(chargesPeriode).toLocaleString('fr-FR')+'€</div></div>';
   html+='<div style="grid-column:span 2;"><div style="font-size:10px;opacity:.7;">CASH FLOW NET</div><div style="font-size:26px;font-weight:700;border-top:1px solid rgba(255,255,255,.3);padding-top:8px;color:'+(cashFlow>=0?'#A7F3D0':'#FCA5A5')+';">'+(cashFlow>=0?'+':'')+Math.round(cashFlow).toLocaleString('fr-FR')+'€</div></div>';
   html+='</div></div>';
+  // Bouton bilan LMNP
+  html+='<div style="display:flex;justify-content:flex-end;margin-bottom:12px;"><button onclick="generateSolerBilan()" style="padding:10px 20px;background:#7C3AED;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;">Générer bilan fiscal LMNP (PDF)</button></div>';
   // KPIs
   html+='<div class="kpi-grid" style="margin-bottom:16px;">';
   html+='<div class="kpi"><div class="kpi-label">Loyers attendus</div><div class="kpi-value" style="color:var(--bk)">'+Math.round(totalExpected).toLocaleString('fr-FR')+'€</div></div>';
