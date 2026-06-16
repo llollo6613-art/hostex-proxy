@@ -157,10 +157,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     </div>
     <a href="/mobile" class="back">← App</a>
   </div>
-  <div class="tabs">
-    <button class="tab on" onclick="setTab('all')">📊 Global</button>
-    <button class="tab" onclick="setTab('elne')">🏢 ELNE</button>
-  <button class="tab" onclick="setTab('soler')">🏘 LE SOLER</button>
+  <div class="tabs" id="tabs-bar">
+    <button class="tab on" data-tab="all" onclick="setTab('all')">📊 Global</button>
+    <button class="tab" data-tab="elne" onclick="setTab('elne')">🏢 ELNE</button>
+    <button class="tab" data-tab="soler" onclick="setTab('soler')">🏘 LE SOLER</button>
+    <span id="custom-tabs"></span>
+    <button class="tab" onclick="showAddBienModal()" style="border:1.5px dashed #0F6E56;color:#0F6E56;font-weight:700;">+ Bien</button>
   </div>
 </div>
 
@@ -687,6 +689,7 @@ try{
 }
 
 async function init(){
+  renderCustomTabs();
   if(state.tab==='elne') renderElne();
   try{
     var controller = new AbortController();
@@ -730,8 +733,8 @@ async function init(){
 
 function setTab(t){
   state.tab = t;
-  document.querySelectorAll('.tab').forEach(function(b,i){
-    b.classList.toggle('on', ['all','elne','soler'][i]===t);
+  document.querySelectorAll('.tab').forEach(function(b){
+    b.classList.toggle('on', b.getAttribute('data-tab')===t);
   });
   if(CAL.open) renderCalPicker();
   var subbar = document.getElementById('subbar');
@@ -741,6 +744,9 @@ function setTab(t){
   } else if(t==='soler'){
     subbar.style.display='none';
     renderSoler();
+  } else if(t && t.indexOf('bien_')===0){
+    subbar.style.display='none';
+    renderBien(t.replace('bien_',''));
   } else {
     subbar.style.display='none';
     render();
@@ -1851,6 +1857,404 @@ function refreshCurrentView(){
   else render();
 }
 // ===== FIN CALENDRIER =====
+
+
+// ===== MODULE BIENS PERSONNALISES =====
+function getCustomBiens(){
+  try{var s=localStorage.getItem("custom_biens");if(s)return JSON.parse(s);}catch(e){}
+  return [];
+}
+function saveCustomBiens(biens){
+  localStorage.setItem("custom_biens",JSON.stringify(biens));
+}
+function renderCustomTabs(){
+  var biens=getCustomBiens();
+  var html="";
+  biens.forEach(function(b){
+    html+="<button class='tab' data-tab='bien_"+b.id+"' onclick=\"setTab('bien_"+b.id+"')\">"+(b.icon||"🏠")+" "+b.name+"</button>";
+  });
+  var ct=document.getElementById("custom-tabs");
+  if(ct)ct.innerHTML=html;
+}
+
+function showAddBienModal(editId){
+  var bien=null;
+  if(editId){
+    var biens=getCustomBiens();
+    bien=biens.find(function(b){return b.id===editId;});
+  }
+  var ov=document.createElement("div");
+  ov.id="bien-modal";
+  ov.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:600;display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:20px;";
+  var b=bien||{name:"",location:"",icon:"🏠",regime:"lmnp",value:0,lots:[{name:"Lot 1",tenant:"",rent:0,startMonth:1}],charges:[{label:"Crédit",key:"credit",val:0},{label:"Taxe foncière",key:"taxe",val:0},{label:"Assurances",key:"assurance",val:0}]};
+  var lotsHtml="";
+  b.lots.forEach(function(lot,i){
+    lotsHtml+="<div style='display:grid;grid-template-columns:2fr 2fr 1fr 1fr auto;gap:6px;margin-bottom:6px;align-items:center;'>";
+    lotsHtml+="<input class='lot-name' placeholder='Nom lot' value='"+(lot.name||"")+"' style='border:1.5px solid #ddd;border-radius:8px;padding:8px;font-size:13px;'>";
+    lotsHtml+="<input class='lot-tenant' placeholder='Locataire' value='"+(lot.tenant||"")+"' style='border:1.5px solid #ddd;border-radius:8px;padding:8px;font-size:13px;'>";
+    lotsHtml+="<input class='lot-rent' type='number' step='0.01' placeholder='Loyer' value='"+(lot.rent||"")+"' style='border:1.5px solid #ddd;border-radius:8px;padding:8px;font-size:13px;'>";
+    lotsHtml+="<input class='lot-start' type='number' min='1' max='12' placeholder='Mois' value='"+(lot.startMonth||1)+"' style='border:1.5px solid #ddd;border-radius:8px;padding:8px;font-size:13px;'>";
+    lotsHtml+="<button onclick='this.parentNode.remove()' style='border:none;background:#FEF2F2;color:#DC2626;border-radius:8px;padding:8px 10px;cursor:pointer;'>×</button>";
+    lotsHtml+="</div>";
+  });
+  var chargesHtml="";
+  b.charges.forEach(function(c){
+    chargesHtml+="<div style='display:grid;grid-template-columns:2fr 1fr auto;gap:6px;margin-bottom:6px;align-items:center;'>";
+    chargesHtml+="<input class='chg-label' placeholder='Libellé' value='"+(c.label||"")+"' style='border:1.5px solid #ddd;border-radius:8px;padding:8px;font-size:13px;'>";
+    chargesHtml+="<input class='chg-val' type='number' step='0.01' placeholder='€/mois' value='"+(c.val||"")+"' style='border:1.5px solid #ddd;border-radius:8px;padding:8px;font-size:13px;'>";
+    chargesHtml+="<button onclick='this.parentNode.remove()' style='border:none;background:#FEF2F2;color:#DC2626;border-radius:8px;padding:8px 10px;cursor:pointer;'>×</button>";
+    chargesHtml+="</div>";
+  });
+  ov.innerHTML="<div style='background:#fff;border-radius:20px;padding:24px;width:100%;max-width:640px;margin:auto;'>"
+    +"<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;'><h3 style='font-size:18px;font-weight:700;'>"+(editId?"Modifier le bien":"Nouveau bien")+"</h3><button onclick=\"closeBienModal()\" style='border:none;background:#f5f5f5;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:16px;'>×</button></div>"
+    +"<div style='display:grid;grid-template-columns:2fr 2fr 1fr;gap:10px;margin-bottom:14px;'>"
+    +"<div><label style='font-size:11px;color:#888;display:block;margin-bottom:4px;'>Nom du bien</label><input id='bn-name' value='"+b.name+"' placeholder='Ex: Immeuble Centre' style='width:100%;border:1.5px solid #ddd;border-radius:10px;padding:11px;font-size:14px;'></div>"
+    +"<div><label style='font-size:11px;color:#888;display:block;margin-bottom:4px;'>Localisation</label><input id='bn-loc' value='"+b.location+"' placeholder='Ville (CP)' style='width:100%;border:1.5px solid #ddd;border-radius:10px;padding:11px;font-size:14px;'></div>"
+    +"<div><label style='font-size:11px;color:#888;display:block;margin-bottom:4px;'>Icône</label><input id='bn-icon' value='"+b.icon+"' maxlength='2' style='width:100%;border:1.5px solid #ddd;border-radius:10px;padding:11px;font-size:14px;text-align:center;'></div>"
+    +"</div>"
+    +"<div style='display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px;'>"
+    +"<div><label style='font-size:11px;color:#888;display:block;margin-bottom:4px;'>Régime fiscal</label><select id='bn-regime' style='width:100%;border:1.5px solid #ddd;border-radius:10px;padding:11px;font-size:14px;'>"
+    +"<option value='lmnp'"+(b.regime==='lmnp'?' selected':'')+">LMNP (meublé réel)</option>"
+    +"<option value='sci_is'"+(b.regime==='sci_is'?' selected':'')+">SCI à l'IS</option>"
+    +"<option value='sci_ir'"+(b.regime==='sci_ir'?' selected':'')+">SCI à l'IR / foncier</option>"
+    +"<option value='sas'"+(b.regime==='sas'?' selected':'')+">SAS / IS société</option>"
+    +"</select></div>"
+    +"<div><label style='font-size:11px;color:#888;display:block;margin-bottom:4px;'>Valeur estimée (€)</label><input id='bn-value' type='number' value='"+(b.value||"")+"' placeholder='0' style='width:100%;border:1.5px solid #ddd;border-radius:10px;padding:11px;font-size:14px;'></div>"
+    +"</div>"
+    +"<div style='margin-bottom:14px;'><div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;'><label style='font-size:13px;font-weight:600;'>Lots / Locataires</label><button onclick='addLotRow()' style='font-size:12px;padding:5px 12px;border-radius:8px;border:1.5px solid #0F6E56;background:transparent;color:#0F6E56;cursor:pointer;'>+ Lot</button></div>"
+    +"<div style='display:grid;grid-template-columns:2fr 2fr 1fr 1fr auto;gap:6px;margin-bottom:4px;font-size:10px;color:#888;'><span>Nom</span><span>Locataire</span><span>Loyer/m</span><span>Mois déb.</span><span></span></div>"
+    +"<div id='lots-container'>"+lotsHtml+"</div></div>"
+    +"<div style='margin-bottom:18px;'><div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;'><label style='font-size:13px;font-weight:600;'>Charges mensuelles</label><button onclick='addChargeRow()' style='font-size:12px;padding:5px 12px;border-radius:8px;border:1.5px solid #0F6E56;background:transparent;color:#0F6E56;cursor:pointer;'>+ Charge</button></div>"
+    +"<div id='charges-container'>"+chargesHtml+"</div></div>"
+    +"<div style='display:flex;gap:8px;'>"
+    +(editId?"<button onclick=\"deleteBien('"+editId+"')\" style='padding:13px 18px;border:none;border-radius:12px;background:#FEF2F2;color:#DC2626;font-size:14px;font-weight:600;cursor:pointer;'>Supprimer</button>":"")
+    +"<button onclick=\"closeBienModal()\" style='flex:1;padding:13px;border:none;border-radius:12px;background:#f5f5f5;font-size:14px;font-weight:600;cursor:pointer;'>Annuler</button>"
+    +"<button onclick=\"saveBien('"+(editId||"")+"')\" style='flex:1;padding:13px;border:none;border-radius:12px;background:#0F6E56;color:#fff;font-size:14px;font-weight:600;cursor:pointer;'>Enregistrer</button>"
+    +"</div></div>";
+  document.body.appendChild(ov);
+}
+function closeBienModal(){
+  var m=document.getElementById("bien-modal");
+  if(m)m.remove();
+}
+function addLotRow(){
+  var c=document.getElementById("lots-container");
+  var div=document.createElement("div");
+  div.style.cssText="display:grid;grid-template-columns:2fr 2fr 1fr 1fr auto;gap:6px;margin-bottom:6px;align-items:center;";
+  div.innerHTML="<input class='lot-name' placeholder='Nom lot' style='border:1.5px solid #ddd;border-radius:8px;padding:8px;font-size:13px;'>"
+    +"<input class='lot-tenant' placeholder='Locataire' style='border:1.5px solid #ddd;border-radius:8px;padding:8px;font-size:13px;'>"
+    +"<input class='lot-rent' type='number' step='0.01' placeholder='Loyer' style='border:1.5px solid #ddd;border-radius:8px;padding:8px;font-size:13px;'>"
+    +"<input class='lot-start' type='number' min='1' max='12' placeholder='Mois' value='1' style='border:1.5px solid #ddd;border-radius:8px;padding:8px;font-size:13px;'>"
+    +"<button onclick='this.parentNode.remove()' style='border:none;background:#FEF2F2;color:#DC2626;border-radius:8px;padding:8px 10px;cursor:pointer;'>×</button>";
+  c.appendChild(div);
+}
+function addChargeRow(){
+  var c=document.getElementById("charges-container");
+  var div=document.createElement("div");
+  div.style.cssText="display:grid;grid-template-columns:2fr 1fr auto;gap:6px;margin-bottom:6px;align-items:center;";
+  div.innerHTML="<input class='chg-label' placeholder='Libellé' style='border:1.5px solid #ddd;border-radius:8px;padding:8px;font-size:13px;'>"
+    +"<input class='chg-val' type='number' step='0.01' placeholder='€/mois' style='border:1.5px solid #ddd;border-radius:8px;padding:8px;font-size:13px;'>"
+    +"<button onclick='this.parentNode.remove()' style='border:none;background:#FEF2F2;color:#DC2626;border-radius:8px;padding:8px 10px;cursor:pointer;'>×</button>";
+  c.appendChild(div);
+}
+function saveBien(editId){
+  var name=document.getElementById("bn-name").value.trim();
+  if(!name){alert("Le nom est obligatoire");return;}
+  var lots=[];
+  document.querySelectorAll("#lots-container > div").forEach(function(row){
+    var n=row.querySelector(".lot-name").value.trim();
+    var t=row.querySelector(".lot-tenant").value.trim();
+    var r=parseFloat(row.querySelector(".lot-rent").value)||0;
+    var s=parseInt(row.querySelector(".lot-start").value)||1;
+    if(n||r)lots.push({name:n||"Lot",tenant:t,rent:r,startMonth:s});
+  });
+  var charges=[];
+  document.querySelectorAll("#charges-container > div").forEach(function(row){
+    var l=row.querySelector(".chg-label").value.trim();
+    var v=parseFloat(row.querySelector(".chg-val").value)||0;
+    if(l)charges.push({label:l,key:l.toLowerCase().replace(/[^a-z]/g,""),val:v});
+  });
+  var biens=getCustomBiens();
+  var bienData={
+    id:editId||("b"+Date.now()),
+    name:name,
+    location:document.getElementById("bn-loc").value.trim(),
+    icon:document.getElementById("bn-icon").value.trim()||"🏠",
+    regime:document.getElementById("bn-regime").value,
+    value:parseFloat(document.getElementById("bn-value").value)||0,
+    lots:lots,
+    charges:charges
+  };
+  if(editId){
+    var idx=biens.findIndex(function(b){return b.id===editId;});
+    if(idx>=0)biens[idx]=bienData;else biens.push(bienData);
+  } else {
+    biens.push(bienData);
+  }
+  saveCustomBiens(biens);
+  closeBienModal();
+  renderCustomTabs();
+  setTab("bien_"+bienData.id);
+}
+function deleteBien(id){
+  if(!confirm("Supprimer ce bien et toutes ses données ?"))return;
+  var biens=getCustomBiens().filter(function(b){return b.id!==id;});
+  saveCustomBiens(biens);
+  try{localStorage.removeItem("bien_data_"+id);}catch(e){}
+  closeBienModal();
+  renderCustomTabs();
+  setTab("all");
+}
+// ===== FIN MODULE BIENS (partie 1: stockage + formulaire) =====
+
+
+// ===== RENDER BIEN PERSONNALISE =====
+var BIEN_YEARS={};
+function bienYear(id){return BIEN_YEARS[id]||new Date().getFullYear();}
+function bienDataKey(id){return "bien_data_"+id+"_"+bienYear(id);}
+function bienPayData(id){
+  try{var s=localStorage.getItem(bienDataKey(id));if(s)return JSON.parse(s);}catch(e){}
+  return {};
+}
+function bienSetPay(id,lotIdx,month,val){
+  var d=bienPayData(id);
+  if(!d[lotIdx])d[lotIdx]={};
+  if(val===null)delete d[lotIdx][month];
+  else d[lotIdx][month]=val;
+  localStorage.setItem(bienDataKey(id),JSON.stringify(d));
+  renderBien(id);
+}
+function bienGetPay(id,lotIdx,month,lot){
+  var d=bienPayData(id);
+  var v=d[lotIdx]&&d[lotIdx][month];
+  if(!v)return 0;
+  if(v===true)return lot.rent;
+  return parseFloat(v)||0;
+}
+function bienTogglePay(id,lotIdx,month,rent){
+  var d=bienPayData(id);
+  var cur=d[lotIdx]&&d[lotIdx][month];
+  if(cur){bienSetPay(id,lotIdx,month,null);}
+  else{
+    var val=prompt("Montant reçu pour ce mois (€) :",rent);
+    if(val===null)return;
+    var n=parseFloat(val);if(isNaN(n)||n<0)return;
+    bienSetPay(id,lotIdx,month,n);
+  }
+}
+function bienChangeYear(id,delta){
+  BIEN_YEARS[id]=bienYear(id)+delta;
+  renderBien(id);
+}
+function getBienById(id){
+  return getCustomBiens().find(function(b){return b.id===id;});
+}
+function getBienTotals(id,range){
+  var bien=getBienById(id);
+  if(!bien)return {collected:0,expected:0,chargesMonthly:0};
+  var d=bienPayData(id);
+  var collected=0,expected=0;
+  var yr=bienYear(id);
+  bien.lots.forEach(function(lot,li){
+    for(var mo=1;mo<=12;mo++){
+      var mDate=new Date(yr,mo-1,1);
+      var inR=!range||(mDate>=range.from&&mDate<=range.to);
+      if(inR){
+        if(mo>=(lot.startMonth||1))expected+=lot.rent;
+        if(d[li]&&d[li][mo])collected+=bienGetPay(id,li,mo,lot);
+      }
+    }
+  });
+  var chargesM=bien.charges.reduce(function(s,c){return s+(c.val||0);},0);
+  return {collected:collected,expected:expected,chargesMonthly:chargesM};
+}
+function renderBien(id){
+  var bien=getBienById(id);
+  if(!bien){render();return;}
+  var yr=bienYear(id);
+  var now=new Date();
+  var curMonth=now.getMonth()+1;
+  var isCurrentYear=(yr===now.getFullYear());
+  var d=bienPayData(id);
+  var totalCharges=bien.charges.reduce(function(s,c){return s+(c.val||0);},0);
+  var range=getDateRange();
+  var totalExpected=0,totalCollected=0;
+  bien.lots.forEach(function(lot,li){
+    for(var mo=1;mo<=12;mo++){
+      var mDate=new Date(yr,mo-1,1);
+      var inR=(mDate>=range.from&&mDate<=range.to);
+      if(inR){
+        if(mo>=(lot.startMonth||1))totalExpected+=lot.rent;
+        if(d[li]&&d[li][mo])totalCollected+=bienGetPay(id,li,mo,lot);
+      }
+    }
+  });
+  var nbMois={'month':1,'3m':3,'6m':6,'year':12,'lastyear':12,'all':12}[state.period]||12;
+  if(state.calRange)nbMois=Math.max(1,Math.round((state.calRange.to-state.calRange.from)/86400000/30.4));
+  if(state.pieMois>0)nbMois=1;
+  var chargesPeriode=totalCharges*nbMois;
+  var cashFlow=totalCollected-chargesPeriode;
+  var regimeLbl={lmnp:"LMNP",sci_is:"SCI à l'IS",sci_ir:"SCI à l'IR",sas:"SAS"}[bien.regime]||bien.regime;
+  var html='';
+  // Bandeau
+  html+='<div style="background:var(--green);border-radius:14px;padding:14px;margin-bottom:14px;color:#fff;">';
+  html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;"><div style="font-size:12px;font-weight:600;opacity:.8;">'+bien.icon+' '+bien.name.toUpperCase()+' '+yr+'</div><div style="display:flex;gap:6px;align-items:center;"><span style="font-size:10px;background:rgba(255,255,255,.2);padding:3px 8px;border-radius:10px;">'+regimeLbl+'</span><button onclick="showAddBienModal(\''+id+'\')" style="background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:8px;padding:4px 8px;font-size:11px;cursor:pointer;">✏️ Modifier</button></div></div>';
+  html+='<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;">';
+  html+='<div><div style="font-size:10px;opacity:.7;">Loyers encaissés</div><div style="font-size:20px;font-weight:700;">'+Math.round(totalCollected).toLocaleString('fr-FR')+'€</div></div>';
+  html+='<div><div style="font-size:10px;opacity:.7;">Charges période</div><div style="font-size:20px;font-weight:700;color:#FCA5A5;">-'+Math.round(chargesPeriode).toLocaleString('fr-FR')+'€</div></div>';
+  html+='<div style="grid-column:span 2;"><div style="font-size:10px;opacity:.7;">CASH FLOW NET</div><div style="font-size:26px;font-weight:700;border-top:1px solid rgba(255,255,255,.3);padding-top:8px;color:'+(cashFlow>=0?'#A7F3D0':'#FCA5A5')+';">'+(cashFlow>=0?'+':'')+Math.round(cashFlow).toLocaleString('fr-FR')+'€</div></div>';
+  html+='</div></div>';
+  // Bouton bilan
+  html+='<div style="display:flex;justify-content:flex-end;margin-bottom:12px;"><button onclick="generateBienBilan(\''+id+'\')" style="padding:10px 20px;background:#0F6E56;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;">Générer bilan fiscal '+regimeLbl+' (PDF)</button></div>';
+  // KPIs
+  html+='<div class="kpi-grid" style="margin-bottom:16px;">';
+  html+='<div class="kpi"><div class="kpi-label">Loyers attendus</div><div class="kpi-value" style="color:var(--bk)">'+Math.round(totalExpected).toLocaleString('fr-FR')+'€</div></div>';
+  html+='<div class="kpi green"><div class="kpi-label">Encaissés</div><div class="kpi-value">'+Math.round(totalCollected).toLocaleString('fr-FR')+'€</div><div class="kpi-sub">'+(totalExpected>0?Math.round(totalCollected/totalExpected*100):0)+'% collecté</div></div>';
+  html+='<div class="kpi"><div class="kpi-label">Restant</div><div class="kpi-value" style="color:'+(totalExpected-totalCollected>0?'#DC2626':'#059669')+'">'+(totalExpected-totalCollected).toLocaleString('fr-FR')+'€</div></div>';
+  html+='<div class="kpi"><div class="kpi-label">Charges/mois</div><div class="kpi-value" style="color:#DC2626">'+Math.round(totalCharges).toLocaleString('fr-FR')+'€</div></div>';
+  html+='</div>';
+  // Tableau loyers
+  html+='<div class="elne-wrap"><div class="elne-hdr"><h2>'+bien.icon+' Suivi loyers '+yr+'</h2>';
+  html+='<div class="year-sel"><button class="year-btn" onclick="bienChangeYear(\''+id+'\',-1)">‹</button><span class="year-lbl">'+yr+'</span><button class="year-btn" onclick="bienChangeYear(\''+id+'\',1)">›</button></div></div>';
+  html+='<div style="overflow-x:auto"><table class="elne-table"><tr><th class="apt-col">Lot</th>';
+  MONTHS_FULL.forEach(function(mo){html+='<th>'+mo+'</th>';});
+  html+='<th>Total</th></tr>';
+  bien.lots.forEach(function(lot,li){
+    html+='<tr><td class="apt-cell"><div class="apt-name">'+lot.name+(lot.tenant?' — '+lot.tenant:'')+'</div><div class="apt-rent">'+lot.rent+'€/mois</div></td>';
+    var lotTotal=0;
+    for(var mo=1;mo<=12;mo++){
+      var payVal=d[li]&&d[li][mo];
+      var isActive=mo>=(lot.startMonth||1);
+      var isPartial=payVal&&payVal!==true&&payVal<lot.rent;
+      var cls='',content2='';
+      if(payVal){
+        if(isPartial){cls='partial';content2=payVal+'€';}
+        else{cls='paid';content2='✓';}
+        lotTotal+=bienGetPay(id,li,mo,lot);
+      } else {cls=isActive?'unpaid':'na';content2=isActive?'✗':'—';}
+      html+='<td><div class="pay-cell '+cls+'" onclick="bienTogglePay(\''+id+'\','+li+','+mo+','+lot.rent+')">'+content2+'</div></td>';
+    }
+    html+='<td class="month-total">'+Math.round(lotTotal).toLocaleString('fr-FR')+'€</td></tr>';
+  });
+  html+='</table></div></div>';
+  // Charges
+  html+='<div class="elne-wrap" style="margin-top:16px;"><div class="section-title">CHARGES MENSUELLES</div>';
+  html+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;padding:14px;">';
+  bien.charges.forEach(function(c){
+    html+='<div class="charge-item"><div class="charge-label">'+c.label+'</div><div class="charge-val">'+(c.val||0).toLocaleString('fr-FR')+'€</div></div>';
+  });
+  html+='<div class="charge-item"><div class="charge-label">TOTAL</div><div class="charge-val" style="font-size:20px;">'+Math.round(totalCharges).toLocaleString('fr-FR')+'€</div></div>';
+  html+='</div></div>';
+  document.getElementById('main').innerHTML=html;
+}
+// ===== FIN RENDER BIEN =====
+
+
+// ===== BILAN FISCAL ADAPTATIF PAR REGIME =====
+function generateBienBilan(id){
+  var bien=getBienById(id);
+  if(!bien){alert("Bien introuvable");return;}
+  var yr=bienYear(id);
+  var now=new Date();
+  var d=bienPayData(id);
+  var loyers=[],totalEncaisses=0,totalAttendus=0;
+  bien.lots.forEach(function(lot,li){
+    var enc=0;
+    for(var mo=1;mo<=12;mo++){if(d[li]&&d[li][mo])enc+=bienGetPay(id,li,mo,lot);}
+    totalEncaisses+=enc;totalAttendus+=lot.rent*12;
+    loyers.push({name:lot.name,tenant:lot.tenant,loyer:lot.rent,enc:enc,att:lot.rent*12});
+  });
+  var totalChgAnnuel=bien.charges.reduce(function(s,c){return s+(c.val||0)*12;},0);
+  var creditCharge=bien.charges.find(function(c){return c.key==='credit'||c.label.toLowerCase().indexOf('crédit')>=0||c.label.toLowerCase().indexOf('credit')>=0;});
+  var creditAnnuel=creditCharge?creditCharge.val*12:0;
+  var interetsAnnuel=Math.round(creditAnnuel*0.5);
+  var chgDeduct=interetsAnnuel;
+  bien.charges.forEach(function(c){if(c!==creditCharge)chgDeduct+=(c.val||0)*12;});
+  var val=bien.value||0;
+  var regime=bien.regime;
+  function fc(n){return Math.round(n).toLocaleString('fr-FR')+' EUR';}
+
+  var color=regime==='lmnp'?'#7C3AED':(regime==='sci_is'||regime==='sas'?'#0F6E56':'#0369A1');
+  var regimeLbl={lmnp:"LMNP (meublé réel)",sci_is:"SCI à l'IS",sci_ir:"SCI à l'IR (revenus fonciers)",sas:"SAS (IS société)"}[regime]||regime;
+
+  var h='<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><title>Bilan '+bien.name+' '+yr+'</title>';
+  h+='<style>body{font-family:-apple-system,Arial,sans-serif;max-width:900px;margin:0 auto;padding:30px;color:#1a1a1a;font-size:13px;}h1{font-size:22px;color:'+color+';border-bottom:3px solid '+color+';padding-bottom:8px;}h2{font-size:16px;color:'+color+';margin-top:24px;}table{width:100%;border-collapse:collapse;margin:10px 0;}th,td{padding:7px 10px;text-align:left;border-bottom:0.5px solid #e5e5e5;font-size:12px;}th{background:#f5f5f5;font-weight:600;}td.r,th.r{text-align:right;}.pos{color:#059669;}.neg{color:#DC2626;}.tr{border-top:2px solid '+color+';font-weight:700;}.box{background:#f5f5f5;border-radius:8px;padding:12px;margin:10px 0;font-size:11px;}.alrt{background:#FEF3C7;border-radius:8px;padding:10px;font-size:11px;margin:10px 0;}.ft{margin-top:30px;font-size:10px;color:#999;border-top:0.5px solid #ddd;padding-top:10px;}@media print{.noprint{display:none;}}</style></head><body>';
+  h+='<h1>'+bien.icon+' Bilan fiscal — '+bien.name+'</h1>';
+  h+='<div style="font-size:12px;color:#666;">Exercice '+yr+' · '+regimeLbl+(bien.location?' · '+bien.location:'')+'</div>';
+
+  // Revenus (commun)
+  h+='<h2>I. Revenus locatifs</h2><table><tr><th>Lot</th><th>Locataire</th><th class="r">Loyer/mois</th><th class="r">Attendu/an</th><th class="r">Encaissé</th></tr>';
+  loyers.forEach(function(l){h+='<tr><td>'+l.name+'</td><td>'+(l.tenant||'-')+'</td><td class="r">'+fc(l.loyer)+'</td><td class="r">'+fc(l.att)+'</td><td class="r pos">'+fc(l.enc)+'</td></tr>';});
+  h+='<tr class="tr"><td colspan="3"><b>TOTAL</b></td><td class="r">'+fc(totalAttendus)+'</td><td class="r pos">'+fc(totalEncaisses)+'</td></tr></table>';
+
+  // Charges (commun)
+  h+='<h2>II. Charges déductibles</h2><table>';
+  h+='<tr><td>Intérêts d emprunt (estimés 50%)</td><td class="r neg">-'+fc(interetsAnnuel)+'</td></tr>';
+  bien.charges.forEach(function(c){if(c!==creditCharge&&c.val>0)h+='<tr><td>'+c.label+'</td><td class="r neg">-'+fc(c.val*12)+'</td></tr>';});
+  h+='<tr class="tr"><td><b>TOTAL CHARGES</b></td><td class="r neg"><b>-'+fc(chgDeduct)+'</b></td></tr></table>';
+
+  var resAvantAmort=totalEncaisses-chgDeduct;
+
+  if(regime==='lmnp'){
+    // LMNP : amortissement plafonné au bénéfice
+    var bati=val*0.85;
+    var amortBati=Math.round(bati*0.025);
+    var amortMeubles=Math.round((val*0.05)/7);
+    var amortTotal=amortBati+amortMeubles;
+    var amortUtilise=Math.max(0,Math.min(amortTotal,resAvantAmort));
+    var resultatFiscal=Math.max(0,resAvantAmort-amortUtilise);
+    var impot=Math.round(resultatFiscal*(0.30+0.172));
+    h+='<h2>III. Amortissements LMNP</h2><table>';
+    h+='<tr><td>Amortissement bâti (2,5%/an)</td><td class="r neg">-'+fc(amortBati)+'</td></tr>';
+    h+='<tr><td>Amortissement mobilier (7 ans)</td><td class="r neg">-'+fc(amortMeubles)+'</td></tr>';
+    h+='<tr class="tr"><td><b>Total amortissement</b></td><td class="r neg"><b>-'+fc(amortTotal)+'</b></td></tr>';
+    h+='<tr><td>Amortissement utilisé (plafonné au bénéfice)</td><td class="r neg">-'+fc(amortUtilise)+'</td></tr></table>';
+    h+='<h2>IV. Résultat & imposition</h2><table>';
+    h+='<tr><td>Résultat avant amortissement</td><td class="r '+(resAvantAmort>=0?'pos':'neg')+'">'+fc(resAvantAmort)+'</td></tr>';
+    h+='<tr class="tr"><td><b>Résultat fiscal imposable</b></td><td class="r">'+fc(resultatFiscal)+'</td></tr>';
+    h+='<tr><td>Impôt (TMI 30% + PS 17,2%)</td><td class="r neg">-'+fc(impot)+'</td></tr></table>';
+    h+='<div class="box"><b>LMNP réel :</b> l amortissement réduit fortement l impôt et est plafonné au bénéfice (pas de déficit créé). À la revente, les amortissements ne sont pas réintégrés dans la plus-value.</div>';
+  } else if(regime==='sci_is'||regime==='sas'){
+    // IS : amortissement déductible sans plafond + IS 15%/25%
+    var bati=val*0.80;
+    var amortImmeuble=Math.round(bati*0.025);
+    var totalDeduct=chgDeduct+amortImmeuble;
+    var resFiscal=totalEncaisses-totalDeduct;
+    var is=0;
+    if(resFiscal>0){is=resFiscal<=42500?Math.round(resFiscal*0.15):(Math.round(42500*0.15)+Math.round((resFiscal-42500)*0.25));}
+    var resNet=resFiscal-is;
+    var flatTax=Math.round(Math.max(0,resNet)*0.30);
+    h+='<h2>III. Amortissements</h2><table>';
+    h+='<tr><td>Amortissement immeuble (2,5%/an sur '+fc(bati)+')</td><td class="r neg">-'+fc(amortImmeuble)+'</td></tr></table>';
+    h+='<h2>IV. Résultat & IS</h2><table>';
+    h+='<tr><td>Produits</td><td class="r pos">'+fc(totalEncaisses)+'</td></tr>';
+    h+='<tr><td>− Charges + amortissements</td><td class="r neg">-'+fc(totalDeduct)+'</td></tr>';
+    h+='<tr class="tr"><td><b>Résultat fiscal</b></td><td class="r '+(resFiscal>=0?'pos':'neg')+'">'+fc(resFiscal)+'</td></tr>';
+    h+='<tr><td>IS (15% jusqu à 42 500€ puis 25%)</td><td class="r neg">-'+fc(is)+'</td></tr>';
+    h+='<tr><td>Résultat net après IS</td><td class="r pos">'+fc(resNet)+'</td></tr>';
+    h+='<tr><td>Si distribution dividendes (flat tax 30%)</td><td class="r neg">-'+fc(flatTax)+'</td></tr></table>';
+    h+='<div class="box"><b>'+regimeLbl+' :</b> amortissements déductibles sans plafond, IS à taux réduit 15% sur les premiers 42 500€. Attention : plus-value de cession calculée sur la valeur nette comptable (après amortissements), fiscalité de revente plus lourde.</div>';
+  } else {
+    // SCI IR / foncier : pas d'amortissement, micro-foncier ou réel
+    var resFoncier=resAvantAmort;
+    var impotReel=Math.round(Math.max(0,resFoncier)*(0.30+0.172));
+    var baseMicro=totalEncaisses*0.70;
+    var impotMicro=Math.round(baseMicro*(0.30+0.172));
+    h+='<h2>III. Résultat foncier & imposition</h2><table>';
+    h+='<tr><td>Revenus fonciers</td><td class="r pos">'+fc(totalEncaisses)+'</td></tr>';
+    h+='<tr><td>− Charges déductibles</td><td class="r neg">-'+fc(chgDeduct)+'</td></tr>';
+    h+='<tr class="tr"><td><b>Résultat foncier net</b></td><td class="r '+(resFoncier>=0?'pos':'neg')+'">'+fc(resFoncier)+'</td></tr>';
+    h+='<tr><td>Impôt régime réel (TMI 30% + PS 17,2%)</td><td class="r neg">-'+fc(impotReel)+'</td></tr></table>';
+    h+='<div class="box"><b>Comparaison :</b><br>• Régime réel : impôt ≈ '+fc(impotReel)+'<br>• Micro-foncier (abattement 30%) : ≈ '+fc(impotMicro)+'<br><b style="color:'+color+';">→ '+(impotReel<impotMicro?'Le régime réel est plus avantageux':'Le micro-foncier est plus avantageux')+'</b><br><br>SCI à l IR : pas d amortissement déductible (contrairement à l IS), mais pas de fiscalité sur amortissements à la revente. Les déficits fonciers sont imputables sur le revenu global jusqu à 10 700€/an.</div>';
+  }
+
+  h+='<div class="ft">Bilan généré par Illiberis Channel Manager · '+now.toLocaleDateString('fr-FR')+' · Document indicatif non opposable · '+bien.name+(bien.location?' · '+bien.location:'')+'</div>';
+  h+='<div class="noprint" style="text-align:center;margin-top:14px;"><button onclick="window.print()" style="padding:10px 24px;background:'+color+';color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer;font-weight:600;">Imprimer / PDF</button> <button onclick="window.close()" style="padding:10px 24px;background:#f5f5f5;border:1px solid #ddd;border-radius:8px;font-size:14px;cursor:pointer;margin-left:8px;">Fermer</button></div>';
+  h+='</body></html>';
+  var w=window.open('','_blank','width=1100,height=820,scrollbars=yes');
+  w.document.write(h);w.document.close();
+}
+// ===== FIN BILAN ADAPTATIF =====
 
 init();
 </script>
