@@ -1012,6 +1012,14 @@ function render(){
   var MO=["Jan","Fev","Mar","Avr","Mai","Juin","Juil","Aout","Sep","Oct","Nov","Dec"];
   // === Donnees mensuelles sur les 12 mois de l annee globale (independant de la periode) ===
   var GY=state.globalYear;
+  var _now=new Date();
+  var _curY=_now.getFullYear(),_curMo=_now.getMonth()+1;
+  // Pour l annee courante : encaisse jusqu au mois courant, previsionnel ensuite. Annees passees : encaisse seul. Annees futures : previsionnel.
+  function _moMode(mo){
+    if(GY<_curY)return 'enc';
+    if(GY>_curY)return 'prev';
+    return mo<=_curMo?'enc':'prev';
+  }
   var gmSuite={},gmLoft={},gmElne={},gmSoler={};
   for(var gi=0;gi<12;gi++){gmSuite[gi]=0;gmLoft[gi]=0;gmElne[gi]=0;gmSoler[gi]=0;}
   // Airbnb Suite/Loft par mois sur GY
@@ -1031,7 +1039,7 @@ function render(){
       var brent=cr?parseFloat(cr):apt.rent;
       for(var mo=1;mo<=12;mo++){
         if(dE[apt.id]&&dE[apt.id][mo]){var v=dE[apt.id][mo];gmElne[mo-1]+=(v===true?brent:parseFloat(v)||0);}
-        else if(mo>=apt.startMonth){gmElne[mo-1]+=brent;}
+        else if(mo>=apt.startMonth && _moMode(mo)==='prev'){gmElne[mo-1]+=brent;}
       }
     });
   })();
@@ -1043,7 +1051,7 @@ function render(){
       var brent=cr?parseFloat(cr):apt.rent;
       for(var mo=1;mo<=12;mo++){
         if(dS[apt.id]&&dS[apt.id][mo]){var v=dS[apt.id][mo];gmSoler[mo-1]+=(v===true?brent:parseFloat(v)||0);}
-        else if(mo>=(apt.startMonth||1)){gmSoler[mo-1]+=brent;}
+        else if(mo>=(apt.startMonth||1) && _moMode(mo)==='prev'){gmSoler[mo-1]+=brent;}
       }
     });
   })();
@@ -1119,10 +1127,11 @@ function render(){
   var tblTotS=0,tblTotL=0,tblTotE=0,tblTotSo=0;
   bLbls.forEach(function(lbl,i){
     tblTotS+=bSuite[i];tblTotL+=bLoft[i];tblTotE+=bElne[i];tblTotSo+=bSoler[i];
-    html+="<tr style='border-bottom:0.5px solid #f0f0f0;'><td style='padding:6px 8px;font-weight:500;'>"+lbl+"</td><td style='padding:6px 8px;text-align:right;'>"+(bSuite[i]?fmtC(bSuite[i]):'-')+"</td><td style='padding:6px 8px;text-align:right;'>"+(bLoft[i]?fmtC(bLoft[i]):'-')+"</td><td style='padding:6px 8px;text-align:right;'>"+(bElne[i]?fmtC(bElne[i]):'-')+"</td><td style='padding:6px 8px;text-align:right;'>"+(bSoler[i]?fmtC(bSoler[i]):'-')+"</td><td style='padding:6px 8px;text-align:right;font-weight:600;'>"+fmtC(bTotal[i])+"</td></tr>";
+    var isPrev=(GY>_curY)||(GY===_curY&&(i+1)>_curMo);
+    html+="<tr style='border-bottom:0.5px solid #f0f0f0;"+(isPrev?"opacity:.55;":"")+"'><td style='padding:6px 8px;font-weight:500;'>"+lbl+(isPrev?" <span style=\'font-size:9px;color:#888;\'>prév.</span>":"")+"</td><td style='padding:6px 8px;text-align:right;'>"+(bSuite[i]?fmtC(bSuite[i]):'-')+"</td><td style='padding:6px 8px;text-align:right;'>"+(bLoft[i]?fmtC(bLoft[i]):'-')+"</td><td style='padding:6px 8px;text-align:right;'>"+(bElne[i]?fmtC(bElne[i]):'-')+"</td><td style='padding:6px 8px;text-align:right;'>"+(bSoler[i]?fmtC(bSoler[i]):'-')+"</td><td style='padding:6px 8px;text-align:right;font-weight:600;'>"+fmtC(bTotal[i])+"</td></tr>";
   });
   html+="<tr style='background:#f0faf6;border-top:2px solid #0F6E56;'><td style='padding:8px;font-weight:700;'>TOTAL</td><td style='padding:8px;text-align:right;font-weight:600;'>"+fmtC(tblTotS)+"</td><td style='padding:8px;text-align:right;font-weight:600;'>"+fmtC(tblTotL)+"</td><td style='padding:8px;text-align:right;font-weight:600;'>"+fmtC(tblTotE)+"</td><td style='padding:8px;text-align:right;font-weight:600;'>"+fmtC(tblTotSo)+"</td><td style='padding:8px;text-align:right;font-weight:700;color:#0F6E56;'>"+fmtC(tblTotS+tblTotL+tblTotE+tblTotSo)+"</td></tr>";
-  html+="</table></div></div>";
+  html+="</table><div style='font-size:10px;color:#999;padding:8px;'>Mois passés : encaissé réel. Mois « prév. » : prévisionnel non encore encaissé.</div></div></div>";
   html+="</div>";
   html+="<div class='chart-card' style='margin-bottom:16px;'><div class='chart-title' style='display:flex;justify-content:space-between;align-items:center;'>Portefeuille immobilier <button onclick='addBuilding()' style='font-size:12px;padding:5px 12px;border-radius:8px;border:1.5px solid #0F6E56;background:transparent;color:#0F6E56;cursor:pointer;'>+ Ajouter un bien</button></div><div style='overflow-x:auto;'><table style='width:100%;border-collapse:collapse;font-size:12px;'><tr style='background:#f8f9fa;'><th style='padding:8px;text-align:left;font-weight:500;'>Bien</th><th style='padding:8px;text-align:right;'>Valeur</th><th style='padding:8px;text-align:right;'>Rev. annuels</th><th style='padding:8px;text-align:right;'>Rendement</th><th style='padding:8px;text-align:right;'>Revente estimee</th></tr>";
   html+="<tr style='border-bottom:0.5px solid #eee;'><td style='padding:10px 8px;font-weight:500;'>Immeuble ELNE<div style='font-size:10px;color:#888;'>Elne 66 · 8 lots</div></td><td style='padding:10px 8px;text-align:right;cursor:pointer;' onclick='editEstVal()'>"+Math.round(estVal/1000)+"k€ ✏</td><td style='padding:10px 8px;text-align:right;'>"+fmtC(Math.round(annualRev))+"/an</td><td style='padding:10px 8px;text-align:right;color:#0F6E56;font-weight:500;'>"+yieldPct+"%</td><td style='padding:10px 8px;text-align:right;font-size:11px;'>"+(valMin>0?fmtC(valMin)+" – "+fmtC(valMax):"—")+"</td></tr>";
