@@ -1,4 +1,4 @@
-const CACHE = 'illiberis-v3';
+const CACHE = 'illiberis-v4';
 const OFFLINE_URLS = ['/menage', '/mobile', '/manifest-menage.json', '/icon-menage-192.png', '/icon-menage-512.png'];
 
 self.addEventListener('install', e => {

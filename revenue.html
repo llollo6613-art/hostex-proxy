@@ -200,12 +200,17 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 <script>
 function getNet(r){
-  var n=parseFloat(r.net_amount)||0;
-  if(n>0) return n;
   var g=parseFloat(r.total_price)||0;
   if(!g) return 0;
+  // 1. Priorite : montant net exact = brut - commission reelle (valeurs Hostex)
+  var com=parseFloat(r.commission);
+  if(!isNaN(com) && com>0) return g-com;
+  // 2. Sinon net_amount si renseigne
+  var n=parseFloat(r.net_amount)||0;
+  if(n>0) return n;
+  // 3. Repli : taux moyen observe (Airbnb ~6.4%, Booking ~16.3%)
   var ia=(r.channel_type||'').toLowerCase().includes('airbnb');
-  return ia ? g*(1-0.0488) : g*(1-0.164);
+  return ia ? g*(1-0.064) : g*(1-0.163);
 }
 var PROPS = {"12619011":{name:"Suite Illiberis",clean:25}, "12619012":{name:"Loft Cinema",clean:45}};
 var MONTHS = ["Jan","Fév","Mar","Avr","Mai","Juin","Juil","Août","Sep","Oct","Nov","Déc"];
@@ -809,8 +814,7 @@ function renderProp(propId){
   sorted.slice(0,30).forEach(function(r){
     var ia=(r.channel_type||'').toLowerCase().includes('airbnb');
     var g=parseFloat(r.total_price)||0;
-    var n=parseFloat(r.net_amount)||0;
-    if(!n&&g)n=ia?g*(1-0.0488):g*(1-0.164);
+    var n=getNet(r);
     var ci=r.check_in_date||r.check_in||'';
     var co=r.check_out_date||r.check_out||'';
     var ni=Math.round((new Date(co+'T00:00:00')-new Date(ci+'T00:00:00'))/86400000);
@@ -863,8 +867,7 @@ function calcKpis(res){
   res.forEach(function(r){
     var ia = (r.channel_type||'').toLowerCase().includes('airbnb');
     var g = parseFloat(r.total_price)||0;
-    var n = parseFloat(r.net_amount)||0;
-    if(!n && g) n = ia ? g*(1-0.0488) : g*(1-0.164);
+    var n = getNet(r);
     var ci = new Date((r.check_in_date||r.check_in||'')+'T00:00:00');
     var co = new Date((r.check_out_date||r.check_out||'')+'T00:00:00');
     var ni = Math.max(0,Math.round((co-ci)/86400000));
