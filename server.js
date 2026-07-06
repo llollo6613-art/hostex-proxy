@@ -878,6 +878,8 @@ setInterval(async function() {
   } catch(e) {}
 }, 14 * 60 * 1000); // toutes les 14 minutes
 
+require('./boutique')(app);
+
 app.listen(PORT, function() { console.log('Listening on', PORT); });
 
 // Sync léger au démarrage - enrichit via channel_id sans recréer de doublons
