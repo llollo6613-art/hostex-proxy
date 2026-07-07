@@ -722,6 +722,31 @@ app.post('/api-claude', async function(req, res) {
 });
 
 // Health
+// DEBUG : comparer API Hostex vs Supabase pour un client (ex: /debug-cancel?q=remi)
+app.get('/debug-cancel', async function(req, res) {
+  try {
+    const q = (req.query.q || '').toLowerCase();
+    if (!q) return res.json({ error: 'ajouter ?q=nom_du_client' });
+    let apiMatches = [];
+    for (let page = 1; page <= 10; page++) {
+      const data = await hostexGet('/reservations?page_size=50&page=' + page + '&sort=check_in_date&sort_order=desc');
+      const list = (data && data.data && data.data.reservations) || [];
+      if (!list.length) break;
+      list.forEach(function(r) {
+        if ((r.guest_name || '').toLowerCase().includes(q)) {
+          apiMatches.push({ code: r.reservation_code || r.id, guest: r.guest_name, status: r.status, check_in: r.check_in_date, check_out: r.check_out_date, channel: r.channel_type });
+        }
+      });
+      if (list.length < 50) break;
+    }
+    let supaRows = [];
+    try {
+      supaRows = await supaFetch('reservations?select=reservation_code,guest_name,status,check_in_date,check_out_date,channel_type&guest_name=ilike.*' + encodeURIComponent(q) + '*');
+    } catch(e2) { supaRows = [{ error: e2.message }]; }
+    res.json({ recherche: q, api_hostex: apiMatches, base_supabase: supaRows });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 app.get('/sync-hostex', function(req, res) {
   const p = require('path').join(__dirname, 'sync-hostex.html');
   const fs2 = require('fs');
@@ -877,6 +902,8 @@ setInterval(async function() {
     console.log('Keep-alive ping OK', new Date().toISOString());
   } catch(e) {}
 }, 14 * 60 * 1000); // toutes les 14 minutes
+
+require('./boutique')(app);
 
 app.listen(PORT, function() { console.log('Listening on', PORT); });
 
