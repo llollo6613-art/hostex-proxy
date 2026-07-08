@@ -982,9 +982,51 @@ async function syncHostexToSupabase() {
         return (isNew || isRecent) && r.status !== 'cancelled';
       });
 
+      // === DÉTECTION DES ANNULATIONS ===
+      // Cas 1 : Hostex renvoie le statut 'cancelled' pour une résa qui était active en base
+      const cancelledNow = [];
+      const existingByCode = {};
+      existing.forEach(r => { existingByCode[r.reservation_code] = r; });
+      toSave.forEach(r => {
+        const prev = existingByCode[r.reservation_code];
+        if (r.status === 'cancelled' && prev && prev.status && prev.status !== 'cancelled') {
+          cancelledNow.push(r);
+        }
+      });
+      // Cas 2 : une résa FUTURE active en base a totalement disparu de la réponse Hostex
+      const apiCodes = new Set(toSave.map(r => r.reservation_code));
+      const todayStr = new Date().toISOString().slice(0, 10);
+      // Sécurité anti-faux-positif : ne détecter les disparitions que si l'API a renvoyé
+      // un volume plausible (au moins la moitié des résas futures connues en base).
+      const futureInDB = existing.filter(r => r.status !== 'cancelled' && r.check_in_date && r.check_in_date >= todayStr);
+      const futureInApi = toSave.filter(r => r.status !== 'cancelled' && r.check_in_date && r.check_in_date >= todayStr);
+      const apiSeemsComplete = futureInDB.length === 0 || futureInApi.length >= Math.floor(futureInDB.length / 2);
+      const disappeared = apiSeemsComplete ? existing.filter(r => {
+        return r.status !== 'cancelled'
+          && r.check_in_date && r.check_in_date >= todayStr   // séjour à venir uniquement
+          && !apiCodes.has(r.reservation_code);                // absente de l'API
+      }) : [];
+      // Marquer les disparues comme annulées dans Supabase
+      for (const r of disappeared) {
+        try {
+          await supaFetch('reservations?reservation_code=eq.' + encodeURIComponent(r.reservation_code), 'PATCH', { status: 'cancelled' });
+          cancelledNow.push(Object.assign({}, r, { status: 'cancelled' }));
+        } catch(ePatch) { console.error('Patch cancel error:', ePatch.message); }
+      }
+
       await supaSave(toSave);
       invalidateCache();
-      console.log('Auto-sync: ' + toSave.length + ' synced, ' + newRes.length + ' new');
+      console.log('Auto-sync: ' + toSave.length + ' synced, ' + newRes.length + ' new, ' + cancelledNow.length + ' cancelled');
+
+      // Notifs d'ANNULATION (propriétaire + ménage)
+      for (const r of cancelledNow) {
+        const prop = String(r.property_id) === '12619011' ? 'Suite Illiberis' : 'Loft Cinema';
+        const ch = r.channel_type === 'airbnb' ? 'Airbnb' : (r.channel_type === 'booking.com' || r.channel_type === 'booking' ? 'Booking' : (r.channel_type || ''));
+        const msgCancel = prop + ' · ' + ch + '\n' + (r.guest_name || '') + '\nArrivée prévue le ' + (r.check_in_date || '') + ' — ANNULÉE';
+        await sendPushNotif('❌ Réservation annulée', msgCancel, '/mobile', 'cancel-resa', 'owner');
+        await sendPushNotif('❌ Séjour annulé', prop + '\n' + (r.guest_name || '') + '\nLe ménage prévu le ' + (r.check_out_date || '') + ' est annulé', '/menage', 'cancel-resa', 'menage');
+      }
+
 
       // Notifs pour les nouvelles réservations
       for (const r of newRes) {
