@@ -722,6 +722,14 @@ app.post('/api-claude', async function(req, res) {
 });
 
 // Health
+// Déclenche la vraie sync Supabase (avec détection annulations) à la demande
+app.get('/force-sync', async function(req, res) {
+  try {
+    await syncHostexToSupabase();
+    res.json({ ok: true, message: 'Sync Supabase terminée (voir logs pour détails annulations)' });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 // DEBUG : comparer API Hostex vs Supabase pour un client (ex: /debug-cancel?q=remi)
 app.get('/debug-cancel', async function(req, res) {
   try {
