@@ -508,6 +508,60 @@ app.get('/debug-audit', async function(req, res) {
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
+// RÉPARATION : restaurer les réservations annulées à tort.
+// Repasse en 'accepted' toute résa 'cancelled' qui existe ENCORE dans l'API Hostex.
+app.get('/repair-cancellations', async function(req, res) {
+  try {
+    // 1. Récupérer TOUS les codes présents dans l'API Hostex (toutes pages, tous tris)
+    const apiCodes = new Set();
+    for (const sortParam of ['', '&sort=check_in_date&sort_order=desc', '&sort=check_in_date&sort_order=asc', '&sort=booked_at&sort_order=desc']) {
+      for (let page = 1; page <= 15; page++) {
+        const data = await hostexGet('/reservations?page_size=100&page=' + page + sortParam);
+        const list = (data && data.data && data.data.reservations) || [];
+        if (!list.length) break;
+        list.forEach(function(r) {
+          let code = r.reservation_code || r.id || '';
+          apiCodes.add(code);
+          // aussi la version normalisée
+          let norm = code;
+          if (norm.startsWith('0-')) norm = norm.split('-')[1];
+          norm = norm.replace(/-ic[a-z0-9]+$/, '').replace(/-id[a-z0-9]+$/, '').replace(/-bk$/, '');
+          apiCodes.add(norm);
+        });
+        if (list.length < 100) break;
+      }
+    }
+    // 2. Parcourir les résas 'cancelled' en base et restaurer celles encore dans l'API
+    const all = await getDB();
+    const cancelled = all.filter(r => r.status === 'cancelled');
+    const restored = [];
+    const keptCancelled = [];
+    for (const r of cancelled) {
+      let code = r.reservation_code || '';
+      let norm = code;
+      if (norm.startsWith('0-')) norm = norm.split('-')[1];
+      norm = norm.replace(/-ic[a-z0-9]+$/, '').replace(/-id[a-z0-9]+$/, '').replace(/-bk$/, '');
+      if (apiCodes.has(code) || apiCodes.has(norm)) {
+        // Existe encore dans Hostex => n'aurait pas dû être annulée => restaurer
+        try {
+          await supaFetch('reservations?reservation_code=eq.' + encodeURIComponent(r.reservation_code), 'PATCH', { status: 'accepted' });
+          restored.push({ code: r.reservation_code, guest: r.guest_name, checkin: r.check_in_date });
+        } catch(e) { console.error('Restore error:', e.message); }
+      } else {
+        keptCancelled.push({ code: r.reservation_code, guest: r.guest_name, checkin: r.check_in_date });
+      }
+    }
+    invalidateCache();
+    res.json({
+      api_codes_count: apiCodes.size,
+      restaurees_count: restored.length,
+      restaurees: restored,
+      vraies_annulations_count: keptCancelled.length,
+      vraies_annulations: keptCancelled
+    });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 app.post('/subscribe', async (req, res) => {
   const {endpoint, role, ...rest} = req.body || {};
   const sub = {endpoint, ...rest};
@@ -1094,34 +1148,11 @@ async function syncHostexToSupabase() {
           cancelledNow.push(r);
         }
       });
-      // Cas 2 : une résa a disparu de l'API Hostex DANS LA FENÊTRE DE DATES que l'API couvre réellement.
-      // L'API Hostex ne renvoie qu'une fenêtre glissante (ex: J-15 à J+30), pas tout l'historique.
-      // On ne peut donc chercher les disparitions QUE dans l'intervalle [min check-in API, max check-in API].
-      const apiCodes = new Set(toSave.map(r => r.reservation_code));
-      const todayStr = new Date().toISOString().slice(0, 10);
-      // Déterminer la fenêtre de dates réellement couverte par la réponse API
-      const apiCheckins = toSave.map(r => r.check_in_date).filter(Boolean).sort();
-      let disappeared = [];
-      if (apiCheckins.length >= 3) {   // au moins 3 résas pour définir une fenêtre fiable
-        const winMin = apiCheckins[0];
-        const winMax = apiCheckins[apiCheckins.length - 1];
-        // Une résa est "annulée" si : active en base, check-in DANS la fenêtre API, à venir, et absente de l'API
-        disappeared = existing.filter(r => {
-          return r.status !== 'cancelled'
-            && r.check_in_date
-            && r.check_in_date >= todayStr        // séjour à venir
-            && r.check_in_date >= winMin          // dans la fenêtre couverte par l'API
-            && r.check_in_date <= winMax
-            && !apiCodes.has(r.reservation_code); // absente de l'API
-        });
-      }
-      // Marquer les disparues comme annulées dans Supabase
-      for (const r of disappeared) {
-        try {
-          await supaFetch('reservations?reservation_code=eq.' + encodeURIComponent(r.reservation_code), 'PATCH', { status: 'cancelled' });
-          cancelledNow.push(Object.assign({}, r, { status: 'cancelled' }));
-        } catch(ePatch) { console.error('Patch cancel error:', ePatch.message); }
-      }
+      // Cas 2 DÉSACTIVÉ : la détection par "disparition de l'API" est trop risquée car
+      // l'API Hostex renvoie des listes partielles/variables — cela a annulé des résas valides.
+      // On ne conserve QUE le Cas 1 (statut 'cancelled' explicite renvoyé par Hostex), fiable.
+      const disappeared = [];
+      // (aucune détection par disparition)
 
       await supaSave(toSave);
       invalidateCache();
