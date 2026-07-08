@@ -562,6 +562,69 @@ app.get('/repair-cancellations', async function(req, res) {
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
+// RÉPARATION v2 : restaurer via les iCal Airbnb/Booking (source FIABLE, contient tout).
+// Toute résa 'cancelled' dont le code OU les dates correspondent à un événement iCal actif est restaurée.
+app.get('/repair-ical', async function(req, res) {
+  try {
+    const icalUrls = [
+      {url: 'https://www.airbnb.fr/calendar/ical/1444758558715417027.ics?t=c42b72016c5748c18ee41cd64ae7e287', prop: '12619011'},
+      {url: 'https://www.airbnb.fr/calendar/ical/1499112879728152781.ics?t=7dccb868b47241b9970e6d8caa1a5de8', prop: '12619012'},
+      {url: 'https://ical.booking.com/v1/export?t=939b4e7b-3790-4c7a-8062-4b58f61c6af2', prop: '12619011'},
+      {url: 'https://ical.booking.com/v1/export?t=0e46cbb9-8661-4a50-99d3-0dc9ec5ab511', prop: '12619012'},
+    ];
+    const activeCodes = new Set();
+    const activeDates = new Set();  // "prop|checkin" pour matcher par dates si code différent
+    for (const {url, prop} of icalUrls) {
+      try {
+        const r = await fetch(url, {headers:{'User-Agent':'Mozilla/5.0','Accept':'text/calendar,*/*'}});
+        const rawText = await r.text();
+        const text = rawText.replace(/\r\n[ \t]/g, '').replace(/\r/g, '');
+        const events = text.split('BEGIN:VEVENT').slice(1);
+        for (const ev of events) {
+          const dtstart = (ev.match(/DTSTART[^:\n]*:(\d+)/) || [])[1];
+          const summary = ((ev.match(/SUMMARY:([^\n]+)/) || [])[1] || '').trim();
+          const desc = ((ev.match(/DESCRIPTION:([^\n]+)/) || [])[1] || '').trim();
+          if (!dtstart) continue;
+          if (summary.includes('Not available') || summary === 'Blocked') continue;
+          const ci = dtstart.slice(0,4)+'-'+dtstart.slice(4,6)+'-'+dtstart.slice(6,8);
+          const codeMatch = desc.match(/details\/([A-Z0-9]+)/);
+          if (codeMatch) activeCodes.add(codeMatch[1]);
+          activeDates.add(prop + '|' + ci);
+        }
+      } catch(eICal) { console.error('iCal fetch error:', eICal.message); }
+    }
+    // Restaurer les résas cancelled présentes dans les iCal
+    const all = await getDB();
+    const cancelled = all.filter(r => r.status === 'cancelled');
+    const restored = [], kept = [];
+    for (const r of cancelled) {
+      let code = r.reservation_code || '';
+      let norm = code;
+      if (norm.startsWith('0-')) norm = norm.split('-')[1];
+      norm = norm.replace(/-ic[a-z0-9]+$/, '').replace(/-id[a-z0-9]+$/, '').replace(/-bk$/, '');
+      const byCode = activeCodes.has(code) || activeCodes.has(norm);
+      const byDate = activeDates.has(String(r.property_id) + '|' + r.check_in_date);
+      if (byCode || byDate) {
+        try {
+          await supaFetch('reservations?reservation_code=eq.' + encodeURIComponent(r.reservation_code), 'PATCH', { status: 'accepted' });
+          restored.push({ code: r.reservation_code, guest: r.guest_name, checkin: r.check_in_date, via: byCode ? 'code' : 'date' });
+        } catch(e) { console.error('Restore error:', e.message); }
+      } else {
+        kept.push({ code: r.reservation_code, guest: r.guest_name, checkin: r.check_in_date });
+      }
+    }
+    invalidateCache();
+    res.json({
+      ical_codes: activeCodes.size,
+      ical_dates: activeDates.size,
+      restaurees_count: restored.length,
+      restaurees: restored,
+      restent_annulees_count: kept.length,
+      restent_annulees: kept
+    });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 app.post('/subscribe', async (req, res) => {
   const {endpoint, role, ...rest} = req.body || {};
   const sub = {endpoint, ...rest};
