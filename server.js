@@ -566,6 +566,60 @@ app.get('/repair-cancellations', async function(req, res) {
 // Toute résa 'cancelled' dont le code OU les dates correspondent à un événement iCal actif est restaurée.
 // RÉPARATION v3 : restaurer les résa FUTURES 'cancelled' SAUF les vraies annulations confirmées.
 // Ne touche PAS aux réservations passées (leurs annulations restent telles quelles).
+// DÉDUPLICATION : supprime les doublons (même réservation stockée sous plusieurs codes).
+// Normalise le code (retire préfixe 0-, suffixes -bk / -icXXX / -idXXX) et garde 1 seule version.
+function _normCode(code) {
+  let c = code || '';
+  if (c.startsWith('0-')) {
+    const parts = c.split('-');
+    c = parts[1] || c;
+  }
+  c = c.replace(/-ic[a-z0-9]+$/i, '').replace(/-id[a-z0-9]+$/i, '').replace(/-ie[a-z0-9]+$/i, '').replace(/-bk$/i, '');
+  return c;
+}
+app.get('/dedup', async function(req, res) {
+  try {
+    const dryRun = req.query.apply !== '1';  // par défaut simulation ; ?apply=1 pour exécuter
+    const all = await getDB();
+    // Grouper par code normalisé
+    const groups = {};
+    all.forEach(function(r) {
+      const norm = _normCode(r.reservation_code);
+      (groups[norm] = groups[norm] || []).push(r);
+    });
+    const toDelete = [];
+    const kept = [];
+    Object.keys(groups).forEach(function(norm) {
+      const grp = groups[norm];
+      if (grp.length <= 1) return;  // pas de doublon
+      // Choisir la version à GARDER : priorité au code le plus riche en données
+      // (celui avec le plus d'infos : prix, commission, guest réel), sinon le code le plus court
+      grp.sort(function(a, b) {
+        const aScore = (a.total_price > 0 ? 2 : 0) + (a.commission > 0 ? 1 : 0) + (a.guest_name && !a.guest_name.includes('Voyageur') ? 1 : 0);
+        const bScore = (b.total_price > 0 ? 2 : 0) + (b.commission > 0 ? 1 : 0) + (b.guest_name && !b.guest_name.includes('Voyageur') ? 1 : 0);
+        if (bScore !== aScore) return bScore - aScore;
+        return (a.reservation_code || '').length - (b.reservation_code || '').length;
+      });
+      kept.push({ norm: norm, garde: grp[0].reservation_code, guest: grp[0].guest_name });
+      for (let i = 1; i < grp.length; i++) toDelete.push(grp[i]);
+    });
+    if (!dryRun) {
+      for (const r of toDelete) {
+        try {
+          await supaFetch('reservations?reservation_code=eq.' + encodeURIComponent(r.reservation_code), 'DELETE');
+        } catch(e) { console.error('Dedup delete error:', e.message); }
+      }
+      invalidateCache();
+    }
+    res.json({
+      mode: dryRun ? 'SIMULATION (ajouter ?apply=1 pour exécuter)' : 'APPLIQUÉ',
+      doublons_trouves: toDelete.length,
+      a_supprimer: toDelete.map(function(r){ return { code: r.reservation_code, guest: r.guest_name, checkin: r.check_in_date }; }),
+      versions_gardees: kept.slice(0, 60)
+    });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 app.get('/repair-all', async function(req, res) {
   try {
     const realCancellations = ['HMBKRESPHX']; // Remi Sans
