@@ -458,6 +458,30 @@ app.get('/manifest-menage.json', (req, res) => res.sendFile(__dirname+'/manifest
 app.get('/icon-menage-192.png', (req, res) => res.sendFile(__dirname+'/icon-menage-192.png'));
 app.get('/icon-menage-512.png', (req, res) => res.sendFile(__dirname+'/icon-menage-512.png'));
 
+// DIAGNOSTIC : lister les abonnements push (pour repérer les doublons d'appareils)
+app.get('/debug-subs', async function(req, res) {
+  try {
+    const byRole = { owner: [], menage: [], autre: [] };
+    pushSubscriptions.forEach(function(s, i) {
+      const r = s.role || 'owner';
+      const bucket = byRole[r] ? r : 'autre';
+      // Extraire un identifiant lisible de l'endpoint (domaine du service push + fin)
+      let ep = s.endpoint || '';
+      let shortEp = ep.slice(0, 40) + '...' + ep.slice(-12);
+      byRole[bucket].push({ idx: i, endpoint: shortEp });
+    });
+    res.json({
+      total: pushSubscriptions.length,
+      owner_count: byRole.owner.length,
+      menage_count: byRole.menage.length,
+      autre_count: byRole.autre.length,
+      owner: byRole.owner,
+      menage: byRole.menage,
+      autre: byRole.autre
+    });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 app.post('/subscribe', async (req, res) => {
   const {endpoint, role, ...rest} = req.body || {};
   const sub = {endpoint, ...rest};
