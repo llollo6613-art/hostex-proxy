@@ -722,22 +722,29 @@ app.post('/api-claude', async function(req, res) {
 });
 
 // Health
-// DIAGNOSTIC : voir ce que l'API Hostex renvoie réellement (pagination)
-app.get('/debug-api', async function(req, res) {
+// DIAGNOSTIC détaillé de la détection d'annulation
+// DIAGNOSTIC : statut brut d'une résa dans l'API Hostex (tous tris, toutes pages)
+app.get('/debug-raw', async function(req, res) {
   try {
-    const results = [];
-    for (let page = 1; page <= 12; page++) {
-      const data = await hostexGet('/reservations?page_size=100&page=' + page);
-      const list = (data && data.data && data.data.reservations) || [];
-      results.push({ page: page, count: list.length, total_field: data && data.data ? data.data.total : undefined, first: list[0] ? list[0].check_in_date : null, last: list[list.length-1] ? list[list.length-1].check_in_date : null });
-      if (!list.length) break;
-      if (list.length < 100) break;
+    const q = (req.query.q || 'remi').toLowerCase();
+    const found = [];
+    for (const sortParam of ['', '&sort=check_in_date&sort_order=desc', '&sort=check_in_date&sort_order=asc']) {
+      for (let page = 1; page <= 15; page++) {
+        const data = await hostexGet('/reservations?page_size=100&page=' + page + sortParam);
+        const list = (data && data.data && data.data.reservations) || [];
+        if (!list.length) break;
+        list.forEach(function(r) {
+          if ((r.guest_name || '').toLowerCase().includes(q)) {
+            found.push({ tri: sortParam || 'aucun', page: page, code: r.reservation_code || r.id, guest: r.guest_name, status: r.status, checkin: r.check_in_date });
+          }
+        });
+        if (list.length < 100) break;
+      }
     }
-    res.json({ pages: results, note: 'total_field = ce que Hostex dit avoir au total' });
+    res.json({ recherche: q, occurrences: found, note: 'Statut exact renvoyé par Hostex selon tri/page' });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
-// DIAGNOSTIC détaillé de la détection d'annulation
 app.get('/debug-detection', async function(req, res) {
   try {
     // Récupérer les résas de l'API Hostex (comme la sync)
