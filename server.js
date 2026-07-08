@@ -722,6 +722,21 @@ app.post('/api-claude', async function(req, res) {
 });
 
 // Health
+// DIAGNOSTIC : voir ce que l'API Hostex renvoie réellement (pagination)
+app.get('/debug-api', async function(req, res) {
+  try {
+    const results = [];
+    for (let page = 1; page <= 12; page++) {
+      const data = await hostexGet('/reservations?page_size=100&page=' + page);
+      const list = (data && data.data && data.data.reservations) || [];
+      results.push({ page: page, count: list.length, total_field: data && data.data ? data.data.total : undefined, first: list[0] ? list[0].check_in_date : null, last: list[list.length-1] ? list[list.length-1].check_in_date : null });
+      if (!list.length) break;
+      if (list.length < 100) break;
+    }
+    res.json({ pages: results, note: 'total_field = ce que Hostex dit avoir au total' });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 // DIAGNOSTIC détaillé de la détection d'annulation
 app.get('/debug-detection', async function(req, res) {
   try {
