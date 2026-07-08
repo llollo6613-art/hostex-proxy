@@ -911,7 +911,12 @@ setInterval(async function() {
   } catch(e) {}
 }, 14 * 60 * 1000); // toutes les 14 minutes
 
-require('./boutique')(app);
+try {
+  require('./boutique')(app);
+  console.log('Boutique chargee OK');
+} catch(eBoutique) {
+  console.error('Boutique non chargee (serveur continue):', eBoutique.message);
+}
 
 app.listen(PORT, function() { console.log('Listening on', PORT); });
 
