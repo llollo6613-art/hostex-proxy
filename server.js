@@ -564,6 +564,40 @@ app.get('/repair-cancellations', async function(req, res) {
 
 // RÉPARATION v2 : restaurer via les iCal Airbnb/Booking (source FIABLE, contient tout).
 // Toute résa 'cancelled' dont le code OU les dates correspondent à un événement iCal actif est restaurée.
+// RÉPARATION v3 : restaurer les résa FUTURES 'cancelled' SAUF les vraies annulations confirmées.
+// Ne touche PAS aux réservations passées (leurs annulations restent telles quelles).
+app.get('/repair-all', async function(req, res) {
+  try {
+    const realCancellations = ['HMBKRESPHX']; // Remi Sans
+    const realCancelGuests = ['remi sans', 'komarskyi']; // par nom aussi
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const all = await getDB();
+    // Uniquement les résa cancelled dont le check-in est aujourd'hui ou futur
+    const cancelled = all.filter(r => r.status === 'cancelled' && r.check_in_date && r.check_in_date >= todayStr);
+    const restored = [], kept = [];
+    for (const r of cancelled) {
+      const guestLower = (r.guest_name || '').toLowerCase();
+      const isReal = realCancellations.includes(r.reservation_code)
+        || realCancelGuests.some(g => guestLower.includes(g));
+      if (isReal) {
+        kept.push({ code: r.reservation_code, guest: r.guest_name, checkin: r.check_in_date });
+      } else {
+        try {
+          await supaFetch('reservations?reservation_code=eq.' + encodeURIComponent(r.reservation_code), 'PATCH', { status: 'accepted' });
+          restored.push({ code: r.reservation_code, guest: r.guest_name, checkin: r.check_in_date });
+        } catch(e) { console.error('Restore error:', e.message); }
+      }
+    }
+    invalidateCache();
+    res.json({
+      note: 'Seules les résa FUTURES ont été traitées. Les annulations passées sont inchangées.',
+      restaurees_count: restored.length,
+      restaurees: restored,
+      vraies_annulations_conservees: kept
+    });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 app.get('/repair-ical', async function(req, res) {
   try {
     const icalUrls = [
