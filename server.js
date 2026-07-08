@@ -1078,12 +1078,19 @@ async function syncHostexToSupabase() {
       console.log('Auto-sync: ' + toSave.length + ' synced, ' + newRes.length + ' new, ' + cancelledNow.length + ' cancelled');
 
       // Notifs d'ANNULATION (propriétaire + ménage)
-      for (const r of cancelledNow) {
-        const prop = String(r.property_id) === '12619011' ? 'Suite Illiberis' : 'Loft Cinema';
-        const ch = r.channel_type === 'airbnb' ? 'Airbnb' : (r.channel_type === 'booking.com' || r.channel_type === 'booking' ? 'Booking' : (r.channel_type || ''));
-        const msgCancel = prop + ' · ' + ch + '\n' + (r.guest_name || '') + '\nArrivée prévue le ' + (r.check_in_date || '') + ' — ANNULÉE';
-        await sendPushNotif('❌ Réservation annulée', msgCancel, '/mobile', 'cancel-resa', 'owner');
-        await sendPushNotif('❌ Séjour annulé', prop + '\n' + (r.guest_name || '') + '\nLe ménage prévu le ' + (r.check_out_date || '') + ' est annulé', '/menage', 'cancel-resa', 'menage');
+      // Garde-fou anti-spam : si beaucoup d'annulations détectées d'un coup (ex: premier
+      // passage qui rattrape l'historique), on n'envoie PAS de notif individuelle pour
+      // éviter le déluge — on log seulement. Les notifs ne partent que pour 1-3 annulations.
+      if (cancelledNow.length > 0 && cancelledNow.length <= 3) {
+        for (const r of cancelledNow) {
+          const prop = String(r.property_id) === '12619011' ? 'Suite Illiberis' : 'Loft Cinema';
+          const ch = r.channel_type === 'airbnb' ? 'Airbnb' : (r.channel_type === 'booking.com' || r.channel_type === 'booking' ? 'Booking' : (r.channel_type || ''));
+          const msgCancel = prop + ' · ' + ch + '\n' + (r.guest_name || '') + '\nArrivée prévue le ' + (r.check_in_date || '') + ' — ANNULÉE';
+          await sendPushNotif('❌ Réservation annulée', msgCancel, '/mobile', 'cancel-resa', 'owner');
+          await sendPushNotif('❌ Séjour annulé', prop + '\n' + (r.guest_name || '') + '\nLe ménage prévu le ' + (r.check_out_date || '') + ' est annulé', '/menage', 'cancel-resa', 'menage');
+        }
+      } else if (cancelledNow.length > 3) {
+        console.log('Anti-spam: ' + cancelledNow.length + ' annulations détectées, notifications groupées non envoyées');
       }
 
 
