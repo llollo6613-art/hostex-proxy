@@ -482,6 +482,32 @@ app.get('/debug-subs', async function(req, res) {
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
+// DIAGNOSTIC : audit des statuts de réservations (repérer les annulations en masse)
+app.get('/debug-audit', async function(req, res) {
+  try {
+    const all = await getDB();
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const byStatus = {};
+    let futureCancelled = [];
+    let futureActive = 0;
+    all.forEach(function(r) {
+      const st = r.status || 'null';
+      byStatus[st] = (byStatus[st] || 0) + 1;
+      if (r.check_in_date && r.check_in_date >= todayStr) {
+        if (st === 'cancelled') futureCancelled.push({ code: r.reservation_code, guest: r.guest_name, checkin: r.check_in_date, channel: r.channel_type });
+        else futureActive++;
+      }
+    });
+    res.json({
+      total: all.length,
+      par_statut: byStatus,
+      futures_actives: futureActive,
+      futures_annulees_count: futureCancelled.length,
+      futures_annulees: futureCancelled.slice(0, 50)
+    });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 app.post('/subscribe', async (req, res) => {
   const {endpoint, role, ...rest} = req.body || {};
   const sub = {endpoint, ...rest};
