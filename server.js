@@ -1119,20 +1119,25 @@ async function syncHostexToSupabase() {
 
 
       // Notifs pour les nouvelles réservations
-      for (const r of newRes) {
-        const prop = r.property_id === '12619011' ? 'Suite Illiberis' : 'Loft Cinema';
-        const ch = r.channel_type === 'airbnb' ? 'Airbnb' : 'Booking';
-        const price = r.total_price ? Math.round(r.total_price) + '€' : '';
-        // Calcul durée séjour
-        const ciDate = new Date((r.check_in_date||'') + 'T12:00:00');
-        const coDate = new Date((r.check_out_date||'') + 'T12:00:00');
-        const nights = Math.round((coDate - ciDate) / 86400000);
-        // Notif propriétaire : infos complètes avec prix
-        const msgOwner = prop + ' · ' + ch + ' · ' + price + '\nArrivée ' + (r.check_in_date||'') + ' (' + nights + ' nuits)\n' + (r.guest_name||'');
-        await sendPushNotif('🏠 Nouvelle réservation !', msgOwner, '/mobile', 'new-resa', 'owner');
-        // Notif ménage : arrivée + durée + prochain ménage
-        const msgMenage = prop + '\n' + (r.guest_name||'') + ' · ' + nights + ' nuits\nArrivée le ' + (r.check_in_date||'') + ' · Ménage le ' + (r.check_out_date||'');
-        await sendPushNotif('🏠 Nouvelle arrivée à préparer', msgMenage, '/menage', 'new-resa', 'menage');
+      // Garde-fou anti-spam : on ne notifie QUE les résas réellement nouvelles (absentes de
+      // la base au moment de la sync), pas celles "récentes" qui pourraient être re-notifiées
+      // à chaque passage. Et jamais plus de 3 d'un coup.
+      const trulyNew = newRes.filter(r => !existingCodes.has(r.reservation_code));
+      if (trulyNew.length > 0 && trulyNew.length <= 3) {
+        for (const r of trulyNew) {
+          const prop = r.property_id === '12619011' ? 'Suite Illiberis' : 'Loft Cinema';
+          const ch = r.channel_type === 'airbnb' ? 'Airbnb' : 'Booking';
+          const price = r.total_price ? Math.round(r.total_price) + '€' : '';
+          const ciDate = new Date((r.check_in_date||'') + 'T12:00:00');
+          const coDate = new Date((r.check_out_date||'') + 'T12:00:00');
+          const nights = Math.round((coDate - ciDate) / 86400000);
+          const msgOwner = prop + ' · ' + ch + ' · ' + price + '\nArrivée ' + (r.check_in_date||'') + ' (' + nights + ' nuits)\n' + (r.guest_name||'');
+          await sendPushNotif('🏠 Nouvelle réservation !', msgOwner, '/mobile', 'new-resa', 'owner');
+          const msgMenage = prop + '\n' + (r.guest_name||'') + ' · ' + nights + ' nuits\nArrivée le ' + (r.check_in_date||'') + ' · Ménage le ' + (r.check_out_date||'');
+          await sendPushNotif('🏠 Nouvelle arrivée à préparer', msgMenage, '/menage', 'new-resa', 'menage');
+        }
+      } else if (trulyNew.length > 3) {
+        console.log('Anti-spam: ' + trulyNew.length + ' nouvelles résas, notifications non envoyées');
       }
     }
   } catch(e) {
