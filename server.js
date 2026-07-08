@@ -723,28 +723,6 @@ app.post('/api-claude', async function(req, res) {
 
 // Health
 // DIAGNOSTIC détaillé de la détection d'annulation
-// DIAGNOSTIC : statut brut d'une résa dans l'API Hostex (tous tris, toutes pages)
-app.get('/debug-raw', async function(req, res) {
-  try {
-    const q = (req.query.q || 'remi').toLowerCase();
-    const found = [];
-    for (const sortParam of ['', '&sort=check_in_date&sort_order=desc', '&sort=check_in_date&sort_order=asc']) {
-      for (let page = 1; page <= 15; page++) {
-        const data = await hostexGet('/reservations?page_size=100&page=' + page + sortParam);
-        const list = (data && data.data && data.data.reservations) || [];
-        if (!list.length) break;
-        list.forEach(function(r) {
-          if ((r.guest_name || '').toLowerCase().includes(q)) {
-            found.push({ tri: sortParam || 'aucun', page: page, code: r.reservation_code || r.id, guest: r.guest_name, status: r.status, checkin: r.check_in_date });
-          }
-        });
-        if (list.length < 100) break;
-      }
-    }
-    res.json({ recherche: q, occurrences: found, note: 'Statut exact renvoyé par Hostex selon tri/page' });
-  } catch(e) { res.status(500).json({ error: e.message }); }
-});
-
 app.get('/debug-detection', async function(req, res) {
   try {
     // Récupérer les résas de l'API Hostex (comme la sync)
@@ -1066,19 +1044,27 @@ async function syncHostexToSupabase() {
           cancelledNow.push(r);
         }
       });
-      // Cas 2 : une résa FUTURE active en base a totalement disparu de la réponse Hostex
+      // Cas 2 : une résa a disparu de l'API Hostex DANS LA FENÊTRE DE DATES que l'API couvre réellement.
+      // L'API Hostex ne renvoie qu'une fenêtre glissante (ex: J-15 à J+30), pas tout l'historique.
+      // On ne peut donc chercher les disparitions QUE dans l'intervalle [min check-in API, max check-in API].
       const apiCodes = new Set(toSave.map(r => r.reservation_code));
       const todayStr = new Date().toISOString().slice(0, 10);
-      // Sécurité anti-faux-positif : ne détecter les disparitions que si l'API a renvoyé
-      // un volume plausible (au moins la moitié des résas futures connues en base).
-      const futureInDB = existing.filter(r => r.status !== 'cancelled' && r.check_in_date && r.check_in_date >= todayStr);
-      const futureInApi = toSave.filter(r => r.status !== 'cancelled' && r.check_in_date && r.check_in_date >= todayStr);
-      const apiSeemsComplete = futureInDB.length === 0 || futureInApi.length >= Math.floor(futureInDB.length / 2);
-      const disappeared = apiSeemsComplete ? existing.filter(r => {
-        return r.status !== 'cancelled'
-          && r.check_in_date && r.check_in_date >= todayStr   // séjour à venir uniquement
-          && !apiCodes.has(r.reservation_code);                // absente de l'API
-      }) : [];
+      // Déterminer la fenêtre de dates réellement couverte par la réponse API
+      const apiCheckins = toSave.map(r => r.check_in_date).filter(Boolean).sort();
+      let disappeared = [];
+      if (apiCheckins.length >= 3) {   // au moins 3 résas pour définir une fenêtre fiable
+        const winMin = apiCheckins[0];
+        const winMax = apiCheckins[apiCheckins.length - 1];
+        // Une résa est "annulée" si : active en base, check-in DANS la fenêtre API, à venir, et absente de l'API
+        disappeared = existing.filter(r => {
+          return r.status !== 'cancelled'
+            && r.check_in_date
+            && r.check_in_date >= todayStr        // séjour à venir
+            && r.check_in_date >= winMin          // dans la fenêtre couverte par l'API
+            && r.check_in_date <= winMax
+            && !apiCodes.has(r.reservation_code); // absente de l'API
+        });
+      }
       // Marquer les disparues comme annulées dans Supabase
       for (const r of disappeared) {
         try {
