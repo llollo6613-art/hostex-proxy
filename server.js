@@ -722,6 +722,44 @@ app.post('/api-claude', async function(req, res) {
 });
 
 // Health
+// DIAGNOSTIC détaillé de la détection d'annulation
+app.get('/debug-detection', async function(req, res) {
+  try {
+    // Récupérer les résas de l'API Hostex (comme la sync)
+    let allRes = [];
+    for (let page = 1; page <= 10; page++) {
+      const data = await hostexGet('/reservations?page_size=50&page=' + page + '&sort=check_in_date&sort_order=desc');
+      const list = (data && data.data && data.data.reservations) || [];
+      if (!list.length) break;
+      allRes = allRes.concat(list);
+      if (list.length < 50) break;
+    }
+    const apiCodes = allRes.map(r => {
+      let code = r.reservation_code || r.id || '';
+      if (code.startsWith('0-')) code = code.split('-')[1];
+      if (code.match(/-ic[a-z0-9]+$/) || code.match(/-id[a-z0-9]+$/)) code = code.replace(/-ic[a-z0-9]+$/, '').replace(/-id[a-z0-9]+$/, '');
+      return code;
+    });
+    const existing = await getDB();
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const futureInDB = existing.filter(r => r.status !== 'cancelled' && r.check_in_date && r.check_in_date >= todayStr);
+    const futureInApi = allRes.filter(r => r.status !== 'cancelled' && r.check_in_date && r.check_in_date >= todayStr);
+    const remiInDB = existing.find(r => (r.guest_name || '').toLowerCase().includes('remi'));
+    res.json({
+      today: todayStr,
+      total_api: allRes.length,
+      total_db: existing.length,
+      futureInDB_count: futureInDB.length,
+      futureInApi_count: futureInApi.length,
+      apiSeemsComplete: futureInDB.length === 0 || futureInApi.length >= Math.floor(futureInDB.length / 2),
+      remi_in_db: remiInDB ? { code: remiInDB.reservation_code, status: remiInDB.status, checkin: remiInDB.check_in_date } : null,
+      remi_code_in_api: remiInDB ? apiCodes.includes(remiInDB.reservation_code) : null,
+      remi_checkin_future: remiInDB ? (remiInDB.check_in_date >= todayStr) : null,
+      sample_api_codes: apiCodes.slice(0, 5)
+    });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 // Déclenche la vraie sync Supabase (avec détection annulations) à la demande
 app.get('/force-sync', async function(req, res) {
   try {
