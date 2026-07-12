@@ -1205,7 +1205,7 @@ setInterval(async function() {
 }, 14 * 60 * 1000); // toutes les 14 minutes
 
 try {
-  require('./boutique')(app);
+  require('./boutique')(app, sendPushNotif);
   console.log('Boutique chargee OK');
 } catch(eBoutique) {
   console.error('Boutique non chargee (serveur continue):', eBoutique.message);

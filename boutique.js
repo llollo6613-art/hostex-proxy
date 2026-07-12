@@ -43,7 +43,7 @@ function verifPin(req, res, next) {
   res.status(401).json({ error: 'PIN invalide' });
 }
 
-module.exports = function (app) {
+module.exports = function (app, sendPushNotif) {
 
   // ═══════════ API PUBLIQUE ═══════════
 
@@ -78,6 +78,12 @@ module.exports = function (app) {
     const detail = items.map(i => i.nom + ' x' + i.qte).join(', ');
     notifier('🛎️ Commande extras — ' + total + '€',
       client + ' (' + logement + ')' + (date_arrivee ? ' — arrivée ' + date_arrivee : '') + '\n' + detail);
+    if (typeof sendPushNotif === 'function') {
+      try {
+        await sendPushNotif('🛎️ Commande extras — ' + total + '€',
+          client + ' (' + logement + ') : ' + detail, '/boutique-admin', 'boutique', 'owner');
+      } catch (ePush) { console.error('Push boutique:', ePush.message); }
+    }
 
     res.json({ ok: true, id: data.id, total });
   });
