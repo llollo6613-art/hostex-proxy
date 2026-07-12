@@ -1,14 +1,15 @@
 // ═══════════════════════════════════════════════════════════════
 // BOUTIQUE EXTRAS — Module pour hostex-proxy
 // Pages : /boutique (voyageurs) et /boutique-admin (gestion, PIN)
-// API   : /api/boutique/...
+// API   : /boutique-api/...
 // ═══════════════════════════════════════════════════════════════
 
 const { createClient } = require('@supabase/supabase-js');
+const express = require('express');
 
 const supabase = createClient(
-  process.env.SUPABASE_URL || 'https://bdreatiovsfutxkyxxoo.supabase.co',
-  process.env.SUPABASE_KEY || process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJkcmVhdGlvdnNmdXR4a3l4eG9vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3OTE1MzA5MywiZXhwIjoyMDk0NzI5MDkzfQ.MqlLVk4pRoZhJ783fBP9dkXTLbXReqz26swE-tbQYFY'
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_KEY || process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_ANON_KEY
 );
 
 // ——— À PERSONNALISER ———
@@ -47,7 +48,7 @@ module.exports = function (app) {
   // ═══════════ API PUBLIQUE ═══════════
 
   // Catalogue actif
-  app.get('/api/boutique/extras', async (req, res) => {
+  app.get('/boutique-api/extras', async (req, res) => {
     const { data, error } = await supabase.from('extras')
       .select('*').eq('actif', true).order('categorie').order('prix');
     if (error) return res.status(500).json({ error: error.message });
@@ -55,7 +56,7 @@ module.exports = function (app) {
   });
 
   // Nouvelle commande (décrémente le stock)
-  app.post('/api/boutique/commande', async (req, res) => {
+  app.post('/boutique-api/commande', express.json(), async (req, res) => {
     const { client, logement, date_arrivee, items } = req.body;
     if (!client || !items || !items.length) return res.status(400).json({ error: 'Données manquantes' });
 
@@ -83,13 +84,13 @@ module.exports = function (app) {
 
   // ═══════════ API ADMIN (PIN requis) ═══════════
 
-  app.get('/api/boutique/admin/extras', verifPin, async (req, res) => {
+  app.get('/boutique-api/admin/extras', verifPin, async (req, res) => {
     const { data, error } = await supabase.from('extras').select('*').order('categorie').order('nom');
     if (error) return res.status(500).json({ error: error.message });
     res.json(data);
   });
 
-  app.post('/api/boutique/admin/extras', verifPin, async (req, res) => {
+  app.post('/boutique-api/admin/extras', express.json(), verifPin, async (req, res) => {
     const { nom, description, categorie, prix, stock, seuil } = req.body;
     const { data, error } = await supabase.from('extras')
       .insert({ nom, description: description || '', categorie, prix, stock: stock === '' || stock == null ? null : stock, seuil: seuil || 2 })
@@ -98,7 +99,7 @@ module.exports = function (app) {
     res.json(data);
   });
 
-  app.put('/api/boutique/admin/extras/:id', verifPin, async (req, res) => {
+  app.put('/boutique-api/admin/extras/:id', express.json(), verifPin, async (req, res) => {
     const maj = { ...req.body };
     if (maj.stock === '' || maj.stock === undefined) maj.stock = null;
     const { error } = await supabase.from('extras').update(maj).eq('id', req.params.id);
@@ -106,20 +107,20 @@ module.exports = function (app) {
     res.json({ ok: true });
   });
 
-  app.delete('/api/boutique/admin/extras/:id', verifPin, async (req, res) => {
+  app.delete('/boutique-api/admin/extras/:id', verifPin, async (req, res) => {
     const { error } = await supabase.from('extras').delete().eq('id', req.params.id);
     if (error) return res.status(500).json({ error: error.message });
     res.json({ ok: true });
   });
 
-  app.get('/api/boutique/admin/commandes', verifPin, async (req, res) => {
+  app.get('/boutique-api/admin/commandes', verifPin, async (req, res) => {
     const { data, error } = await supabase.from('commandes_extras').select('*').order('created_at', { ascending: false });
     if (error) return res.status(500).json({ error: error.message });
     res.json(data);
   });
 
   // Changement de statut (annulation = remise en stock)
-  app.put('/api/boutique/admin/commandes/:id', verifPin, async (req, res) => {
+  app.put('/boutique-api/admin/commandes/:id', express.json(), verifPin, async (req, res) => {
     const { statut } = req.body;
     const { data: cmd } = await supabase.from('commandes_extras').select('*').eq('id', req.params.id).single();
     if (!cmd) return res.status(404).json({ error: 'Commande introuvable' });
@@ -218,7 +219,7 @@ function eur(n) { return n.toFixed(2).replace('.', ',').replace(',00', '') + ' �
 function catLabel(id) { var c = CATS.find(function(x){return x.id===id;}); return c ? c.label : id; }
 
 function charger() {
-  fetch('/api/boutique/extras').then(function(r){return r.json();}).then(function(d){ extras = d; rendre(); });
+  fetch('/boutique-api/extras').then(function(r){return r.json();}).then(function(d){ extras = d; rendre(); });
 }
 
 function rendre() {
@@ -280,7 +281,7 @@ function envoyer(total) {
     var e = extras.find(function(x){return x.id==id;});
     return { extra_id: e.id, nom: e.nom, prix: Number(e.prix), qte: panier[id] };
   });
-  fetch('/api/boutique/commande', {
+  fetch('/boutique-api/commande', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ client: nom, logement: window._log, date_arrivee: window._arr || null, items: items })
   }).then(function(r){return r.json();}).then(function(d){
@@ -360,7 +361,7 @@ function valider() {
 }
 
 function charger() {
-  Promise.all([ api('/api/boutique/admin/extras'), api('/api/boutique/admin/commandes') ])
+  Promise.all([ api('/boutique-api/admin/extras'), api('/boutique-api/admin/commandes') ])
     .then(function(r){ extras = r[0]; commandes = r[1]; rendre(); })
     .catch(function(){});
 }
@@ -413,7 +414,7 @@ function vueCommandes() {
   });
   return h;
 }
-function statut(id, s) { api('/api/boutique/admin/commandes/' + id, { method: 'PUT', body: JSON.stringify({ statut: s }) }).then(charger); }
+function statut(id, s) { api('/boutique-api/admin/commandes/' + id, { method: 'PUT', body: JSON.stringify({ statut: s }) }).then(charger); }
 
 function vueCatalogue() {
   var h = '<button class="btn" style="margin-bottom:12px" onclick="editer(0)">+ Nouvel extra</button>';
@@ -456,12 +457,12 @@ function sauver() {
   };
   if (!corps.nom) { alert('Le nom est obligatoire.'); return; }
   var p = edition.id
-    ? api('/api/boutique/admin/extras/' + edition.id, { method: 'PUT', body: JSON.stringify(corps) })
-    : api('/api/boutique/admin/extras', { method: 'POST', body: JSON.stringify(corps) });
+    ? api('/boutique-api/admin/extras/' + edition.id, { method: 'PUT', body: JSON.stringify(corps) })
+    : api('/boutique-api/admin/extras', { method: 'POST', body: JSON.stringify(corps) });
   p.then(function(){ edition = null; charger(); });
 }
-function basculer(id, actif) { api('/api/boutique/admin/extras/' + id, { method: 'PUT', body: JSON.stringify({ actif: actif }) }).then(charger); }
-function supprimer(id) { if (confirm('Supprimer définitivement cet extra ?')) api('/api/boutique/admin/extras/' + id, { method: 'DELETE' }).then(charger); }
+function basculer(id, actif) { api('/boutique-api/admin/extras/' + id, { method: 'PUT', body: JSON.stringify({ actif: actif }) }).then(charger); }
+function supprimer(id) { if (confirm('Supprimer définitivement cet extra ?')) api('/boutique-api/admin/extras/' + id, { method: 'DELETE' }).then(charger); }
 
 function vueStock() {
   var h = '';
@@ -478,7 +479,7 @@ function vueStock() {
 }
 function stockDelta(id, actuel, d) {
   var n = Math.max(0, actuel + d);
-  api('/api/boutique/admin/extras/' + id, { method: 'PUT', body: JSON.stringify({ stock: n }) }).then(charger);
+  api('/boutique-api/admin/extras/' + id, { method: 'PUT', body: JSON.stringify({ stock: n }) }).then(charger);
 }
 
 if (PIN) charger(); else rendrePin(false);
