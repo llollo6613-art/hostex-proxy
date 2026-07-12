@@ -1142,8 +1142,8 @@ function _showMonthDetail(type){
     for(var mx=0;mx<12;mx++){var v=past.filter(function(r){var d=new Date(r.check_in+"T00:00:00");return d.getMonth()===mx&&d.getFullYear()===now.getFullYear();}).reduce(function(s,r){return s+nR(r);},0);if(v>maxV)maxV=v;}
     var rows="";
     for(var m=0;m<12;m++){
-      var mr=past.filter(function(r){if(!r.check_in||!r.check_out||r.status==="cancelled")return false;var dm=new Date(now.getFullYear(),m,1),fm=new Date(now.getFullYear(),m+1,1);return new Date(r.check_in+"T00:00:00")<fm&&new Date(r.check_out+"T00:00:00")>dm;});
-      var rev=mr.reduce(function(s,r){return s+nR(r)*prorataM(r,now.getFullYear(),m);},0);
+      var mr=past.filter(function(r){if(!r.check_in||r.status==="cancelled")return false;var ci=new Date(r.check_in+"T00:00:00");return ci.getFullYear()===now.getFullYear()&&ci.getMonth()===m;});
+      var rev=mr.reduce(function(s,r){return s+nR(r);},0);
       var isCur=m===now.getMonth();
       var pct=Math.round(rev/maxV*100);
       rows+="<div style=\"display:grid;grid-template-columns:64px 1fr 80px 44px;gap:8px;align-items:center;padding:7px 14px;border-bottom:0.5px solid var(--color-border-tertiary);background:"+(isCur?"#EEF2FF":"var(--color-background-primary)")+";\">"
