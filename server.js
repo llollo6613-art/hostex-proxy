@@ -1339,9 +1339,18 @@ async function syncHostexToSupabase() {
           const ciDate = new Date((r.check_in_date||'') + 'T12:00:00');
           const coDate = new Date((r.check_out_date||'') + 'T12:00:00');
           const nights = Math.round((coDate - ciDate) / 86400000);
-          const msgOwner = prop + ' · ' + ch + ' · ' + price + '\nArrivée ' + (r.check_in_date||'') + ' (' + nights + ' nuits)\n' + (r.guest_name||'');
+          const today = new Date(); today.setHours(12,0,0,0);
+          const joursAvant = Math.round((ciDate - today) / 86400000);
+          let decompte = '';
+          if (!isNaN(joursAvant)) {
+            if (joursAvant < 0) decompte = ' (passée)';
+            else if (joursAvant === 0) decompte = ' (aujourd\'hui)';
+            else if (joursAvant === 1) decompte = ' (demain)';
+            else decompte = ' (dans ' + joursAvant + ' jours)';
+          }
+          const msgOwner = prop + ' · ' + ch + ' · ' + price + '\nArrivée ' + (r.check_in_date||'') + decompte + ' · ' + nights + ' nuits\n' + (r.guest_name||'');
           await sendPushNotif('🏠 Nouvelle réservation !', msgOwner, '/mobile', 'new-resa', 'owner');
-          const msgMenage = prop + '\n' + (r.guest_name||'') + ' · ' + nights + ' nuits\nArrivée le ' + (r.check_in_date||'') + ' · Ménage le ' + (r.check_out_date||'');
+          const msgMenage = prop + '\n' + (r.guest_name||'') + ' · ' + nights + ' nuits\nArrivée le ' + (r.check_in_date||'') + decompte + ' · Ménage le ' + (r.check_out_date||'');
           await sendPushNotif('🏠 Nouvelle arrivée à préparer', msgMenage, '/menage', 'new-resa', 'menage');
         }
       } else if (trulyNew.length > 3) {
