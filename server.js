@@ -1341,16 +1341,19 @@ async function syncHostexToSupabase() {
           const nights = Math.round((coDate - ciDate) / 86400000);
           const today = new Date(); today.setHours(12,0,0,0);
           const joursAvant = Math.round((ciDate - today) / 86400000);
-          let decompte = '';
-          if (!isNaN(joursAvant)) {
-            if (joursAvant < 0) decompte = ' (passée)';
-            else if (joursAvant === 0) decompte = ' (aujourd\'hui)';
-            else if (joursAvant === 1) decompte = ' (demain)';
-            else decompte = ' (dans ' + joursAvant + ' jours)';
+          function decompteTxt(dateObj, motif){
+            const j = Math.round((dateObj - today) / 86400000);
+            if (isNaN(j)) return motif;
+            if (j < 0) return motif + ' pass\u00e9' + (motif === 'Arriv\u00e9e' ? 'e' : '');
+            if (j === 0) return motif + ' aujourd\'hui';
+            if (j === 1) return motif + ' demain';
+            return motif + ' dans ' + j + ' jours';
           }
-          const msgOwner = prop + ' · ' + ch + ' · ' + price + '\nArrivée ' + (r.check_in_date||'') + decompte + ' · ' + nights + ' nuits\n' + (r.guest_name||'');
+          const decompteArrivee = decompteTxt(ciDate, 'Arriv\u00e9e');
+          const decompteMenage = decompteTxt(coDate, 'M\u00e9nage');
+          const msgOwner = prop + ' · ' + ch + ' · ' + price + '\n' + decompteArrivee + ' (' + (r.check_in_date||'') + ') · ' + nights + ' nuits\n' + (r.guest_name||'');
           await sendPushNotif('🏠 Nouvelle réservation !', msgOwner, '/mobile', 'new-resa', 'owner');
-          const msgMenage = prop + '\n' + (r.guest_name||'') + ' · ' + nights + ' nuits\nArrivée le ' + (r.check_in_date||'') + decompte + ' · Ménage le ' + (r.check_out_date||'');
+          const msgMenage = prop + '\n' + (r.guest_name||'') + ' · ' + nights + ' nuits\n' + decompteArrivee + ' (' + (r.check_in_date||'') + ')\n' + decompteMenage + ' (' + (r.check_out_date||'') + ')';
           await sendPushNotif('🏠 Nouvelle arrivée à préparer', msgMenage, '/menage', 'new-resa', 'menage');
         }
       } else if (trulyNew.length > 3) {
