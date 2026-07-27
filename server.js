@@ -708,16 +708,38 @@ app.get('/detect-cancel-ical', async function(req, res) {
         let evCount = 0;
         for (const ev of events) {
           const dtstart = (ev.match(/DTSTART[^:\n]*:(\d+)/) || [])[1];
+          const dtend = (ev.match(/DTEND[^:\n]*:(\d+)/) || [])[1];
           const summary = ((ev.match(/SUMMARY:([^\n]+)/) || [])[1] || '').trim();
           const desc = ((ev.match(/DESCRIPTION:([^\n]+)/) || [])[1] || '').trim();
           if (!dtstart) continue;
-          if (summary.includes('Not available') || summary === 'Blocked') continue;
-          const ci = dtstart.slice(0,4)+'-'+dtstart.slice(4,6)+'-'+dtstart.slice(6,8);
-          const codeMatch = desc.match(/details\/([A-Z0-9]+)/);
-          if (codeMatch) activeCodes.add(codeMatch[1]);
-          activeDates.add(prop + '|' + ci);
-          datesCouvertes.push(ci);
-          evCount++;
+          if (isBooking) {
+            // iCal Booking : événements "CLOSED - Not available" = dates OCCUPÉES par une résa active.
+            // Pas de code client disponible → on marque TOUTES les nuits occupées (prop|date).
+            const ci = dtstart.slice(0,4)+'-'+dtstart.slice(4,6)+'-'+dtstart.slice(6,8);
+            activeDates.add(prop + '|' + ci);
+            datesCouvertes.push(ci);
+            // Marquer aussi chaque nuit entre dtstart et dtend (occupation complète)
+            if (dtend) {
+              let d = new Date(ci + 'T12:00:00');
+              const fin = new Date(dtend.slice(0,4)+'-'+dtend.slice(4,6)+'-'+dtend.slice(6,8) + 'T12:00:00');
+              while (d < fin) {
+                const ds = d.toISOString().slice(0,10);
+                activeDates.add(prop + '|' + ds);
+                datesCouvertes.push(ds);
+                d.setDate(d.getDate() + 1);
+              }
+            }
+            evCount++;
+          } else {
+            // iCal Airbnb : "Reserved" avec code dans la description. On ignore les blocages manuels.
+            if (summary.includes('Not available') || summary === 'Blocked') continue;
+            const ci = dtstart.slice(0,4)+'-'+dtstart.slice(4,6)+'-'+dtstart.slice(6,8);
+            const codeMatch = desc.match(/details\/([A-Z0-9]+)/);
+            if (codeMatch) activeCodes.add(codeMatch[1]);
+            activeDates.add(prop + '|' + ci);
+            datesCouvertes.push(ci);
+            evCount++;
+          }
         }
         if (evCount > 0) platesValides[plat] = true;
       } catch(eICal) { console.error('iCal fetch error:', eICal.message); }
