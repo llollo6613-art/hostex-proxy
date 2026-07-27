@@ -652,6 +652,94 @@ app.get('/repair-all', async function(req, res) {
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
+// DÉTECTION ANNULATIONS via iCal (source fiable) — SANS notification.
+// Marque 'cancelled' les résas FUTURES actives en base mais absentes des iCal,
+// uniquement dans la fenêtre de dates couverte par les iCal. Simulation par défaut ; ?apply=1 pour exécuter.
+app.get('/detect-cancel-ical', async function(req, res) {
+  try {
+    const dryRun = req.query.apply !== '1';
+    const icalUrls = [
+      {url: 'https://www.airbnb.fr/calendar/ical/1444758558715417027.ics?t=c42b72016c5748c18ee41cd64ae7e287', prop: '12619011'},
+      {url: 'https://www.airbnb.fr/calendar/ical/1499112879728152781.ics?t=7dccb868b47241b9970e6d8caa1a5de8', prop: '12619012'},
+      {url: 'https://ical.booking.com/v1/export?t=939b4e7b-3790-4c7a-8062-4b58f61c6af2', prop: '12619011'},
+      {url: 'https://ical.booking.com/v1/export?t=0e46cbb9-8661-4a50-99d3-0dc9ec5ab511', prop: '12619012'},
+    ];
+    const activeCodes = new Set();
+    const activeDates = new Set();       // "prop|checkin"
+    const datesCouvertes = [];           // toutes les dates de check-in vues dans les iCal
+    let icalOK = 0;
+    for (const {url, prop} of icalUrls) {
+      try {
+        const r = await fetch(url, {headers:{'User-Agent':'Mozilla/5.0','Accept':'text/calendar,*/*'}});
+        const rawText = await r.text();
+        const text = rawText.replace(/\r\n[ \t]/g, '').replace(/\r/g, '');
+        const events = text.split('BEGIN:VEVENT').slice(1);
+        let evCount = 0;
+        for (const ev of events) {
+          const dtstart = (ev.match(/DTSTART[^:\n]*:(\d+)/) || [])[1];
+          const summary = ((ev.match(/SUMMARY:([^\n]+)/) || [])[1] || '').trim();
+          const desc = ((ev.match(/DESCRIPTION:([^\n]+)/) || [])[1] || '').trim();
+          if (!dtstart) continue;
+          if (summary.includes('Not available') || summary === 'Blocked') continue;
+          const ci = dtstart.slice(0,4)+'-'+dtstart.slice(4,6)+'-'+dtstart.slice(6,8);
+          const codeMatch = desc.match(/details\/([A-Z0-9]+)/);
+          if (codeMatch) activeCodes.add(codeMatch[1]);
+          activeDates.add(prop + '|' + ci);
+          datesCouvertes.push(ci);
+          evCount++;
+        }
+        if (evCount > 0) icalOK++;
+      } catch(eICal) { console.error('iCal fetch error:', eICal.message); }
+    }
+    // SÉCURITÉ : si aucun iCal n'a répondu correctement, on ne touche à RIEN (évite d'annuler en masse)
+    if (icalOK === 0 || datesCouvertes.length < 3) {
+      return res.json({ erreur_securite: 'iCal indisponibles ou vides — aucune action pour éviter les faux positifs', icalOK, evenements: datesCouvertes.length });
+    }
+    // Fenêtre de dates couverte par les iCal
+    datesCouvertes.sort();
+    const winMin = datesCouvertes[0];
+    const winMax = datesCouvertes[datesCouvertes.length - 1];
+    const todayStr = new Date().toISOString().slice(0, 10);
+
+    const all = await getDB();
+    const aAnnuler = [];
+    for (const r of all) {
+      if (r.status === 'cancelled') continue;
+      if (!r.check_in_date) continue;
+      if (r.check_in_date < todayStr) continue;          // futur uniquement
+      if (r.check_in_date < winMin || r.check_in_date > winMax) continue; // dans la fenêtre iCal
+      // code normalisé
+      let code = r.reservation_code || '';
+      let norm = code;
+      if (norm.startsWith('0-')) norm = norm.split('-')[1];
+      norm = norm.replace(/-ic[a-z0-9]+$/, '').replace(/-id[a-z0-9]+$/, '').replace(/-ie[a-z0-9]+$/, '').replace(/-bk$/, '');
+      const presentByCode = activeCodes.has(code) || activeCodes.has(norm);
+      const presentByDate = activeDates.has(String(r.property_id) + '|' + r.check_in_date);
+      if (!presentByCode && !presentByDate) {
+        aAnnuler.push(r);
+      }
+    }
+    let done = 0;
+    if (!dryRun) {
+      for (const r of aAnnuler) {
+        try {
+          await supaFetch('reservations?reservation_code=eq.' + encodeURIComponent(r.reservation_code), 'PATCH', { status: 'cancelled' });
+          done++;
+        } catch(e) { console.error('Cancel patch error:', e.message); }
+      }
+      invalidateCache();
+    }
+    res.json({
+      mode: dryRun ? 'SIMULATION (ajouter ?apply=1 pour exécuter)' : 'APPLIQUÉ — sans notification',
+      fenetre_ical: winMin + ' → ' + winMax,
+      ical_actifs: activeCodes.size,
+      a_annuler_count: aAnnuler.length,
+      annulees: done,
+      liste: aAnnuler.map(r => ({ code: r.reservation_code, guest: r.guest_name, checkin: r.check_in_date, channel: r.channel_type }))
+    });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 app.get('/repair-ical', async function(req, res) {
   try {
     const icalUrls = [
