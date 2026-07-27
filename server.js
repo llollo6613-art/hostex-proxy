@@ -682,6 +682,53 @@ app.get('/test-ical', async function(req, res) {
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
+// DIAGNOSTIC : compare les dates bloquées dans l'iCal Booking avec les check-in en base
+app.get('/debug-booking-dates', async function(req, res) {
+  try {
+    const bookingUrls = [
+      {url: 'https://ical.booking.com/v1/export?t=939b4e7b-3790-4c7a-8062-4b58f61c6af2', prop: '12619011'},
+      {url: 'https://ical.booking.com/v1/export?t=0e46cbb9-8661-4a50-99d3-0dc9ec5ab511', prop: '12619012'},
+    ];
+    const blocs = [];       // toutes les plages bloquées Booking
+    const datesBloquees = new Set();
+    for (const {url, prop} of bookingUrls) {
+      const r = await fetch(url, {headers:{'User-Agent':'Mozilla/5.0','Accept':'text/calendar,*/*'}});
+      const text = (await r.text()).replace(/\r\n[ \t]/g, '').replace(/\r/g, '');
+      const events = text.split('BEGIN:VEVENT').slice(1);
+      for (const ev of events) {
+        const dtstart = (ev.match(/DTSTART[^:\n]*:(\d+)/) || [])[1];
+        const dtend = (ev.match(/DTEND[^:\n]*:(\d+)/) || [])[1];
+        if (!dtstart) continue;
+        const ci = dtstart.slice(0,4)+'-'+dtstart.slice(4,6)+'-'+dtstart.slice(6,8);
+        const co = dtend ? dtend.slice(0,4)+'-'+dtend.slice(4,6)+'-'+dtend.slice(6,8) : '?';
+        blocs.push({ prop, du: ci, au: co });
+        // marquer chaque nuit
+        if (dtend) {
+          let d = new Date(ci+'T12:00:00');
+          const fin = new Date(co+'T12:00:00');
+          while (d < fin) { datesBloquees.add(prop+'|'+d.toISOString().slice(0,10)); d.setDate(d.getDate()+1); }
+        }
+      }
+    }
+    // Comparer avec les résas Booking futures en base
+    const all = await getDB();
+    const todayStr = new Date().toISOString().slice(0,10);
+    const bookingResas = all.filter(r => r.status!=='cancelled' && (r.channel_type||'').includes('booking') && r.check_in_date >= todayStr)
+      .map(r => ({
+        guest: r.guest_name,
+        checkin: r.check_in_date,
+        prop: r.property_id,
+        checkin_bloque: datesBloquees.has(String(r.property_id)+'|'+r.check_in_date)
+      }))
+      .sort((a,b)=> a.checkin < b.checkin ? -1 : 1);
+    res.json({
+      nb_blocs_booking: blocs.length,
+      blocs_booking: blocs.sort((a,b)=> a.du<b.du?-1:1),
+      resas_booking_futures: bookingResas
+    });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 app.get('/detect-cancel-ical', async function(req, res) {
   try {
     const dryRun = req.query.apply !== '1';
