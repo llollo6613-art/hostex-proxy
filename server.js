@@ -670,7 +670,10 @@ app.get('/test-ical', async function(req, res) {
         const r = await fetch(url, {headers:{'User-Agent':'Mozilla/5.0','Accept':'text/calendar,*/*'}});
         const t = await r.text();
         const nbEvents = (t.match(/BEGIN:VEVENT/g) || []).length;
-        results.push({ nom: n, http_status: r.status, taille: t.length, evenements: nbEvents, apercu: t.slice(0, 120) });
+        // Extraire un événement complet pour analyse du format
+        const cleaned = t.replace(/\r\n[ \t]/g, '').replace(/\r/g, '');
+        const firstEvent = cleaned.split('BEGIN:VEVENT')[1] ? cleaned.split('BEGIN:VEVENT')[1].split('END:VEVENT')[0] : '';
+        results.push({ nom: n, http_status: r.status, taille: t.length, evenements: nbEvents, evenement_complet: firstEvent.slice(0, 500) });
       } catch(e) {
         results.push({ nom: n, erreur: e.message });
       }
