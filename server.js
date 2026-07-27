@@ -667,8 +667,12 @@ app.get('/detect-cancel-ical', async function(req, res) {
     const activeCodes = new Set();
     const activeDates = new Set();       // "prop|checkin"
     const datesCouvertes = [];           // toutes les dates de check-in vues dans les iCal
-    let icalOK = 0;
+    // Suivre quelles PLATEFORMES ont un iCal valide (avec evenements). On n'annulera
+    // QUE les resas des plateformes dont l'iCal a repondu — sinon faux positifs en masse.
+    const platesValides = { airbnb: false, booking: false };
     for (const {url, prop} of icalUrls) {
+      const isBooking = url.includes('booking.com');
+      const plat = isBooking ? 'booking' : 'airbnb';
       try {
         const r = await fetch(url, {headers:{'User-Agent':'Mozilla/5.0','Accept':'text/calendar,*/*'}});
         const rawText = await r.text();
@@ -688,9 +692,10 @@ app.get('/detect-cancel-ical', async function(req, res) {
           datesCouvertes.push(ci);
           evCount++;
         }
-        if (evCount > 0) icalOK++;
+        if (evCount > 0) platesValides[plat] = true;
       } catch(eICal) { console.error('iCal fetch error:', eICal.message); }
     }
+    const icalOK = (platesValides.airbnb ? 1 : 0) + (platesValides.booking ? 1 : 0);
     // SÉCURITÉ : si aucun iCal n'a répondu correctement, on ne touche à RIEN (évite d'annuler en masse)
     if (icalOK === 0 || datesCouvertes.length < 3) {
       return res.json({ erreur_securite: 'iCal indisponibles ou vides — aucune action pour éviter les faux positifs', icalOK, evenements: datesCouvertes.length });
@@ -708,6 +713,11 @@ app.get('/detect-cancel-ical', async function(req, res) {
       if (!r.check_in_date) continue;
       if (r.check_in_date < todayStr) continue;          // futur uniquement
       if (r.check_in_date < winMin || r.check_in_date > winMax) continue; // dans la fenêtre iCal
+      // Ne traiter que si l'iCal de CETTE plateforme a repondu (sinon faux positif)
+      const ch = (r.channel_type||'').toLowerCase();
+      const platResa = ch.includes('booking') ? 'booking' : (ch.includes('airbnb') ? 'airbnb' : 'autre');
+      if (platResa === 'autre') continue;
+      if (!platesValides[platResa]) continue;   // iCal de cette plateforme indisponible => on ne touche pas
       // code normalisé
       let code = r.reservation_code || '';
       let norm = code;
@@ -732,6 +742,7 @@ app.get('/detect-cancel-ical', async function(req, res) {
     res.json({
       mode: dryRun ? 'SIMULATION (ajouter ?apply=1 pour exécuter)' : 'APPLIQUÉ — sans notification',
       fenetre_ical: winMin + ' → ' + winMax,
+      plateformes_ical_valides: platesValides,
       ical_actifs: activeCodes.size,
       a_annuler_count: aAnnuler.length,
       annulees: done,
