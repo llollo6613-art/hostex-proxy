@@ -655,6 +655,30 @@ app.get('/repair-all', async function(req, res) {
 // DÉTECTION ANNULATIONS via iCal (source fiable) — SANS notification.
 // Marque 'cancelled' les résas FUTURES actives en base mais absentes des iCal,
 // uniquement dans la fenêtre de dates couverte par les iCal. Simulation par défaut ; ?apply=1 pour exécuter.
+// TEST : diagnostique l'accès aux iCal (Render peut-il les joindre ?)
+// Usage : /test-ical  OU  /test-ical?url=https://...ics (pour tester une URL fraîche)
+app.get('/test-ical', async function(req, res) {
+  try {
+    const testUrls = req.query.url ? [{n:'URL fournie', url:req.query.url}] : [
+      {n:'Airbnb Suite', url:'https://www.airbnb.fr/calendar/ical/1444758558715417027.ics?t=c42b72016c5748c18ee41cd64ae7e287'},
+      {n:'Booking Suite', url:'https://ical.booking.com/v1/export?t=939b4e7b-3790-4c7a-8062-4b58f61c6af2'},
+      {n:'Booking Loft', url:'https://ical.booking.com/v1/export?t=0e46cbb9-8661-4a50-99d3-0dc9ec5ab511'},
+    ];
+    const results = [];
+    for (const {n, url} of testUrls) {
+      try {
+        const r = await fetch(url, {headers:{'User-Agent':'Mozilla/5.0','Accept':'text/calendar,*/*'}});
+        const t = await r.text();
+        const nbEvents = (t.match(/BEGIN:VEVENT/g) || []).length;
+        results.push({ nom: n, http_status: r.status, taille: t.length, evenements: nbEvents, apercu: t.slice(0, 120) });
+      } catch(e) {
+        results.push({ nom: n, erreur: e.message });
+      }
+    }
+    res.json({ resultats: results });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 app.get('/detect-cancel-ical', async function(req, res) {
   try {
     const dryRun = req.query.apply !== '1';
