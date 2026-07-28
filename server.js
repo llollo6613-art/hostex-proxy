@@ -689,33 +689,61 @@ app.get('/test-ical', async function(req, res) {
 // Récupère les résa 'cancelled' de Hostex et marque annulées celles correspondantes en base.
 // Simulation par défaut ; ?apply=1 pour exécuter.
 async function syncCancellationsFromHostex(apply) {
-  // 1. Toutes les annulées Hostex (paginé)
-  let hostexCancelled = [];
-  for (let page = 1; page <= 15; page++) {
-    const d = await hostexGet('/reservations?page_size=100&page=' + page + '&status=cancelled');
-    const list = (d && d.data && d.data.reservations) || [];
-    if (!list.length) break;
-    hostexCancelled = hostexCancelled.concat(list);
-    if (list.length < 100) break;
+  // Source FIABLE et COMPLÈTE : le calendrier de disponibilités Hostex (pas la liste plafonnée à 20).
+  // Une résa est annulée si TOUTES ses nuits sont redevenues "available:true" côté Hostex.
+  const today = new Date(); today.setHours(12,0,0,0);
+  const todayStr = today.toISOString().slice(0,10);
+  const endStr = new Date(Date.now() + 400*86400000).toISOString().slice(0,10); // +400 jours
+  // 1. Récupérer les disponibilités des 2 propriétés
+  let dispo;
+  try {
+    const d = await hostexGet('/availabilities?property_ids=12619011,12619012&start_date=' + todayStr + '&end_date=' + endStr);
+    dispo = (d && d.data && d.data.properties) || [];
+  } catch(e) {
+    return { securite: 'Availabilities Hostex inaccessible — aucune action', done: 0 };
   }
-  // Sécurité : si Hostex ne renvoie rien, on ne touche à rien (évite faux positifs)
-  if (hostexCancelled.length === 0) {
-    return { securite: 'Aucune annulation renvoyée par Hostex — aucune action', a_annuler: [], done: 0 };
+  // Sécurité : si l'API ne renvoie rien d'exploitable, on ne touche à rien
+  if (!dispo.length) {
+    return { securite: 'Availabilities vides — aucune action', done: 0 };
   }
-  // 2. Set des codes annulés normalisés
-  const cancelledNorm = new Set();
-  hostexCancelled.forEach(r => {
-    const code = r.reservation_code || r.channel_id || '';
-    cancelledNorm.add(_normCode(code));
-    if (r.channel_id) cancelledNorm.add(_normCode(r.channel_id));
+  // 2. Construire, par propriété, l'ensemble des dates OCCUPÉES (available:false)
+  const occupied = {}; // "propId|YYYY-MM-DD" -> true
+  let totalDates = 0;
+  dispo.forEach(p => {
+    (p.availabilities || []).forEach(a => {
+      if (a.available === false) occupied[p.id + '|' + a.date] = true;
+      totalDates++;
+    });
   });
-  // 3. Parcourir la base : marquer annulées les résa actives dont le code normalisé est annulé chez Hostex
+  // Sécurité renforcée : si trop peu de dates renvoyées, calendrier probablement incomplet
+  if (totalDates < 30) {
+    return { securite: 'Calendrier trop court (' + totalDates + ' dates) — aucune action', done: 0 };
+  }
+  // 3. Parcourir les résas FUTURES actives : annulée si aucune de ses nuits n'est occupée côté Hostex
   const all = await getDB();
   const aAnnuler = [];
   for (const r of all) {
     if (r.status === 'cancelled') continue;
-    const norm = _normCode(r.reservation_code || '');
-    if (cancelledNorm.has(norm)) aAnnuler.push(r);
+    if (!r.check_in_date || !r.check_out_date) continue;
+    if (r.check_in_date < todayStr) continue;              // futur uniquement
+    if (r.check_in_date > endStr) continue;                // dans la fenêtre couverte
+    const pid = String(r.property_id);
+    if (pid !== '12619011' && pid !== '12619012') continue; // propriétés connues seulement
+    // Vérifier chaque nuit du séjour
+    let d = new Date(r.check_in_date + 'T12:00:00');
+    const fin = new Date(r.check_out_date + 'T12:00:00');
+    let auMoinsUneOccupee = false;
+    let nbNuits = 0;
+    while (d < fin) {
+      const ds = d.toISOString().slice(0,10);
+      if (occupied[pid + '|' + ds]) auMoinsUneOccupee = true;
+      nbNuits++;
+      d.setDate(d.getDate() + 1);
+    }
+    // Si le séjour a des nuits ET qu'AUCUNE n'est occupée dans Hostex => annulée
+    if (nbNuits > 0 && !auMoinsUneOccupee) {
+      aAnnuler.push(r);
+    }
   }
   let done = 0;
   if (apply) {
@@ -728,12 +756,14 @@ async function syncCancellationsFromHostex(apply) {
     if (done > 0) invalidateCache();
   }
   return {
-    hostex_annulees: hostexCancelled.length,
+    source: 'availabilities Hostex',
+    dates_analysees: totalDates,
     a_annuler_count: aAnnuler.length,
     done,
-    liste: aAnnuler.map(r => ({ code: r.reservation_code, guest: r.guest_name, checkin: r.check_in_date, channel: r.channel_type }))
+    liste: aAnnuler.map(r => ({ code: r.reservation_code, guest: r.guest_name, checkin: r.check_in_date, checkout: r.check_out_date, channel: r.channel_type }))
   };
 }
+
 
 app.get('/sync-cancellations', async function(req, res) {
   try {
