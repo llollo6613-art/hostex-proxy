@@ -1631,6 +1631,14 @@ async function syncHostexToSupabase() {
       invalidateCache();
       console.log('Auto-sync: ' + toSave.length + ' synced, ' + newRes.length + ' new, ' + cancelledNow.length + ' cancelled');
 
+      // Synchro des annulations via la liste autoritaire Hostex (Airbnb + Booking), SANS notification.
+      try {
+        const cancelResult = await syncCancellationsFromHostex(true);
+        if (cancelResult && cancelResult.done > 0) {
+          console.log('Sync annulations Hostex: ' + cancelResult.done + ' marquées cancelled');
+        }
+      } catch(eCancel) { console.error('Sync annulations error:', eCancel.message); }
+
       // Notifs d'ANNULATION (propriétaire + ménage)
       // Garde-fou anti-spam : si beaucoup d'annulations détectées d'un coup (ex: premier
       // passage qui rattrape l'historique), on n'envoie PAS de notif individuelle pour
