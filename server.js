@@ -746,6 +746,41 @@ app.get('/sync-cancellations', async function(req, res) {
 // DIAGNOSTIC : pour chaque résa Booking future ACTIVE en base, vérifie son vrai statut via Hostex
 // TEST : interroger Hostex sur une résa précise pour connaître son vrai statut
 // Usage : /probe-resa?code=9-5258760301
+// TEST : jusqu'où va la pagination des annulations Hostex ? Teste aussi le filtre par dates
+app.get('/probe-cancelled-depth', async function(req, res) {
+  try {
+    // A. Pagination brute status=cancelled
+    const pages = [];
+    let totalA = 0;
+    for (let page = 1; page <= 20; page++) {
+      const d = await hostexGet('/reservations?page_size=100&page=' + page + '&status=cancelled');
+      const list = (d && d.data && d.data.reservations) || [];
+      pages.push({ page, count: list.length, first: list[0] ? list[0].check_in_date : null, last: list[list.length-1] ? list[list.length-1].check_in_date : null });
+      totalA += list.length;
+      if (!list.length || list.length < 100) break;
+    }
+    // B. Avec filtre de dates (start/end check-in) pour forcer une autre fenêtre
+    const y2026 = '2026-01-01', y2027 = '2027-12-31';
+    let withDates = null;
+    try {
+      const d2 = await hostexGet('/reservations?page_size=100&status=cancelled&start_check_in_date=' + y2026 + '&end_check_in_date=' + y2027);
+      const list2 = (d2 && d2.data && d2.data.reservations) || [];
+      withDates = { count: list2.length, sample: list2.slice(0,3).map(r => ({ guest: r.guest_name, checkin: r.check_in_date, status: r.status })) };
+    } catch(e) { withDates = { erreur: e.message.slice(0,150) }; }
+    // C. Chercher Sylvie (5258760301) dans le lot brut
+    let sylvie = null;
+    for (let page = 1; page <= 20; page++) {
+      const d = await hostexGet('/reservations?page_size=100&page=' + page + '&status=cancelled');
+      const list = (d && d.data && d.data.reservations) || [];
+      if (!list.length) break;
+      const found = list.find(r => (r.reservation_code||'').includes('5258760301') || (r.channel_id||'').includes('5258760301'));
+      if (found) { sylvie = { page, code: found.reservation_code, status: found.status }; break; }
+      if (list.length < 100) break;
+    }
+    res.json({ pagination_brute: pages, total_brut: totalA, avec_filtre_dates: withDates, sylvie_trouvee: sylvie });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 app.get('/probe-resa', async function(req, res) {
   try {
     const code = req.query.code || '';
