@@ -743,6 +743,47 @@ app.get('/sync-cancellations', async function(req, res) {
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
+// DIAGNOSTIC : pour chaque résa Booking future ACTIVE en base, vérifie son vrai statut via Hostex
+app.get('/debug-booking-actives', async function(req, res) {
+  try {
+    // 1. Liste des codes annulés Hostex (paginé)
+    let hostexCancelled = [];
+    for (let page = 1; page <= 15; page++) {
+      const d = await hostexGet('/reservations?page_size=100&page=' + page + '&status=cancelled');
+      const list = (d && d.data && d.data.reservations) || [];
+      if (!list.length) break;
+      hostexCancelled = hostexCancelled.concat(list);
+      if (list.length < 100) break;
+    }
+    const cancelledNorm = new Set();
+    hostexCancelled.forEach(r => {
+      cancelledNorm.add(_normCode(r.reservation_code || ''));
+      if (r.channel_id) cancelledNorm.add(_normCode(r.channel_id));
+    });
+    // 2. Résas Booking futures actives en base
+    const all = await getDB();
+    const todayStr = new Date().toISOString().slice(0,10);
+    const bookingActives = all.filter(r => r.status !== 'cancelled' && (r.channel_type||'').includes('booking') && r.check_in_date >= todayStr);
+    // 3. Pour chacune, vérifier son statut réel via une recherche ciblée Hostex
+    const details = [];
+    for (const r of bookingActives) {
+      const norm = _normCode(r.reservation_code || '');
+      details.push({
+        code: r.reservation_code,
+        norm: norm,
+        guest: r.guest_name,
+        checkin: r.check_in_date,
+        dans_liste_annulees_hostex: cancelledNorm.has(norm)
+      });
+    }
+    res.json({
+      hostex_annulees_total: hostexCancelled.length,
+      booking_actives_base: bookingActives.length,
+      details: details.sort((a,b)=> a.checkin<b.checkin?-1:1)
+    });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 app.get('/hostex-cancelled', async function(req, res) {
   try {
     let allCancelled = [];
