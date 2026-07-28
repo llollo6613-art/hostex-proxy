@@ -683,6 +683,46 @@ app.get('/test-ical', async function(req, res) {
 });
 
 // DIAGNOSTIC : compare les dates bloquées dans l'iCal Booking avec les check-in en base
+// PROBE : teste les endpoints Hostex calendrier/disponibilités pour trouver une source fiable
+app.get('/probe-hostex', async function(req, res) {
+  try {
+    const today = new Date().toISOString().slice(0,10);
+    const in90 = new Date(Date.now()+90*86400000).toISOString().slice(0,10);
+    const endpoints = [
+      '/listings',
+      '/properties',
+      '/availabilities?start_date='+today+'&end_date='+in90,
+      '/calendar?start_date='+today+'&end_date='+in90,
+      '/listing_calendars?start_date='+today+'&end_date='+in90,
+      '/reservations?page_size=100&status=cancelled',
+      '/reservations?page_size=100&start_check_in_date='+today,
+    ];
+    const results = [];
+    for (const ep of endpoints) {
+      try {
+        const d = await hostexGet(ep);
+        // Resumer la reponse sans tout dumper
+        let resume;
+        if (d && d.data) {
+          const keys = Object.keys(d.data);
+          resume = { data_keys: keys };
+          // compter les elements de chaque tableau
+          keys.forEach(k => { if (Array.isArray(d.data[k])) resume[k+'_count'] = d.data[k].length; });
+          // echantillon du premier element du premier tableau
+          const firstArr = keys.find(k => Array.isArray(d.data[k]) && d.data[k].length);
+          if (firstArr) resume.sample = JSON.stringify(d.data[firstArr][0]).slice(0, 300);
+        } else {
+          resume = { raw: JSON.stringify(d).slice(0, 200) };
+        }
+        results.push({ endpoint: ep, ok: true, ...resume });
+      } catch(e) {
+        results.push({ endpoint: ep, ok: false, erreur: e.message.slice(0, 150) });
+      }
+    }
+    res.json({ results });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 app.get('/debug-booking-dates', async function(req, res) {
   try {
     const bookingUrls = [
