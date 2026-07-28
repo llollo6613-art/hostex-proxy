@@ -754,6 +754,20 @@ async function syncCancellationsFromHostex(apply) {
       } catch(e) { console.error('Cancel sync patch error:', e.message); }
     }
     if (done > 0) invalidateCache();
+    // Notifications d'annulation, AVEC garde-fou anti-spam : seulement si 1 à 3 d'un coup.
+    // Au-delà (rattrapage massif), on ne notifie pas pour ne pas saturer les téléphones.
+    if (done >= 1 && done <= 3) {
+      for (const r of aAnnuler) {
+        const prop = String(r.property_id) === '12619011' ? 'Suite Illiberis' : 'Loft Cinema';
+        const ch = r.channel_type === 'airbnb' ? 'Airbnb' : (r.channel_type && r.channel_type.includes('booking') ? 'Booking' : (r.channel_type||''));
+        const msgOwner = prop + ' · ' + ch + '\n' + (r.guest_name||'') + '\nArrivée prévue ' + (r.check_in_date||'') + ' — ANNULÉE';
+        await sendPushNotif('❌ Réservation annulée', msgOwner, '/mobile', 'cancel-resa', 'owner');
+        const msgMenage = prop + '\n' + (r.guest_name||'') + '\nLe ménage prévu le ' + (r.check_out_date||'') + ' est ANNULÉ';
+        await sendPushNotif('❌ Séjour annulé', msgMenage, '/menage', 'cancel-resa', 'menage');
+      }
+    } else if (done > 3) {
+      console.log('Anti-spam annulations: ' + done + ' détectées, notifications non envoyées');
+    }
   }
   return {
     source: 'availabilities Hostex',
