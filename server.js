@@ -744,6 +744,37 @@ app.get('/sync-cancellations', async function(req, res) {
 });
 
 // DIAGNOSTIC : pour chaque résa Booking future ACTIVE en base, vérifie son vrai statut via Hostex
+// TEST : interroger Hostex sur une résa précise pour connaître son vrai statut
+// Usage : /probe-resa?code=9-5258760301
+app.get('/probe-resa', async function(req, res) {
+  try {
+    const code = req.query.code || '';
+    if (!code) return res.json({ error: 'ajouter ?code=XXX' });
+    const tries = [
+      '/reservations?reservation_code=' + encodeURIComponent(code),
+      '/reservations?channel_id=' + encodeURIComponent(code),
+      '/reservations/' + encodeURIComponent(code),
+    ];
+    const results = [];
+    for (const ep of tries) {
+      try {
+        const d = await hostexGet(ep);
+        let resume;
+        if (d && d.data) {
+          const list = d.data.reservations || (d.data.reservation ? [d.data.reservation] : []);
+          resume = { found: list.length, statuts: list.map(r => ({ code: r.reservation_code, status: r.status, checkin: r.check_in_date })) };
+        } else {
+          resume = { raw: JSON.stringify(d).slice(0,200) };
+        }
+        results.push({ endpoint: ep, ...resume });
+      } catch(e) {
+        results.push({ endpoint: ep, erreur: e.message.slice(0,120) });
+      }
+    }
+    res.json({ code, results });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 app.get('/debug-booking-actives', async function(req, res) {
   try {
     // 1. Liste des codes annulés Hostex (paginé)
