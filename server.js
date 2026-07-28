@@ -684,6 +684,35 @@ app.get('/test-ical', async function(req, res) {
 
 // DIAGNOSTIC : compare les dates bloquées dans l'iCal Booking avec les check-in en base
 // PROBE : teste les endpoints Hostex calendrier/disponibilités pour trouver une source fiable
+// Récupère TOUTES les réservations annulées depuis Hostex (toutes plateformes), paginé
+app.get('/hostex-cancelled', async function(req, res) {
+  try {
+    let allCancelled = [];
+    for (let page = 1; page <= 15; page++) {
+      const d = await hostexGet('/reservations?page_size=100&page=' + page + '&status=cancelled');
+      const list = (d && d.data && d.data.reservations) || [];
+      if (!list.length) break;
+      allCancelled = allCancelled.concat(list);
+      if (list.length < 100) break;
+    }
+    // Répartition par plateforme + futures
+    const todayStr = new Date().toISOString().slice(0,10);
+    const parCanal = {};
+    const futures = [];
+    allCancelled.forEach(r => {
+      const ch = r.channel_type || '?';
+      parCanal[ch] = (parCanal[ch]||0)+1;
+      if (r.check_in_date >= todayStr) futures.push({ code: r.reservation_code, guest: r.guest_name, checkin: r.check_in_date, channel: r.channel_type });
+    });
+    res.json({
+      total_annulees_hostex: allCancelled.length,
+      par_canal: parCanal,
+      futures_count: futures.length,
+      futures: futures.sort((a,b)=> a.checkin<b.checkin?-1:1)
+    });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 app.get('/probe-hostex', async function(req, res) {
   try {
     const today = new Date().toISOString().slice(0,10);
