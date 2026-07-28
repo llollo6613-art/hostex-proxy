@@ -685,6 +685,64 @@ app.get('/test-ical', async function(req, res) {
 // DIAGNOSTIC : compare les dates bloquées dans l'iCal Booking avec les check-in en base
 // PROBE : teste les endpoints Hostex calendrier/disponibilités pour trouver une source fiable
 // Récupère TOUTES les réservations annulées depuis Hostex (toutes plateformes), paginé
+// SYNC ANNULATIONS via Hostex (source autoritaire, TOUTES plateformes) — SANS notification.
+// Récupère les résa 'cancelled' de Hostex et marque annulées celles correspondantes en base.
+// Simulation par défaut ; ?apply=1 pour exécuter.
+async function syncCancellationsFromHostex(apply) {
+  // 1. Toutes les annulées Hostex (paginé)
+  let hostexCancelled = [];
+  for (let page = 1; page <= 15; page++) {
+    const d = await hostexGet('/reservations?page_size=100&page=' + page + '&status=cancelled');
+    const list = (d && d.data && d.data.reservations) || [];
+    if (!list.length) break;
+    hostexCancelled = hostexCancelled.concat(list);
+    if (list.length < 100) break;
+  }
+  // Sécurité : si Hostex ne renvoie rien, on ne touche à rien (évite faux positifs)
+  if (hostexCancelled.length === 0) {
+    return { securite: 'Aucune annulation renvoyée par Hostex — aucune action', a_annuler: [], done: 0 };
+  }
+  // 2. Set des codes annulés normalisés
+  const cancelledNorm = new Set();
+  hostexCancelled.forEach(r => {
+    const code = r.reservation_code || r.channel_id || '';
+    cancelledNorm.add(_normCode(code));
+    if (r.channel_id) cancelledNorm.add(_normCode(r.channel_id));
+  });
+  // 3. Parcourir la base : marquer annulées les résa actives dont le code normalisé est annulé chez Hostex
+  const all = await getDB();
+  const aAnnuler = [];
+  for (const r of all) {
+    if (r.status === 'cancelled') continue;
+    const norm = _normCode(r.reservation_code || '');
+    if (cancelledNorm.has(norm)) aAnnuler.push(r);
+  }
+  let done = 0;
+  if (apply) {
+    for (const r of aAnnuler) {
+      try {
+        await supaFetch('reservations?reservation_code=eq.' + encodeURIComponent(r.reservation_code), 'PATCH', { status: 'cancelled' });
+        done++;
+      } catch(e) { console.error('Cancel sync patch error:', e.message); }
+    }
+    if (done > 0) invalidateCache();
+  }
+  return {
+    hostex_annulees: hostexCancelled.length,
+    a_annuler_count: aAnnuler.length,
+    done,
+    liste: aAnnuler.map(r => ({ code: r.reservation_code, guest: r.guest_name, checkin: r.check_in_date, channel: r.channel_type }))
+  };
+}
+
+app.get('/sync-cancellations', async function(req, res) {
+  try {
+    const apply = req.query.apply === '1';
+    const result = await syncCancellationsFromHostex(apply);
+    res.json({ mode: apply ? 'APPLIQUÉ — sans notification' : 'SIMULATION (ajouter ?apply=1 pour exécuter)', ...result });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 app.get('/hostex-cancelled', async function(req, res) {
   try {
     let allCancelled = [];
