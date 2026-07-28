@@ -747,6 +747,36 @@ app.get('/sync-cancellations', async function(req, res) {
 // TEST : interroger Hostex sur une résa précise pour connaître son vrai statut
 // Usage : /probe-resa?code=9-5258760301
 // TEST : jusqu'où va la pagination des annulations Hostex ? Teste aussi le filtre par dates
+// TEST : l'endpoint /availabilities reflète l'occupation réelle Hostex (dates libres/occupées)
+app.get('/probe-avail', async function(req, res) {
+  try {
+    const today = new Date().toISOString().slice(0,10);
+    const in60 = new Date(Date.now()+60*86400000).toISOString().slice(0,10);
+    // Essayer plusieurs formats de paramètre property_ids
+    const tries = [
+      '/availabilities?property_ids=12619011,12619012&start_date='+today+'&end_date='+in60,
+      '/availabilities?property_ids[]=12619011&property_ids[]=12619012&start_date='+today+'&end_date='+in60,
+      '/availabilities?property_id=12619011&start_date='+today+'&end_date='+in60,
+    ];
+    const results = [];
+    for (const ep of tries) {
+      try {
+        const d = await hostexGet(ep);
+        let resume;
+        if (d && d.data) {
+          resume = { data_keys: Object.keys(d.data), sample: JSON.stringify(d.data).slice(0, 400) };
+        } else {
+          resume = { raw: JSON.stringify(d).slice(0, 250) };
+        }
+        results.push({ endpoint: ep.split('?')[0] + ' (' + ep.split('&')[0].split('?')[1] + ')', ...resume });
+      } catch(e) {
+        results.push({ endpoint: ep, erreur: e.message.slice(0,150) });
+      }
+    }
+    res.json({ results });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 app.get('/probe-cancelled-depth', async function(req, res) {
   try {
     // A. Pagination brute status=cancelled
