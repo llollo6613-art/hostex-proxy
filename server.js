@@ -765,6 +765,34 @@ async function syncCancellationsFromHostex(apply) {
 }
 
 
+// DIAGNOSTIC : montre l'occupation Hostex pour les résas Booking futures actives
+app.get('/debug-avail-match', async function(req, res) {
+  try {
+    const today = new Date().toISOString().slice(0,10);
+    const endStr = new Date(Date.now() + 400*86400000).toISOString().slice(0,10);
+    const d = await hostexGet('/availabilities?property_ids=12619011,12619012&start_date=' + today + '&end_date=' + endStr);
+    const dispo = (d && d.data && d.data.properties) || [];
+    const occupied = {};
+    dispo.forEach(p => (p.availabilities||[]).forEach(a => { if (a.available === false) occupied[p.id + '|' + a.date] = true; }));
+    // Pour chaque résa Booking future active, montrer l'occupation de ses nuits
+    const all = await getDB();
+    const bookingActives = all.filter(r => r.status!=='cancelled' && (r.channel_type||'').includes('booking') && r.check_in_date >= today);
+    const details = bookingActives.map(r => {
+      const pid = String(r.property_id);
+      let dd = new Date(r.check_in_date + 'T12:00:00');
+      const fin = new Date(r.check_out_date + 'T12:00:00');
+      const nuits = [];
+      while (dd < fin) {
+        const ds = dd.toISOString().slice(0,10);
+        nuits.push(ds + (occupied[pid+'|'+ds] ? ':occ' : ':LIBRE'));
+        dd.setDate(dd.getDate()+1);
+      }
+      return { guest: r.guest_name, prop: pid, checkin: r.check_in_date, checkout: r.check_out_date, nuits: nuits.join(' ') };
+    }).sort((a,b)=> a.checkin<b.checkin?-1:1);
+    res.json({ total_dates_occupees: Object.keys(occupied).length, details });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 app.get('/sync-cancellations', async function(req, res) {
   try {
     const apply = req.query.apply === '1';
