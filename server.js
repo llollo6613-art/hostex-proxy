@@ -459,6 +459,27 @@ app.get('/icon-menage-192.png', (req, res) => res.sendFile(__dirname+'/icon-mena
 app.get('/icon-menage-512.png', (req, res) => res.sendFile(__dirname+'/icon-menage-512.png'));
 
 // DIAGNOSTIC : lister les abonnements push (pour repérer les doublons d'appareils)
+// TEST : envoie une notif à un rôle et rapporte le résultat par endpoint
+// Usage : /test-push?role=owner  ou  /test-push?role=menage
+app.get('/test-push', async function(req, res) {
+  try {
+    const role = req.query.role || 'owner';
+    const targets = pushSubscriptions.filter(s => (s.role||'owner') === role);
+    if (!targets.length) return res.json({ role, erreur: 'aucun abonnement pour ce rôle' });
+    const payload = JSON.stringify({ title:'🔔 Test notification', body:'Ceci est un test '+role+' à ' + new Date().toLocaleTimeString('fr-FR'), url:'/mobile', tag:'test-push' });
+    const resultats = [];
+    for (const sub of targets) {
+      try {
+        await webpush.sendNotification(sub, payload);
+        resultats.push({ endpoint: (sub.endpoint||'').slice(0,45)+'...', statut: 'ENVOYÉ OK' });
+      } catch(e) {
+        resultats.push({ endpoint: (sub.endpoint||'').slice(0,45)+'...', statut: 'ERREUR', code: e.statusCode, message: (e.body||e.message||'').slice(0,100) });
+      }
+    }
+    res.json({ role, nb_cibles: targets.length, resultats });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 app.get('/debug-subs', async function(req, res) {
   try {
     const byRole = { owner: [], menage: [], autre: [] };
