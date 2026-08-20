@@ -8,65 +8,116 @@
 
 
 
+:root{
+  --bg:#F7F6F1;
+  --sidebar-bg:#FBFAF6;
+  --surface:#ffffff;
+  --border:#EAE7DD;
+  --border-strong:#DCD8CB;
+  --text:#1C1B17;
+  --text-2:#75736A;
+  --text-3:#A6A398;
+  --accent:#0F6E56;
+  --accent-light:#E1F0EA;
+  --r-sm:10px;
+  --r-md:14px;
+  --r-lg:20px;
+  --shadow-sm:0 1px 2px rgba(30,28,20,.05);
+  --shadow-md:0 6px 20px rgba(30,28,20,.07),0 1px 3px rgba(30,28,20,.05);
+  --color-background-primary:#ffffff;
+  --color-background-secondary:#F5F4EE;
+  --color-border-secondary:#DCD8CB;
+  --color-border-tertiary:#EAE7DD;
+  --color-text-primary:#1C1B17;
+  --color-text-secondary:#75736A;
+  --color-text-tertiary:#A6A398;
+  --color-text-danger:#B0342B;
+}
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#1a1a1a;font-size:14px;background:#f5f4f0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:var(--text);font-size:14px;background:var(--bg);-webkit-font-smoothing:antialiased}
 .app{display:flex;min-height:100vh}
-.sidebar{width:210px;flex-shrink:0;border-right:1px solid #e5e4e0;background:#f0efe9;display:flex;flex-direction:column;position:fixed;height:100vh;left:0;top:0}
-.sidebar-top{padding:16px;border-bottom:1px solid #e5e4e0}
-.logo{font-size:14px;font-weight:600;color:#1a1a1a}
-.logo-sub{font-size:11px;color:#888;margin-top:3px}
-.nav-item{display:flex;align-items:center;gap:9px;padding:9px 16px;cursor:pointer;font-size:13px;color:#666;transition:background 0.1s}
-.nav-item.active,.nav-item:hover{background:#fff;color:#1a1a1a}
+.sidebar{width:230px;flex-shrink:0;border-right:1px solid var(--border);background:var(--sidebar-bg);display:flex;flex-direction:column;position:fixed;height:100vh;left:0;top:0}
+.sidebar-top{padding:20px 16px 14px}
+.logo{font-size:14px;font-weight:600;color:var(--text);letter-spacing:-.01em}
+.logo-sub{font-size:11px;color:var(--text-3);margin-top:3px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;margin:1px 8px;border-radius:var(--r-sm);cursor:pointer;font-size:13px;color:var(--text-2);transition:background .15s,color .15s}
+.nav-item:hover{background:rgba(28,27,23,.045);color:var(--text)}
+.nav-item.active{background:var(--accent);color:#fff;font-weight:500}
+.nav-item.active:hover{background:var(--accent)}
 .nav-badge{margin-left:auto;background:#E24B4A;color:white;border-radius:20px;font-size:10px;padding:1px 6px}
-.sidebar-bottom{margin-top:auto;padding:12px 16px;border-top:1px solid #e5e4e0;font-size:11px;color:#888}
-.main{flex:1;margin-left:210px;display:flex;flex-direction:column;min-height:100vh}
-.topbar{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;border-bottom:1px solid #e5e4e0;background:#fff;position:sticky;top:0;z-index:10;gap:10px;flex-wrap:wrap}
-.page-title{font-size:15px;font-weight:600}
-.btn{font-size:12px;padding:6px 14px;border-radius:7px;border:1px solid #ddd;background:#fff;color:#1a1a1a;cursor:pointer;transition:background 0.1s}
-.btn:hover{background:#f5f4f0}
-.btn-green{background:#1D9E75;color:white;border-color:#1D9E75}
-.btn-green:hover{background:#0F6E56}
+.sidebar-bottom{margin-top:auto;padding:14px 16px;border-top:1px solid var(--border);font-size:11px;color:var(--text-3)}
+.main{flex:1;margin-left:230px;display:flex;flex-direction:column;min-height:100vh}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:14px 24px;border-bottom:1px solid var(--border);background:var(--surface);position:sticky;top:0;z-index:10;gap:10px;flex-wrap:wrap}
+.page-title{font-size:16px;font-weight:600;letter-spacing:-.01em}
+.btn{font-size:12px;padding:7px 15px;border-radius:var(--r-sm);border:1px solid var(--border-strong);background:var(--surface);color:var(--text);cursor:pointer;transition:background .15s,border-color .15s,transform .1s}
+.btn:hover{background:var(--bg);border-color:var(--text-3)}
+.btn:active{transform:scale(.97)}
+.btn-green{background:var(--accent);color:white;border-color:var(--accent)}
+.btn-green:hover{background:#0C5A46;border-color:#0C5A46}
 .btn-red{background:#E24B4A;color:white;border-color:#E24B4A}
-.content{flex:1;padding:20px}
+.content{flex:1;padding:24px}
 .grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
 @media(max-width:800px){.grid4{grid-template-columns:repeat(2,1fr)}}
-.stat{background:#fff;border-radius:10px;padding:12px 16px;border:1px solid #e5e4e0}
-.stat-l{font-size:11px;color:#888;margin-bottom:4px}
-.stat-v{font-size:22px;font-weight:700;color:#1a1a1a;margin-bottom:2px}
-.stat-s{font-size:11px;color:#aaa}
-.section-h{font-size:12px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.5px;margin:16px 0 8px}
-.card{background:#fff;border-radius:10px;border:1px solid #e5e4e0;overflow:hidden}
-.res-row{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid #f5f4f0;gap:8px;flex-wrap:wrap}
+.stat{background:var(--surface);border-radius:var(--r-md);padding:14px 18px;border:1px solid var(--border);box-shadow:var(--shadow-sm)}
+.stat-l{font-size:11px;color:var(--text-3);margin-bottom:4px}
+.stat-v{font-size:22px;font-weight:600;color:var(--text);margin-bottom:2px}
+.stat-s{font-size:11px;color:var(--text-3)}
+.section-h{font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;margin:18px 0 8px}
+.card{background:var(--surface);border-radius:var(--r-md);border:1px solid var(--border);box-shadow:var(--shadow-sm);overflow:hidden}
+.res-row{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--bg);gap:8px;flex-wrap:wrap}
 .res-row:last-child{border-bottom:none}
 .res-guest{font-size:13px;font-weight:600}
-.res-meta{font-size:11px;color:#888;margin-top:2px}
+.res-meta{font-size:11px;color:var(--text-3);margin-top:2px}
 .res-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.badge{font-size:10px;padding:2px 8px;border-radius:20px;font-weight:600}
-.b-airbnb{background:#FFE8EC;color:#C8523E}
-.b-booking{background:#E6EFF8;color:#2E5F9E}
-.b-direct{background:#E0F5F3;color:#3D8B78}
-.b-ok{background:#E1F5EE;color:#0F6E56}
-.tabs{display:flex;gap:2px;padding:8px 12px;border-bottom:1px solid #e5e4e0;overflow-x:auto}
-.tab{font-size:12px;padding:5px 12px;border-radius:6px;cursor:pointer;color:#666;white-space:nowrap}
-.tab.active{background:#f0efe9;color:#1a1a1a;font-weight:600}
-.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:100;align-items:center;justify-content:center}
+.badge{font-size:10px;padding:3px 9px;border-radius:20px;font-weight:600}
+.b-airbnb{background:#FBEAE4;color:#B0431E}
+.b-booking{background:#E4EEF9;color:#1E5490}
+.b-direct{background:#DFF3EC;color:#0F6E56}
+.b-ok{background:var(--accent-light);color:var(--accent)}
+.tabs{display:flex;gap:2px;padding:10px 14px;border-bottom:1px solid var(--border);overflow-x:auto}
+.tab{font-size:12px;padding:6px 13px;border-radius:var(--r-sm);cursor:pointer;color:var(--text-2);white-space:nowrap;transition:background .15s,color .15s}
+.tab:hover{background:var(--bg)}
+.tab.active{background:var(--accent-light);color:var(--accent);font-weight:600}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(20,19,15,.45);z-index:100;align-items:center;justify-content:center}
 .modal-overlay.open{display:flex}
-.modal{background:#fff;border-radius:14px;padding:20px;max-width:480px;width:90%;max-height:85vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,0.15)}
-.modal h3{font-size:15px;font-weight:700;margin-bottom:14px}
-.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:14px;padding-top:10px;border-top:1px solid #f0efe9}
-.conflict-banner{background:#FEF3C7;border:1px solid #F59E0B;border-radius:8px;padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:10px}
-input,textarea,select{font-size:13px;padding:7px 10px;border:1px solid #ddd;border-radius:7px;width:100%;outline:none;font-family:inherit}
-input:focus,textarea:focus,select:focus{border-color:#1D9E75}
+.modal{background:var(--surface);border-radius:var(--r-lg);padding:22px;max-width:480px;width:90%;max-height:85vh;overflow-y:auto;box-shadow:0 16px 48px rgba(20,19,15,.18)}
+.modal h3{font-size:15px;font-weight:600;margin-bottom:14px}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:14px;padding-top:10px;border-top:1px solid var(--bg)}
+.conflict-banner{background:#FDF3D9;border:1px solid #E5B84B;border-radius:var(--r-sm);padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+input,textarea,select{font-size:13px;padding:8px 12px;border:1px solid var(--border-strong);border-radius:var(--r-sm);width:100%;outline:none;font-family:inherit;background:var(--surface);color:var(--text);transition:border-color .15s,box-shadow .15s}
+input:focus,textarea:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-light)}
+input[type=radio],input[type=checkbox]{width:auto;flex-shrink:0;padding:0;margin:0;border-radius:0;accent-color:var(--accent);box-shadow:none}
+input[type=radio]:focus,input[type=checkbox]:focus{box-shadow:none}
 .form-row{margin-bottom:10px}
-.form-label{font-size:11px;color:#888;margin-bottom:4px}
-.spinner{display:inline-block;width:12px;height:12px;border:2px solid #ddd;border-top-color:#1D9E75;border-radius:50%;animation:spin 0.7s linear infinite;vertical-align:middle;margin-right:6px}
+.form-label{font-size:11px;color:var(--text-3);margin-bottom:4px}
+.spinner{display:inline-block;width:12px;height:12px;border:2px solid var(--border-strong);border-top-color:var(--accent);border-radius:50%;animation:spin 0.7s linear infinite;vertical-align:middle;margin-right:6px}
 @keyframes spin{to{transform:rotate(360deg)}}
-.toast{position:fixed;bottom:20px;right:20px;background:#1a1a1a;color:#fff;padding:10px 16px;border-radius:8px;font-size:13px;opacity:0;transition:opacity .3s;z-index:200;pointer-events:none}
+.toast{position:fixed;bottom:20px;right:20px;background:var(--text);color:#fff;padding:10px 16px;border-radius:var(--r-sm);font-size:13px;opacity:0;transition:opacity .3s;z-index:200;pointer-events:none}
 .toast.show{opacity:1}
-.rate-card{background:#fff;border:1px solid #e5e4e0;border-radius:10px;padding:14px;margin-bottom:12px}
-.msg-row{padding:10px 14px;border-bottom:1px solid #f5f4f0;cursor:pointer}
-.msg-row:hover{background:#f9f9f9}
-.msg-row.unread{background:#f0f9ff}
+.rate-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:16px;margin-bottom:12px;box-shadow:var(--shadow-sm)}
+.msg-row{padding:12px 16px;border-bottom:1px solid var(--bg);cursor:pointer;transition:background .15s}
+.msg-row:hover{background:var(--bg)}
+.msg-row.unread{background:var(--accent-light)}
+
+@keyframes fadeInUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes popIn{from{opacity:0;transform:scale(.94)}to{opacity:1;transform:scale(1)}}
+@keyframes pulseDot{0%,100%{box-shadow:0 0 0 0 rgba(29,158,117,.45)}50%{box-shadow:0 0 0 6px rgba(29,158,117,0)}}
+@keyframes spinIcon{to{transform:rotate(360deg)}}
+.fade-in-up{animation:fadeInUp .45s cubic-bezier(.16,1,.3,1) both;animation-delay:calc(var(--i,0)*55ms)}
+.modal{animation:popIn .2s cubic-bezier(.16,1,.3,1) both}
+.live-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#1D9E75;animation:pulseDot 2s infinite}
+.spin-icon{display:inline-block;animation:spinIcon .8s linear infinite}
+.toast{transition:opacity .3s, transform .3s}
+@media print{
+  .sidebar,.topbar,.no-print,.mob-burger,.mob-nav,.mob-overlay,.toast{display:none!important}
+  .main{margin-left:0!important}
+  .content{padding:0!important}
+  body{background:#fff}
+  .bilan-sheet{border:none!important;box-shadow:none!important;padding:0!important;margin-bottom:28px!important;page-break-after:always}
+  .bilan-sheet:last-child{page-break-after:auto}
+  table{page-break-inside:avoid}
+  @page{margin:16mm}
+}
 
 
 
@@ -79,7 +130,8 @@ input:focus,textarea:focus,select:focus{border-color:#1D9E75}
     <div class="logo">&#127968; Illiberis Manager</div>
     <div class="logo-sub" id="conn-label">Chargement...</div>
     <div style="margin-top:6px" id="live-badge"></div>
-    <button class="btn btn-green" style="width:100%;font-size:11px;margin-top:8px" onclick="loadAll()">&#8635; Actualiser</button>
+    <div id="last-updated" style="font-size:10px;color:#aaa;margin-top:4px;display:flex;align-items:center;gap:4px"></div>
+    <button class="btn btn-green" id="refresh-btn" style="width:100%;font-size:11px;margin-top:8px" onclick="_manualRefresh()"><span id="refresh-icon">&#8635;</span> Actualiser</button>
   </div>
   <div id="nav" style="padding:8px 0;flex:1"></div>
   <div class="sidebar-bottom">
@@ -240,10 +292,32 @@ async function syncLive(){
     S.reservations=Object.values(final2).sort((a,b)=>(b.check_in||'').localeCompare(a.check_in||''));
     document.getElementById('conn-label').innerHTML='&#10003; '+S.reservations.length+' r\u00e9servations';
     document.getElementById('live-badge').innerHTML='<span class="badge b-ok">Live</span>';
+    _touchLastUpdated();
     if(S.page==='dashboard'||S.page==='calendar')render();
   }catch(e){
     document.getElementById('live-badge').innerHTML='<span class="badge" style="background:#f5f4f0;color:#888">CSV</span>';
   }
+}
+
+function _touchLastUpdated(){
+  var el=document.getElementById('last-updated');
+  if(!el)return;
+  var now=new Date();
+  el.innerHTML='<span class="live-dot"></span>M\u00e0J '+now.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
+
+function _autoRefresh(){
+  var icon=document.getElementById('refresh-icon');
+  if(icon)icon.classList.add('spin-icon');
+  syncLive().finally(function(){ if(icon)icon.classList.remove('spin-icon'); });
+}
+setInterval(_autoRefresh,120000);
+
+async function _manualRefresh(){
+  var icon=document.getElementById('refresh-icon');
+  if(icon)icon.classList.add('spin-icon');
+  try{ await loadAll(); showToast('✓ Données actualisées'); }
+  finally{ if(icon)icon.classList.remove('spin-icon'); }
 }
 
 async function loadAll(){
@@ -252,17 +326,22 @@ async function loadAll(){
   // 1. Supabase est la source de vérité - CSV ignoré
   S.reservations=[];
 
-  // 2. Biens hardcodés (pas d'attente API)
+  // 2. Logements : configuration enregistrée, sinon valeurs par défaut
   if(!S.props||!S.props.length){
-    S.props=[
+    S.props=_propsCharger()||[
       {id:'12619011',name:'Suite Illiberis',checkin:'15:00',checkout:'12:00',channels:[{channel_type:'airbnb',listing_id:'1444758558715417027',currency:'EUR'},{channel_type:'booking.com',listing_id:'1481914101-57774854',currency:'EUR'}]},
       {id:'12619012',name:'Loft Cinema Illiberis',checkin:'15:00',checkout:'12:00',channels:[{channel_type:'airbnb',listing_id:'1499112879728152781',currency:'EUR'},{channel_type:'booking.com',listing_id:'1500939401-58637824',currency:'EUR'}]}
     ];
-    S.selectedProp=S.props[0].id;if(!S.ratesProp)S.ratesProp=S.props[0].id;_loadCleaningFromStorage();
+    if(S.props.length){
+      S.selectedProp=S.props[0].id;
+      if(!S.ratesProp)S.ratesProp=S.props[0].id;
+    }
+    _loadCleaningFromStorage();
   }
 
   document.getElementById('conn-label').innerHTML='&#10003; '+S.reservations.length+' r\u00e9servations';
   document.getElementById('live-badge').innerHTML='<span class="badge" style="background:#f5f4f0;color:#888">CSV</span>';
+  _touchLastUpdated();
   render();
 
   // 3. Tout en arrière-plan, rien ne bloque
@@ -280,8 +359,8 @@ const navDef=[{id:'dashboard',label:'Tableau de bord',icon:'◈'},{id:'reservati
 function navigate(p){if(p==='menage'){window.open('/menage','_blank');return;}S.page=p;render();}
 
 function render(){
-  if(!S._msgsOpened){try{S._msgsOpened=JSON.parse(localStorage.getItem('msgsOpened')||'{}');}catch(e){S._msgsOpened={};}}const unread=S.conversations.filter(c=>!S._msgsOpened[c.id]).length;
-  document.getElementById('nav').innerHTML=navDef.map(n=>`<div class="nav-item ${S.page===n.id?'active':''}" onclick="navigate('${n.id}')"><span style="font-size:12px">${n.icon}</span><span>${n.label}</span>${n.id==='messages'&&unread?`<span class="nav-badge">${unread}</span>`:''}</div>`).join('');
+  _loadMsgsOpened();
+  _renderNav();
   const titles={dashboard:'Tableau de bord',reservations:'Réservations',calendar:'Calendrier',rates:'Tarifs & Prix',properties:'Mes biens',messages:'Messages voyageurs'};
   document.getElementById('page-title').textContent=titles[S.page]||'';
   const ta=document.getElementById('topbar-actions');
@@ -402,229 +481,347 @@ async function _unblockDates(propId,from,to){
 
 function renderBilan(){
   var now=new Date();
-  var MONTHS=['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
+  var MOIS=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
   var selYear=S.bilanYear||now.getFullYear();
   var selProp=S.bilanProp||'all';
+  var TX={airbnb:0.064,booking:0.163};
 
-  function netRev(r){
-  var brut=r.amount||0;var com=parseFloat(r.commission);
-  if(isNaN(com)||com<=0){if(brut>0){if(r.platform==='airbnb')com=brut*0.064;else if(r.platform==='booking.com'||r.platform==='booking')com=brut*0.163;else com=0;}else com=0;}
-  return brut-com;
-}
-  function commission(r){var isB=r.platform==='booking.com'||r.platform==='booking';return isB?r.commission:0;}
-  function cleaning(r){var c=S.cleaning&&S.cleaning[r.prop_id]?S.cleaning[r.prop_id]:{base:20};return c.base;}
+  function comOf(r){
+    var brut=r.amount||0; if(!brut)return 0;
+    var c=parseFloat(r.commission);
+    if(!isNaN(c)&&c>0)return c;
+    var pc=platClass(r.platform);
+    if(pc==='airbnb')return brut*TX.airbnb;
+    if(pc==='booking')return brut*TX.booking;
+    return 0;
+  }
+  function menageOf(r){var c=S.cleaning&&S.cleaning[r.prop_id]?S.cleaning[r.prop_id]:{base:20};return c.base||0;}
+  function nuitsEntre(r,d1,d2){
+    if(!r.check_in||!r.check_out)return 0;
+    var ci=new Date(r.check_in+'T00:00:00'),co=new Date(r.check_out+'T00:00:00');
+    var a=Math.max(ci,d1),b=Math.min(co,d2);
+    var n=Math.round((b-a)/86400000);
+    return n>0?n:0;
+  }
+  function nuitsTotal(r){
+    if(!r.check_in||!r.check_out)return 0;
+    var ci=new Date(r.check_in+'T00:00:00'),co=new Date(r.check_out+'T00:00:00');
+    var n=Math.round((co-ci)/86400000);return n>0?n:0;
+  }
+  function jours(d1,d2){return Math.round((d2-d1)/86400000);}
 
-  var years=[...new Set(S.reservations.filter(r=>r.check_in&&r.status!=='cancelled').map(r=>new Date(r.check_in+'T00:00:00').getFullYear()))].sort((a,b)=>b-a);
+  var years=[];
+  S.reservations.forEach(function(r){
+    if(!r.check_in||r.status==='cancelled')return;
+    var y=new Date(r.check_in+'T00:00:00').getFullYear();
+    if(years.indexOf(y)<0)years.push(y);
+  });
+  if(years.indexOf(selYear)<0)years.push(selYear);
+  years.sort(function(a,b){return b-a;});
 
-  function getBilan(propId){
-    var res=S.reservations.filter(function(r){
-      if(!r.check_in||r.status==='cancelled')return false;
-      if(new Date(r.check_in+'T00:00:00').getFullYear()!==selYear)return false;
-      if(propId!=='all'&&r.prop_id!==propId)return false;
-      return true;
-    });
-    function prorataNuits(r,yr){var ci=new Date(r.check_in+'T00:00:00'),co=new Date(r.check_out+'T00:00:00'),dm=new Date(yr,0,1),fm=new Date(yr+1,0,1),debut=Math.max(ci,dm),fin=Math.min(co,fm),nt=Math.round((co-ci)/86400000),nm=Math.round((fin-debut)/86400000);return nt>0?nm/nt:1;}
-    var brut=res.reduce((s,r)=>s+r.amount*prorataNuits(r,selYear),0);
-    var com=res.reduce((s,r)=>s+commission(r)*prorataNuits(r,selYear),0);
-    var cl=res.reduce((s,r)=>s+cleaning(r)*prorataNuits(r,selYear),0);
-    var net=brut-com-cl;
-    var airRes=res.filter(r=>platClass(r.platform)==='airbnb');
-    var bkRes=res.filter(r=>platClass(r.platform)==='booking');
-    var airRev=airRes.reduce((s,r)=>s+netRev(r)*prorataNuits(r,selYear),0);
-    var bkRev=bkRes.reduce((s,r)=>s+netRev(r)*prorataNuits(r,selYear),0);
-    var bookedDays=res.reduce((s,r)=>{
-      if(!r.check_in||!r.check_out) return s;
+  function agrege(propId,d1,d2){
+    var o={brut:0,comAir:0,comBk:0,menage:0,nuitsVendues:0,nuits:0,nbRes:0,brutAir:0,brutBk:0,brutDir:0,nAir:0,nBk:0,nDir:0,sejours:0};
+    var occupe={};
+    S.reservations.forEach(function(r){
+      if(!r.check_in||r.status==='cancelled')return;
+      if(propId!=='all'&&r.prop_id!==propId)return;
+      var nm=nuitsEntre(r,d1,d2);
+      if(nm<=0)return;
+      var nt=nuitsTotal(r); var q=nt>0?nm/nt:1;
+      var pc=platClass(r.platform);
+      o.brut+=(r.amount||0)*q;
+      o.menage+=menageOf(r)*q;
+      o.nuitsVendues+=nm;
+      o.nbRes+=q;
+      o.sejours+=1;
+      if(pc==='airbnb'){o.comAir+=comOf(r)*q;o.brutAir+=(r.amount||0)*q;o.nAir+=q;}
+      else if(pc==='booking'){o.comBk+=comOf(r)*q;o.brutBk+=(r.amount||0)*q;o.nBk+=q;}
+      else{o.brutDir+=(r.amount||0)*q;o.nDir+=q;}
       var ci=new Date(r.check_in+'T00:00:00'),co=new Date(r.check_out+'T00:00:00');
-      var dm=new Date(selYear,0,1),fm=new Date(selYear+1,0,1);
-      var debut=Math.max(ci,dm),fin=Math.min(co,fm);
-      var nm=Math.round((fin-debut)/86400000);
-      return s+(nm>0?nm:0);
-    },0);
-    var totalDays=propId==='all'?365*S.props.length:365;
-    var occ=Math.min(Math.round(bookedDays/totalDays*100),100);
-    var avgNight=bookedDays>0?Math.round(brut/bookedDays):0;
-    var months=MONTHS.map((lbl,m)=>{
-      // Prorata pour les séjours qui débordent sur plusieurs mois
-      var debut_mois=new Date(selYear,m,1);
-      var fin_mois=new Date(selYear,m+1,1);
-      var mr=res.filter(r=>r.check_in&&r.check_out&&new Date(r.check_in+'T00:00:00')<fin_mois&&new Date(r.check_out+'T00:00:00')>debut_mois);
-      var brut_m=mr.reduce((s,r)=>{
-        var ci=new Date(r.check_in+'T00:00:00'),co=new Date(r.check_out+'T00:00:00');
-        var debut=Math.max(ci,debut_mois),fin=Math.min(co,fin_mois);
-        var nuits_total=Math.round((co-ci)/86400000),nuits_mois=Math.round((fin-debut)/86400000);
-        return s+(nuits_total>0?r.amount*nuits_mois/nuits_total:r.amount);
-      },0);
-      var net_m=mr.reduce((s,r)=>{
-        var ci=new Date(r.check_in+'T00:00:00'),co=new Date(r.check_out+'T00:00:00');
-        var debut=Math.max(ci,debut_mois),fin=Math.min(co,fin_mois);
-        var nuits_total=Math.round((co-ci)/86400000),nuits_mois=Math.round((fin-debut)/86400000);
-        var ratio=nuits_total>0?nuits_mois/nuits_total:1;
-        return s+(netRev(r)-cleaning(r))*ratio;
-      },0);
-      return {lbl:lbl,count:mr.length,brut:Math.round(brut_m),net:Math.round(net_m)};
+      var t=new Date(Math.max(ci,d1)),fin=new Date(Math.min(co,d2));
+      while(t<fin){
+        occupe[r.prop_id+'|'+t.getFullYear()+'-'+t.getMonth()+'-'+t.getDate()]=1;
+        t.setDate(t.getDate()+1);
+      }
     });
-    return {res,brut,com,cl,net,airRes,bkRes,airRev,bkRev,bookedDays,occ,avgNight,months};
+    o.nuits=Object.keys(occupe).length;
+    o.doublons=Math.max(Math.round(o.nuitsVendues)-o.nuits,0);
+    o.com=o.comAir+o.comBk;
+    o.charges=o.com+o.menage;
+    o.net=o.brut-o.charges;
+    var nbBiens=propId==='all'?Math.max(S.props.length,1):1;
+    o.dispo=jours(d1,d2)*nbBiens;
+    o.occ=o.dispo>0?o.nuits/o.dispo*100:0;
+    o.adr=o.nuitsVendues>0?o.brut/o.nuitsVendues:0;
+    o.revpar=o.dispo>0?o.brut/o.dispo:0;
+    o.dureeMoy=o.nbRes>0?o.nuitsVendues/o.nbRes:0;
+    o.tauxCharges=o.brut>0?o.charges/o.brut*100:0;
+    o.marge=o.brut>0?o.net/o.brut*100:0;
+    return o;
   }
 
-  function renderPropBilan(propId,propName,b){
-    var maxMonth=Math.max.apply(null,b.months.map(function(m){return m.brut||0;}));
-    if(!maxMonth)maxMonth=1;
-    var totalDaysInYear=propId==='all'?365*S.props.length:365;
-    var monthsHtml=b.months.map(function(m,i){
-      var isCur=i===now.getMonth()&&selYear===now.getFullYear();
-      var pct=Math.round(m.brut/maxMonth*100);
-      var occDays=Math.round((new Date(now.getFullYear(),i+1,0).getDate())*0.7);
-      var occPct=m.count?Math.min(Math.round(m.brut/(maxMonth)*100),99):0;
-      return '<div style="display:grid;grid-template-columns:48px 1fr 70px 70px 36px 38px;padding:9px 14px;border-bottom:0.5px solid var(--color-border-tertiary);align-items:center;background:'+(isCur?'#E1F5EE':'var(--color-background-primary)')+'">'
-        +'<div style="font-size:12px;font-weight:'+(isCur?500:400)+';color:'+(isCur?'#0F6E56':'var(--color-text-secondary)')+';">'+m.lbl+(isCur?' \u25cf':'')+'</div>'
-        +'<div style="height:8px;background:'+(isCur?'rgba(255,255,255,.5)':'var(--color-background-secondary)')+';border-radius:4px;overflow:hidden;"><div style="height:100%;background:'+(isCur?'#1D9E75':'#A8D5C2')+';border-radius:4px;width:'+pct+'%;"></div></div>'
-        +'<div style="text-align:right;font-size:12px;color:var(--color-text-primary);">'+(m.brut>0?Math.round(m.brut).toLocaleString('fr-FR')+'\u20ac':'\u2014')+'</div>'
-        +'<div style="text-align:right;font-size:12px;font-weight:'+(isCur?500:400)+';color:'+(m.net>0?'#0F6E56':'var(--color-text-tertiary)')+'">'+(m.net>0?Math.round(m.net).toLocaleString('fr-FR')+'\u20ac':'\u2014')+'</div>'
-        +'<div style="text-align:right;font-size:12px;color:var(--color-text-tertiary);">'+(m.count>0?m.count:'')+'</div>'
-        +'<div style="text-align:right;font-size:11px;color:'+(occPct>70?'#0F6E56':occPct>40?'#EF9F27':'var(--color-text-tertiary)')+'">'+(m.count>0?occPct+'%':'')+'</div>'
-      +'</div>';
+  function eur(n){return Math.round(n).toLocaleString('fr-FR')+' €';}
+  function eur2(n){return (Math.round(n*100)/100).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2})+' €';}
+  function pct(n){return (Math.round(n*10)/10).toLocaleString('fr-FR',{minimumFractionDigits:1,maximumFractionDigits:1})+' %';}
+  function delta(cur,prev){
+    if(!prev||prev===0)return '';
+    var d=(cur-prev)/Math.abs(prev)*100;
+    var up=d>=0;
+    return '<span style="font-size:11px;color:'+(up?'#0F6E56':'#B0342B')+';white-space:nowrap;">'+(up?'▲':'▼')+' '+Math.abs(Math.round(d))+' %</span>';
+  }
+
+  var NUM='font-variant-numeric:tabular-nums;font-feature-settings:"tnum";';
+  var LBL='padding:7px 14px;font-size:12.5px;color:var(--text);';
+  var VAL='padding:7px 14px;text-align:right;font-size:12.5px;'+NUM;
+
+  function ligne(label,detail,montant,opts){
+    opts=opts||{};
+    var indent=opts.indent?'padding-left:30px;':'';
+    var poids=opts.bold?'font-weight:600;':'';
+    var couleur=opts.color?'color:'+opts.color+';':'';
+    var bord=opts.top?'border-top:1px solid var(--border-strong);':'';
+    var fond=opts.bg?'background:'+opts.bg+';':'';
+    return '<tr style="'+fond+'">'
+      +'<td style="'+LBL+indent+poids+couleur+bord+'">'+label
+        +(detail?'<div style="font-size:10.5px;color:var(--text-3);margin-top:1px;font-weight:400;">'+detail+'</div>':'')
+      +'</td>'
+      +'<td style="'+VAL+poids+couleur+bord+'">'+montant+'</td>'
+    +'</tr>';
+  }
+
+  function sectionRow(txt,coul,fond,bordHaut){
+    return '<tr><td colspan="2" style="padding:8px 14px;background:'+fond+';font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:'+coul+';border-left:3px solid '+coul+';'+(bordHaut?'border-top:1px solid var(--border);':'')+'">'+txt+'</td></tr>';
+  }
+
+  function compteResultat(b,bp){
+    var VERT='#0F6E56',VERT_BG='#EAF4F0',ROUGE='#A8382A',ROUGE_BG='#FBEEEA';
+    var h='<table style="width:100%;border-collapse:collapse;">';
+    h+=sectionRow('Produits d’exploitation',VERT,VERT_BG,false);
+    h+=ligne('<span style="display:inline-block;width:7px;height:7px;border-radius:2px;background:#D8544E;margin-right:7px;"></span>Locations Airbnb',Math.round(b.nAir)+' séjour(s)',eur(b.brutAir),{indent:true});
+    h+=ligne('<span style="display:inline-block;width:7px;height:7px;border-radius:2px;background:#1E5490;margin-right:7px;"></span>Locations Booking.com',Math.round(b.nBk)+' séjour(s)',eur(b.brutBk),{indent:true});
+    if(b.brutDir>0)h+=ligne('<span style="display:inline-block;width:7px;height:7px;border-radius:2px;background:#7A7A72;margin-right:7px;"></span>Locations directes',Math.round(b.nDir)+' séjour(s)',eur(b.brutDir),{indent:true});
+    h+=ligne('Total des produits','',eur(b.brut),{bold:true,top:true,color:VERT,bg:VERT_BG});
+
+    h+=sectionRow('Charges d’exploitation',ROUGE,ROUGE_BG,true);
+    h+=ligne('<span style="display:inline-block;width:7px;height:7px;border-radius:2px;background:#D8544E;margin-right:7px;"></span>Commissions Airbnb','taux appliqué '+pct(b.brutAir>0?b.comAir/b.brutAir*100:0),'−'+eur(b.comAir),{indent:true,color:ROUGE});
+    h+=ligne('<span style="display:inline-block;width:7px;height:7px;border-radius:2px;background:#1E5490;margin-right:7px;"></span>Commissions Booking.com','taux appliqué '+pct(b.brutBk>0?b.comBk/b.brutBk*100:0),'−'+eur(b.comBk),{indent:true,color:ROUGE});
+    h+=ligne('<span style="display:inline-block;width:7px;height:7px;border-radius:2px;background:#C88A1E;margin-right:7px;"></span>Frais de ménage',Math.round(b.nbRes)+' départ(s)','−'+eur(b.menage),{indent:true,color:ROUGE});
+    h+=ligne('Total des charges',pct(b.tauxCharges)+' des produits','−'+eur(b.charges),{bold:true,top:true,color:ROUGE,bg:ROUGE_BG});
+
+    h+='<tr style="background:var(--accent);"><td style="padding:13px 14px;font-size:13px;font-weight:600;color:#fff;">Résultat net'
+      +'<div style="font-size:10.5px;color:rgba(255,255,255,.75);font-weight:400;margin-top:2px;">Marge nette '+pct(b.marge)+'</div></td>'
+      +'<td style="padding:13px 14px;text-align:right;font-size:18px;font-weight:600;color:#fff;'+NUM+'">'+eur(b.net)
+      +(bp?'<div style="margin-top:2px;font-weight:400;font-size:11px;color:rgba(255,255,255,.85);">'+(b.net>=bp.net?'▲':'▼')+' '+Math.abs(Math.round((b.net-bp.net)/Math.abs(bp.net||1)*100))+' % vs '+(selYear-1)+'</div>':'')+'</td></tr>';
+    h+='</table>';
+    return h;
+  }
+
+  function indicateurs(b,bp){
+    var items=[
+      ['Taux d’occupation',pct(b.occ),Math.round(b.nuits)+' nuits sur '+b.dispo+' disponibles',bp?delta(b.occ,bp.occ):''],
+      ['Prix moyen / nuit',eur(b.adr),'ADR — produits ÷ nuits louées',bp?delta(b.adr,bp.adr):''],
+      ['Revenu / nuit disponible',eur(b.revpar),'RevPAR — produits ÷ nuits offertes',bp?delta(b.revpar,bp.revpar):''],
+      ['Durée moyenne',(Math.round(b.dureeMoy*10)/10).toLocaleString('fr-FR')+' nuits','sur '+Math.round(b.nbRes)+' séjour(s)','']
+    ];
+    return '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;">'
+      +items.map(function(it){
+        return '<div style="background:var(--bg);border-radius:var(--r-sm);padding:12px 14px;">'
+          +'<div style="font-size:10.5px;color:var(--text-2);margin-bottom:5px;">'+it[0]+'</div>'
+          +'<div style="display:flex;align-items:baseline;gap:6px;"><div style="font-size:19px;font-weight:600;'+NUM+'">'+it[1]+'</div>'+it[3]+'</div>'
+          +'<div style="font-size:10px;color:var(--text-3);margin-top:3px;">'+it[2]+'</div>'
+        +'</div>';
+      }).join('')
+    +'</div>';
+  }
+
+  function ventilation(propId,periodes,titre,colTitre){
+    var lignes=periodes.map(function(p){
+      var b=agrege(propId,p.d1,p.d2);
+      var vide=b.nuits===0&&b.brut===0;
+      var futur=p.d1>now;
+      return '<tr style="border-bottom:1px solid var(--border);'+(p.cur?'background:var(--accent-light);':'')+'">'
+        +'<td style="padding:7px 14px;font-size:12px;'+(p.cur?'font-weight:600;color:var(--accent);':'color:var(--text-2);')+'">'+p.lbl+'</td>'
+        +'<td style="padding:7px 10px;text-align:right;font-size:12px;color:var(--text-2);'+NUM+'">'+(vide?'—':Math.round(b.nuits))+'</td>'
+        +'<td style="padding:7px 10px;text-align:right;font-size:12px;color:'+(b.occ>=70?'#0F6E56':b.occ>=40?'#8A5B0B':'var(--text-3)')+';'+NUM+'">'+(vide?'—':pct(b.occ))+'</td>'
+        +'<td style="padding:7px 10px;text-align:right;font-size:12px;color:'+(vide?'var(--text-3)':'#0B4A3A')+';font-weight:500;'+NUM+'">'+(vide?'—':eur(b.brut))+'</td>'
+        +'<td style="padding:7px 10px;text-align:right;font-size:12px;color:'+(vide?'var(--text-3)':'#A8382A')+';'+NUM+'">'+(vide?'—':'−'+eur(b.charges))+'</td>'
+        +'<td style="padding:7px 14px;text-align:right;font-size:12px;font-weight:'+(p.cur?'600':'500')+';color:'+(vide?'var(--text-3)':'var(--accent)')+';'+NUM+'">'+(vide?(futur?'·':'—'):eur(b.net))+'</td>'
+      +'</tr>';
     }).join('');
+    var tot=agrege(propId,new Date(selYear,0,1),new Date(selYear+1,0,1));
+    return '<div style="border:1px solid var(--border);border-radius:var(--r-md);overflow:hidden;">'
+      +'<div style="padding:10px 14px;background:var(--bg);border-bottom:1px solid var(--border);font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--text-2);">'+titre+'</div>'
+      +'<table style="width:100%;border-collapse:collapse;">'
+      +'<tr style="border-bottom:1px solid var(--border);">'
+        +'<th style="padding:7px 14px;text-align:left;font-size:10px;font-weight:500;letter-spacing:.04em;text-transform:uppercase;color:var(--text-3);">'+colTitre+'</th>'
+        +'<th style="padding:7px 10px;text-align:right;font-size:10px;font-weight:500;letter-spacing:.04em;text-transform:uppercase;color:var(--text-3);">Nuits</th>'
+        +'<th style="padding:7px 10px;text-align:right;font-size:10px;font-weight:500;letter-spacing:.04em;text-transform:uppercase;color:var(--text-3);">Occ.</th>'
+        +'<th style="padding:7px 10px;text-align:right;font-size:10px;font-weight:500;letter-spacing:.04em;text-transform:uppercase;color:var(--text-3);">Produits</th>'
+        +'<th style="padding:7px 10px;text-align:right;font-size:10px;font-weight:500;letter-spacing:.04em;text-transform:uppercase;color:var(--text-3);">Charges</th>'
+        +'<th style="padding:7px 14px;text-align:right;font-size:10px;font-weight:500;letter-spacing:.04em;text-transform:uppercase;color:var(--text-3);">Résultat</th>'
+      +'</tr>'
+      +lignes
+      +'<tr style="background:var(--bg);border-top:1.5px solid var(--border-strong);">'
+        +'<td style="padding:9px 14px;font-size:12px;font-weight:600;">Total '+selYear+'</td>'
+        +'<td style="padding:9px 10px;text-align:right;font-size:12px;font-weight:600;'+NUM+'">'+Math.round(tot.nuits)+'</td>'
+        +'<td style="padding:9px 10px;text-align:right;font-size:12px;font-weight:600;'+NUM+'">'+pct(tot.occ)+'</td>'
+        +'<td style="padding:9px 10px;text-align:right;font-size:12px;font-weight:600;'+NUM+'">'+eur(tot.brut)+'</td>'
+        +'<td style="padding:9px 10px;text-align:right;font-size:12px;font-weight:600;color:#B0342B;'+NUM+'">−'+eur(tot.charges)+'</td>'
+        +'<td style="padding:9px 14px;text-align:right;font-size:12.5px;font-weight:600;color:var(--accent);'+NUM+'">'+eur(tot.net)+'</td>'
+      +'</tr>'
+      +'</table></div>';
+  }
 
-    return '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">'
-      +'<div style="font-size:14px;font-weight:500;">'+propName+'</div>'
-      +'<button onclick="_downloadBilanPDF(\''+propId+'\')" style="display:flex;align-items:center;gap:5px;padding:6px 12px;border-radius:8px;border:0.5px solid var(--color-border-secondary);background:var(--color-background-secondary);font-size:11px;cursor:pointer;color:var(--color-text-secondary);">'
-        +'<svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M8 2v9M4 7l4 4 4-4M2 13h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>'
-        +'T\u00e9l\u00e9charger PDF'
-      +'</button>'
-    +'</div>'
-    // Métriques
-    +'<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px;">'
-      +'<div style="background:var(--color-background-secondary);border-radius:8px;padding:12px;text-align:center;">'
-        +'<div style="font-size:11px;color:var(--color-text-secondary);margin-bottom:4px;">Revenus bruts</div>'
-        +'<div style="font-size:20px;font-weight:500;color:#0F6E56;">'+Math.round(b.brut).toLocaleString('fr-FR')+'\u00a0\u20ac</div>'
-        +'<div style="font-size:10px;color:var(--color-text-tertiary);">'+b.res.length+' r\u00e9s. \u00b7 '+b.avgNight+'\u20ac/nuit</div>'
-      +'</div>'
-      +'<div style="background:var(--color-background-secondary);border-radius:8px;padding:12px;text-align:center;">'
-        +'<div style="font-size:11px;color:var(--color-text-secondary);margin-bottom:4px;">Charges</div>'
-        +'<div style="font-size:20px;font-weight:500;color:#E24B4A;">\u2212'+Math.round(b.com+b.cl).toLocaleString('fr-FR')+'\u00a0\u20ac</div>'
-        +'<div style="font-size:10px;color:var(--color-text-tertiary);">Com. '+Math.round(b.com)+'\u20ac \u00b7 M\u00e9nage '+Math.round(b.cl)+'\u20ac</div>'
-      +'</div>'
-      +'<div style="background:#E1F5EE;border-radius:8px;padding:12px;text-align:center;border:1px solid #1D9E75;">'
-        +'<div style="font-size:11px;color:#0F6E56;margin-bottom:4px;">Net encaiss\u00e9</div>'
-        +'<div style="font-size:20px;font-weight:500;color:#0F6E56;">'+Math.round(b.net).toLocaleString('fr-FR')+'\u00a0\u20ac</div>'
-        +'<div style="font-size:10px;color:#1D9E75;">'+Math.round((b.net/Math.max(b.brut,1))*100)+'% du brut</div>'
-      +'</div>'
-      +'<div style="background:var(--color-background-secondary);border-radius:8px;padding:12px;text-align:center;">'
-        +'<div style="font-size:11px;color:var(--color-text-secondary);margin-bottom:4px;">Occupation</div>'
-        +'<div style="font-size:20px;font-weight:500;">'+b.occ+'%</div>'
-        +'<div style="font-size:10px;color:var(--color-text-tertiary);">'+b.bookedDays+' jours lou\u00e9s</div>'
-      +'</div>'
-    +'</div>'
-    // Plateformes + Charges côte à côte
-    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">'
-      // Plateformes
-      +'<div style="background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:10px;overflow:hidden;">'
-        +'<div style="padding:10px 14px;background:var(--color-background-secondary);border-bottom:0.5px solid var(--color-border-tertiary);font-size:11px;font-weight:500;color:var(--color-text-secondary);">R\u00e9partition plateformes</div>'
-        +'<div style="padding:12px 14px;">'
-          +'<div style="display:flex;height:10px;border-radius:5px;overflow:hidden;margin-bottom:12px;">'
-            +'<div style="width:'+Math.round(b.airRev/Math.max(b.brut,1)*100)+'%;background:#FF385C;"></div>'
-            +'<div style="flex:1;background:#003580;"></div>'
-          +'</div>'
-          +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">'
-            +'<div style="border:0.5px solid #FECACA;background:#FFF5F5;border-radius:8px;padding:10px;">'
-              +'<div style="display:flex;align-items:center;gap:5px;margin-bottom:5px;">'
-                +'<div style="width:7px;height:7px;border-radius:50%;background:#FF385C;"></div>'
-                +'<div style="font-size:11px;font-weight:500;color:#FF385C;">Airbnb</div>'
-                +'<div style="font-size:10px;color:#aaa;margin-left:auto;">'+Math.round(b.airRev/Math.max(b.brut,1)*100)+'%</div>'
-              +'</div>'
-              +'<div style="font-size:16px;font-weight:500;color:var(--color-text-primary);">'+Math.round(b.airRev).toLocaleString('fr-FR')+'\u20ac</div>'
-              +'<div style="font-size:10px;color:var(--color-text-tertiary);">'+b.airRes.length+' r\u00e9s. \u00b7 '+(b.airRes.length?Math.round(b.airRev/b.airRes.length):0)+'\u20ac moy.</div>'
-            +'</div>'
-            +'<div style="border:0.5px solid #BFDBFE;background:#EFF6FF;border-radius:8px;padding:10px;">'
-              +'<div style="display:flex;align-items:center;gap:5px;margin-bottom:5px;">'
-                +'<div style="width:7px;height:7px;border-radius:50%;background:#003580;"></div>'
-                +'<div style="font-size:11px;font-weight:500;color:#003580;">Booking</div>'
-                +'<div style="font-size:10px;color:#aaa;margin-left:auto;">'+Math.round(b.bkRev/Math.max(b.brut,1)*100)+'%</div>'
-              +'</div>'
-              +'<div style="font-size:16px;font-weight:500;color:var(--color-text-primary);">'+Math.round(b.bkRev).toLocaleString('fr-FR')+'\u20ac</div>'
-              +'<div style="font-size:10px;color:var(--color-text-tertiary);">'+b.bkRes.length+' r\u00e9s. \u00b7 '+(b.bkRes.length?Math.round(b.bkRev/b.bkRes.length):0)+'\u20ac moy.</div>'
-            +'</div>'
-          +'</div>'
-        +'</div>'
-      +'</div>'
-      // Charges
-      +'<div style="background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:10px;overflow:hidden;">'
-        +'<div style="padding:10px 14px;background:var(--color-background-secondary);border-bottom:0.5px solid var(--color-border-tertiary);font-size:11px;font-weight:500;color:var(--color-text-secondary);">D\u00e9tail des charges</div>'
-        +'<div style="padding:0;">'
-          +'<div style="display:flex;align-items:center;padding:11px 14px;border-bottom:0.5px solid var(--color-border-tertiary);">'
-            +'<div style="width:8px;height:8px;border-radius:2px;background:#003580;margin-right:10px;flex-shrink:0;"></div>'
-            +'<div style="flex:1;"><div style="font-size:12px;">Commissions Booking</div><div style="font-size:10px;color:var(--color-text-tertiary);">~15% sur '+b.bkRes.length+' r\u00e9servations</div></div>'
-            +'<div style="font-size:13px;font-weight:500;color:#E24B4A;">\u2212'+Math.round(b.com).toLocaleString('fr-FR')+'\u20ac</div>'
-          +'</div>'
-          +'<div style="display:flex;align-items:center;padding:11px 14px;border-bottom:0.5px solid var(--color-border-tertiary);">'
-            +'<div style="width:8px;height:8px;border-radius:2px;background:#EF9F27;margin-right:10px;flex-shrink:0;"></div>'
-            +'<div style="flex:1;"><div style="font-size:12px;">Frais de m\u00e9nage</div><div style="font-size:10px;color:var(--color-text-tertiary);">'+(S.cleaning&&S.cleaning[propId]?S.cleaning[propId].base:20)+' \u20ac \u00d7 '+b.res.length+' d\u00e9parts</div></div>'
-            +'<div style="font-size:13px;font-weight:500;color:#E24B4A;">\u2212'+Math.round(b.cl).toLocaleString('fr-FR')+'\u20ac</div>'
-          +'</div>'
-          +'<div style="display:flex;align-items:center;padding:11px 14px;background:var(--color-background-secondary);">'
-            +'<div style="width:8px;height:8px;border-radius:50%;background:#0F6E56;margin-right:10px;flex-shrink:0;"></div>'
-            +'<div style="flex:1;font-weight:500;font-size:12px;">R\u00e9sultat net</div>'
-            +'<div style="font-size:14px;font-weight:500;color:#0F6E56;">'+Math.round(b.net).toLocaleString('fr-FR')+'\u20ac</div>'
-          +'</div>'
-        +'</div>'
-      +'</div>'
-    +'</div>'
-    // Tableau mensuel
-    +'<div style="background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:10px;overflow:hidden;">'
-      +'<div style="padding:10px 14px;background:var(--color-background-secondary);border-bottom:0.5px solid var(--color-border-tertiary);display:flex;align-items:center;justify-content:space-between;">'
-        +'<div style="font-size:11px;font-weight:500;color:var(--color-text-secondary);">Revenus mensuels '+selYear+'</div>'
-        +'<div style="font-size:11px;color:var(--color-text-tertiary);">Net total\u00a0: <b style="color:#0F6E56;">'+Math.round(b.net).toLocaleString('fr-FR')+'\u20ac</b></div>'
-      +'</div>'
-      +'<div style="display:grid;grid-template-columns:48px 1fr 70px 70px 36px 38px;font-size:10px;color:var(--color-text-tertiary);padding:7px 14px;border-bottom:0.5px solid var(--color-border-tertiary);letter-spacing:.04em;text-transform:uppercase;">'
-        +'<div>Mois</div><div>Activit\u00e9</div><div style="text-align:right;">Brut</div><div style="text-align:right;">Net</div><div style="text-align:right;">R\u00e9s.</div><div style="text-align:right;">Occ.</div>'
-      +'</div>'
-      +monthsHtml
-      +'<div style="display:grid;grid-template-columns:48px 1fr 70px 70px 36px 38px;padding:9px 14px;background:var(--color-background-secondary);border-top:0.5px solid var(--color-border-secondary);font-size:12px;font-weight:500;">'
-        +'<div>Total</div><div></div>'
-        +'<div style="text-align:right;">'+Math.round(b.brut).toLocaleString('fr-FR')+'\u20ac</div>'
-        +'<div style="text-align:right;color:#0F6E56;">'+Math.round(b.net).toLocaleString('fr-FR')+'\u20ac</div>'
-        +'<div style="text-align:right;color:var(--color-text-tertiary);">'+b.res.length+'</div>'
-        +'<div style="text-align:right;color:var(--color-text-tertiary);">'+b.occ+'%</div>'
-      +'</div>'
+  function bloc(titre,contenu,sansCadre){
+    return '<div style="margin-bottom:16px;">'
+      +(titre?'<div style="font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text-3);margin-bottom:8px;">'+titre+'</div>':'')
+      +(sansCadre?contenu:'<div style="border:1px solid var(--border);border-radius:var(--r-md);overflow:hidden;background:var(--surface);">'+contenu+'</div>')
     +'</div>';
   }
-  var propTabs='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;">'
-    +'<div onclick="S.bilanProp=\'all\';renderBilan()" style="padding:6px 14px;border-radius:20px;border:1px solid '+(selProp==='all'?'#0F6E56':'var(--color-border-secondary)')+';background:'+(selProp==='all'?'#0F6E56':'var(--color-background-secondary)')+';color:'+(selProp==='all'?'#fff':'var(--color-text-secondary)')+';font-size:12px;cursor:pointer;">G\u00e9n\u00e9ral</div>'
-    +S.props.map(function(p){return'<div onclick="S.bilanProp=\''+p.id+'\';renderBilan()" style="padding:6px 14px;border-radius:20px;border:1px solid '+(selProp===p.id?'#0F6E56':'var(--color-border-secondary)')+';background:'+(selProp===p.id?'#0F6E56':'var(--color-background-secondary)')+';color:'+(selProp===p.id?'#fff':'var(--color-text-secondary)')+';font-size:12px;cursor:pointer;">'+p.name.split(' ')[0]+'</div>';}).join('')
+
+  function etat(propId,propName){
+    var d1=new Date(selYear,0,1),d2=new Date(selYear+1,0,1);
+    var b=agrege(propId,d1,d2);
+    var bp=agrege(propId,new Date(selYear-1,0,1),new Date(selYear,0,1));
+    var aPrec=bp.brut>0;
+
+    var mois=[];
+    for(var m=0;m<12;m++){
+      mois.push({lbl:MOIS[m],d1:new Date(selYear,m,1),d2:new Date(selYear,m+1,1),cur:m===now.getMonth()&&selYear===now.getFullYear()});
+    }
+    var trims=[];
+    for(var t=0;t<4;t++){
+      trims.push({lbl:'T'+(t+1)+' · '+MOIS[t*3].slice(0,3)+'–'+MOIS[t*3+2].slice(0,3),d1:new Date(selYear,t*3,1),d2:new Date(selYear,t*3+3,1),cur:Math.floor(now.getMonth()/3)===t&&selYear===now.getFullYear()});
+    }
+
+    var h='<div class="bilan-sheet" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:24px 26px;margin-bottom:16px;box-shadow:var(--shadow-sm);">';
+
+    h+='<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;padding-bottom:14px;border-bottom:2px solid var(--text);margin-bottom:18px;">'
+      +'<div>'
+        +'<div style="font-size:17px;font-weight:600;letter-spacing:-.01em;">Compte de résultat</div>'
+        +'<div style="font-size:12.5px;color:var(--text-2);margin-top:3px;">'+propName+'</div>'
+        +'<div style="font-size:11.5px;color:var(--text-3);margin-top:1px;">Exercice du 1<sup>er</sup> janvier au 31 décembre '+selYear+'</div>'
+      +'</div>'
+      +'<div style="text-align:right;flex-shrink:0;">'
+        +'<button class="no-print btn" onclick="window.print()" style="margin-right:6px;">Imprimer</button>'
+        +'<button class="no-print btn" onclick="_downloadBilanPDF(\''+propId+'\')">Export PDF</button>'
+        +'<div style="font-size:10.5px;color:var(--text-3);margin-top:7px;">Édité le '+now.toLocaleDateString('fr-FR')+'</div>'
+        +'<div style="font-size:10.5px;color:var(--text-3);">Montants en euros, TTC</div>'
+      +'</div>'
     +'</div>';
 
-  var out='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;">'
-    +'<div style="font-size:15px;font-weight:500;">Bilan financier</div>'
-    +'<div style="display:flex;gap:6px;">'
-    +years.map(y=>'<button onclick="S.bilanYear='+y+';renderBilan()" style="padding:5px 12px;border-radius:20px;border:1px solid '+(y===selYear?'#0F6E56':'var(--color-border-secondary)')+';background:'+(y===selYear?'#0F6E56':'var(--color-background-secondary)')+';color:'+(y===selYear?'#fff':'var(--color-text-secondary)')+';font-size:12px;cursor:pointer;">'+y+'</button>').join('')
-    +'</div></div>'
-    +propTabs;
+    if(propId==='all'){
+      var tuiles=[
+        {l:'Produits d’exploitation',v:eur(b.brut),s:Math.round(b.nbRes)+' séjours · '+Math.round(b.nuits)+' nuits',bg:'#EAF4F0',bd:'#A8CFC0',tc:'#0B4A3A',lc:'#0F6E56',prev:bp.brut,cur:b.brut},
+        {l:'Charges d’exploitation',v:'−'+eur(b.charges),s:pct(b.tauxCharges)+' des produits',bg:'#FBEEEA',bd:'#E8B5A8',tc:'#7C2718',lc:'#A8382A',prev:bp.charges,cur:b.charges},
+        {l:'Résultat net',v:eur(b.net),s:'Marge '+pct(b.marge),bg:'var(--accent)',bd:'var(--accent)',tc:'#fff',lc:'rgba(255,255,255,.8)',prev:bp.net,cur:b.net,plein:true}
+      ];
+      h+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px;">'
+        +tuiles.map(function(t){
+          return '<div style="background:'+t.bg+';border:1px solid '+t.bd+';border-radius:var(--r-md);padding:14px 16px;">'
+            +'<div style="font-size:10.5px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:'+t.lc+';margin-bottom:7px;">'+t.l+'</div>'
+            +'<div style="font-size:25px;font-weight:600;color:'+t.tc+';line-height:1.1;'+NUM+'">'+t.v+'</div>'
+            +'<div style="display:flex;align-items:center;gap:8px;margin-top:5px;flex-wrap:wrap;">'
+              +'<span style="font-size:11px;color:'+t.lc+';">'+t.s+'</span>'
+              +(aPrec?'<span style="font-size:10.5px;color:'+(t.plein?'rgba(255,255,255,.85)':t.lc)+';">'+(t.cur>=t.prev?'▲':'▼')+' '+Math.abs(Math.round((t.cur-t.prev)/Math.abs(t.prev||1)*100))+' % vs '+(selYear-1)+'</span>':'')
+            +'</div>'
+          +'</div>';
+        }).join('')
+      +'</div>';
+
+      var partAir=b.brut>0?b.brutAir/b.brut*100:0;
+      var partBk=b.brut>0?b.brutBk/b.brut*100:0;
+      var partDir=Math.max(100-partAir-partBk,0);
+      h+='<div style="border:1px solid var(--border);border-radius:var(--r-md);padding:13px 16px;margin-bottom:18px;">'
+        +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:9px;">'
+          +'<div style="font-size:10.5px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--text-3);">Origine des produits</div>'
+          +'<div style="font-size:11px;color:var(--text-3);'+NUM+'">'+eur(b.brut)+' au total</div>'
+        +'</div>'
+        +'<div style="display:flex;height:11px;border-radius:6px;overflow:hidden;margin-bottom:10px;background:var(--bg);">'
+          +'<div style="width:'+partAir+'%;background:#D8544E;"></div>'
+          +'<div style="width:'+partBk+'%;background:#1E5490;"></div>'
+          +(partDir>0.5?'<div style="width:'+partDir+'%;background:#8A8880;"></div>':'')
+        +'</div>'
+        +'<div style="display:flex;gap:20px;flex-wrap:wrap;">'
+          +[['Airbnb','#D8544E',b.brutAir,partAir,b.nAir],['Booking.com','#1E5490',b.brutBk,partBk,b.nBk]].concat(b.brutDir>0?[['Direct','#8A8880',b.brutDir,partDir,b.nDir]]:[]).map(function(x){
+            return '<div style="display:flex;align-items:center;gap:7px;">'
+              +'<span style="width:9px;height:9px;border-radius:2px;background:'+x[1]+';flex-shrink:0;"></span>'
+              +'<span style="font-size:12px;color:var(--text-2);">'+x[0]+'</span>'
+              +'<span style="font-size:12.5px;font-weight:600;'+NUM+'">'+eur(x[2])+'</span>'
+              +'<span style="font-size:11px;color:var(--text-3);'+NUM+'">'+pct(x[3])+' · '+Math.round(x[4])+' séj.</span>'
+            +'</div>';
+          }).join('')
+        +'</div>'
+      +'</div>';
+    }
+
+    if(b.doublons>0){
+      h+='<div style="display:flex;gap:10px;align-items:flex-start;background:#FDF3D9;border:1px solid #E5B84B;border-radius:var(--r-sm);padding:11px 14px;margin-bottom:16px;">'
+        +'<div style="font-size:13px;line-height:1.3;">⚠</div>'
+        +'<div style="font-size:11.5px;color:#6B4E0B;line-height:1.5;">'
+          +'<b>Point de contrôle — '+b.doublons+' nuit(s) vendue(s) en double.</b> '
+          +'Des séjours se chevauchent sur un même logement ('+Math.round(b.nuitsVendues)+' nuits facturées pour '+b.nuits+' nuits réellement occupées). '
+          +'Le taux d’occupation retient les nuits réelles ; les produits retiennent l’intégralité des séjours. À vérifier dans l’onglet Réservations (doublon de synchronisation ou surréservation).'
+        +'</div>'
+      +'</div>';
+    }
+
+    h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start;margin-bottom:18px;">'
+      +'<div>'
+        +'<div style="font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text-3);margin-bottom:8px;">Détail du résultat</div>'
+        +'<div style="border:1px solid var(--border);border-radius:var(--r-md);overflow:hidden;">'+compteResultat(b,aPrec?bp:null)+'</div>'
+      +'</div>'
+      +'<div>'
+        +'<div style="font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text-3);margin-bottom:8px;">Indicateurs de performance</div>'
+        +indicateurs(b,aPrec?bp:null)
+        +(aPrec?('<div style="margin-top:12px;border:1px solid var(--border);border-radius:var(--r-md);overflow:hidden;">'
+          +'<div style="padding:9px 14px;background:var(--bg);border-bottom:1px solid var(--border);font-size:10.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text-2);">Comparaison '+(selYear-1)+'</div>'
+          +'<table style="width:100%;border-collapse:collapse;">'
+          +'<tr style="border-bottom:1px solid var(--border);"><th style="padding:6px 14px;text-align:left;font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.04em;color:var(--text-3);"></th><th style="padding:6px 10px;text-align:right;font-size:10px;font-weight:500;color:var(--text-3);">'+(selYear-1)+'</th><th style="padding:6px 10px;text-align:right;font-size:10px;font-weight:500;color:var(--text-3);">'+selYear+'</th><th style="padding:6px 14px;text-align:right;font-size:10px;font-weight:500;color:var(--text-3);">Écart</th></tr>'
+          +[['Produits',bp.brut,b.brut],['Charges',bp.charges,b.charges],['Résultat net',bp.net,b.net]].map(function(l,i){
+            return '<tr'+(i===2?' style="border-top:1px solid var(--border-strong);"':'')+'>'
+              +'<td style="padding:7px 14px;font-size:12px;'+(i===2?'font-weight:600;':'color:var(--text-2);')+'">'+l[0]+'</td>'
+              +'<td style="padding:7px 10px;text-align:right;font-size:12px;color:var(--text-2);'+NUM+'">'+eur(l[1])+'</td>'
+              +'<td style="padding:7px 10px;text-align:right;font-size:12px;'+(i===2?'font-weight:600;':'')+NUM+'">'+eur(l[2])+'</td>'
+              +'<td style="padding:7px 14px;text-align:right;'+NUM+'">'+delta(l[2],l[1])+'</td>'
+            +'</tr>';
+          }).join('')
+          +'</table></div>'):'')
+      +'</div>'
+    +'</div>';
+
+    h+='<div style="margin-bottom:16px;">'+ventilation(propId,trims,'Ventilation trimestrielle','Trimestre')+'</div>';
+    h+=ventilation(propId,mois,'Détail mensuel','Mois');
+
+    h+='<div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--border);font-size:10.5px;color:var(--text-3);line-height:1.6;">'
+      +'Document de gestion à usage interne, établi à partir des réservations synchronisées (hors annulations). '
+      +'Les produits sont répartis au prorata des nuits pour les séjours à cheval sur deux périodes. '
+      +'Les commissions non communiquées par la plateforme sont estimées à '+pct(TX.airbnb*100)+' (Airbnb) et '+pct(TX.booking*100)+' (Booking.com). '
+      +'Ce document ne remplace pas une comptabilité tenue par un professionnel : taxe de séjour, amortissements, intérêts d’emprunt, assurances et charges de copropriété n’y figurent pas.'
+    +'</div>';
+
+    h+='</div>';
+    return h;
+  }
+
+  var out='<div class="no-print" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px;">'
+    +'<div style="display:flex;gap:6px;flex-wrap:wrap;">'
+    +'<div onclick="S.bilanProp=\'all\';renderBilan()" class="tab'+(selProp==='all'?' active':'')+'" style="border:1px solid '+(selProp==='all'?'transparent':'var(--border-strong)')+';">Consolidé</div>'
+    +S.props.map(function(p){return '<div onclick="S.bilanProp=\''+p.id+'\';renderBilan()" class="tab'+(selProp===p.id?' active':'')+'" style="border:1px solid '+(selProp===p.id?'transparent':'var(--border-strong)')+';">'+p.name+'</div>';}).join('')
+    +'</div>'
+    +'<div style="display:flex;gap:6px;flex-wrap:wrap;">'
+    +years.map(function(y){return '<div onclick="S.bilanYear='+y+';renderBilan()" class="tab'+(y===selYear?' active':'')+'" style="border:1px solid '+(y===selYear?'transparent':'var(--border-strong)')+';'+NUM+'">'+y+'</div>';}).join('')
+    +'</div>'
+  +'</div>';
 
   if(selProp==='all'){
-    var allB=getBilan('all');
-    out+='<div style="background:linear-gradient(135deg,#0F6E56,#1D9E75);border-radius:12px;padding:14px;margin-bottom:14px;color:#fff;">'
-      +'<div style="font-size:12px;opacity:.8;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;"><span>Bilan consolid\u00e9 \u00b7 Tous les biens \u00b7 '+selYear+'</span><button onclick=\"_downloadBilanPDF(\'all\')\" style=\"display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:6px;border:1px solid rgba(255,255,255,.4);background:rgba(255,255,255,.15);font-size:11px;cursor:pointer;color:#fff;\">\u2193 PDF G\u00e9n\u00e9ral</button></div>'
-      +'<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;">'
-      +'<div style="text-align:center;"><div style="font-size:10px;opacity:.7;margin-bottom:2px;">Brut total</div><div style="font-size:18px;font-weight:500;">'+Math.round(allB.brut).toLocaleString('fr-FR')+'\u00a0\u20ac</div><div style="font-size:10px;opacity:.6;">'+allB.res.length+' r\u00e9s.</div></div>'
-      +'<div style="text-align:center;"><div style="font-size:10px;opacity:.7;margin-bottom:2px;">Charges</div><div style="font-size:18px;font-weight:500;">\u2212'+Math.round(allB.com+allB.cl).toLocaleString('fr-FR')+'\u00a0\u20ac</div><div style="font-size:10px;opacity:.6;">'+Math.round((allB.com+allB.cl)/Math.max(allB.brut,1)*100)+'%</div></div>'
-      +'<div style="text-align:center;background:rgba(255,255,255,.15);border-radius:8px;padding:8px;"><div style="font-size:10px;opacity:.7;margin-bottom:2px;">Net encaiss\u00e9</div><div style="font-size:20px;font-weight:500;">'+Math.round(allB.net).toLocaleString('fr-FR')+'\u00a0\u20ac</div></div>'
-      +'<div style="text-align:center;"><div style="font-size:10px;opacity:.7;margin-bottom:2px;">Occupation</div><div style="font-size:18px;font-weight:500;">'+allB.occ+'%</div><div style="font-size:10px;opacity:.6;">'+allB.avgNight+'\u00a0\u20ac/nuit</div></div>'
-      +'</div></div>';
-    S.props.forEach(function(p){
-      var b=getBilan(p.id);
-      out+='<div style="background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:12px;padding:14px;margin-bottom:14px;">'
-        +renderPropBilan(p.id,p.name,b)
-        +'</div>';
-    });
+    out+=etat('all','Ensemble des biens · '+S.props.length+' logement(s)');
+    S.props.forEach(function(p){ out+=etat(p.id,p.name); });
   } else {
-    var prop2=S.props.find(function(p){return p.id===selProp;});
-    if(prop2){
-      var b2=getBilan(selProp);
-      out+='<div style="background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:12px;padding:14px;">'
-        +renderPropBilan(selProp,prop2.name,b2)
-        +'</div>';
-    }
+    var pr=S.props.find(function(p){return p.id===selProp;});
+    out+=etat(selProp,pr?pr.name:'Bien');
   }
+
   document.getElementById('main-content').innerHTML=out;
 }
 async function _downloadBilanPDF(propId){
@@ -976,9 +1173,10 @@ async function _generateGuestReview(code,gname){
   if(!el)return;
   el.value="Generation...";
   try{
-    var r=await fetch("/api-claude",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-5",max_tokens:200,system:"Tu es un hote Airbnb. Ecris un commentaire public positif et authentique en 2-3 phrases pour un voyageur. Mentionne son prenom. Commence directement sans formule.",messages:[{role:"user",content:"Voyageur: "+gname+". Sejour 5 etoiles."}]})});
-    var d=await r.json();
-    el.value=(d.content&&d.content[0]&&d.content[0].text)||"";
+    el.value=await _claude({
+      system:"Tu es un hote Airbnb. Ecris un commentaire public positif et authentique en 2-3 phrases pour un voyageur. Mentionne son prenom. Commence directement sans formule.",
+      messages:[{role:"user",content:"Voyageur: "+gname+". Sejour 5 etoiles."}]
+    });
     var pv=document.getElementById("private-"+code);
     if(pv&&!pv.value)pv.value="Sejour parfait, je recommande "+gname+" sans hesitation.";
   }catch(e){el.value="";showToast("Erreur IA");}
@@ -1023,9 +1221,10 @@ async function _generateReviewReply(code,comment,platform){
   if(!box)return;
   box.innerHTML="<div style=\"padding:10px;font-size:12px;color:var(--color-text-tertiary);\">Generation...</div>";
   try{
-    var r=await fetch("/api-claude",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-5",max_tokens:200,system:"Tu es un hote Airbnb/Booking. Reponds aux avis voyageurs en francais, chaleureux et concis. 2-3 phrases max. Remercie pour le commentaire specifique. Invite a revenir.",messages:[{role:"user",content:"Plateforme: "+platform+". Commentaire: "+comment}]})});
-    var d=await r.json();
-    var reply=(d.content&&d.content[0]&&d.content[0].text)||"";
+    var reply=await _claude({
+      system:"Tu es un hote Airbnb/Booking. Reponds aux avis voyageurs en francais, chaleureux et concis. 2-3 phrases max. Remercie pour le commentaire specifique. Invite a revenir.",
+      messages:[{role:"user",content:"Plateforme: "+platform+". Commentaire: "+comment}]
+    });
     window["_reply_"+code]=reply;
     box.innerHTML="<div style=\"background:#F5F3FF;border:1px solid #C4B5FD;border-radius:8px;padding:12px;\">"
       +"<div style=\"font-size:10px;font-weight:500;color:#4338CA;margin-bottom:6px;\">\u2726 Suggestion IA</div>"
@@ -1342,7 +1541,131 @@ async function _syncHostexDirect(){
   }, 1000);
 }
 
-function showToast(msg,dur){var t=document.getElementById('toast');if(!t){t=document.createElement('div');t.id='toast';t.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;padding:10px 20px;border-radius:8px;font-size:13px;z-index:9999;transition:opacity .3s;pointer-events:none;';document.body.appendChild(t);}t.textContent=msg;t.style.opacity='1';clearTimeout(t._t);t._t=setTimeout(function(){t.style.opacity='0';},dur||2500);}
+function showToast(msg,dur){var t=document.getElementById('toast');if(!t){t=document.createElement('div');t.id='toast';t.style.cssText='position:fixed;bottom:24px;left:50%;background:#1a1a1a;color:#fff;padding:10px 20px;border-radius:8px;font-size:13px;z-index:9999;transition:opacity .3s,transform .3s;pointer-events:none;';document.body.appendChild(t);}var isErr=/erreur|error|⚠|❌/i.test(msg);t.textContent=msg;t.style.borderLeft=isErr?'3px solid #E24B4A':'3px solid #1D9E75';t.style.opacity='1';t.style.transform='translateX(-50%) translateY(0)';clearTimeout(t._t);t._t=setTimeout(function(){t.style.opacity='0';t.style.transform='translateX(-50%) translateY(8px)';},dur||2500);}
+// ===== Appel modele Claude (centralise) =====
+async function _claude(opts){
+  var body={
+    model:'claude-opus-5',
+    max_tokens:opts.max_tokens||2000,
+    thinking:{type:'adaptive'},
+    output_config:{effort:opts.effort||'low'},
+    fallbacks:'default',
+    system:opts.system,
+    messages:opts.messages
+  };
+  var r=await fetch('/api-claude',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','anthropic-beta':'server-side-fallback-2026-07-01'},
+    body:JSON.stringify(body)
+  });
+  var d=await r.json();
+  if(d&&d.error)throw new Error(d.error.message||'API indisponible');
+  if(d&&d.stop_reason==='refusal')throw new Error('Demande refusee par le modele');
+  // La reflexion est active : ne lire que les blocs texte, jamais content[0]
+  var txt=((d&&d.content)||[]).filter(function(b){return b.type==='text';}).map(function(b){return b.text||'';}).join('').trim();
+  if(!txt)throw new Error('Reponse vide');
+  return txt;
+}
+
+// ===== Suivi des messages lus / non lus =====
+function _loadMsgsOpened(){
+  if(S._msgsOpened)return S._msgsOpened;
+  var o={};
+  try{o=JSON.parse(localStorage.getItem('msgsOpened')||'{}');}catch(e){o={};}
+  // Migration : l'ancien format stockait un booleen, sans date de lecture
+  var migr=null;
+  try{migr=localStorage.getItem('msgsOpenedMigratedAt');}catch(e){}
+  if(!migr){migr=new Date().toISOString();try{localStorage.setItem('msgsOpenedMigratedAt',migr);}catch(e){}}
+  var change=false;
+  Object.keys(o).forEach(function(k){if(o[k]===true){o[k]=migr;change=true;}});
+  S._msgsOpened=o;
+  if(change){try{localStorage.setItem('msgsOpened',JSON.stringify(o));}catch(e){}}
+  return o;
+}
+function _isUnread(c){
+  if(!c)return false;
+  var seen=_loadMsgsOpened()[c.id];
+  if(!seen)return true;
+  return String(c.last_message_at||'')>String(seen);
+}
+function _marquerLu(convId){
+  var o=_loadMsgsOpened();
+  o[convId]=new Date().toISOString();
+  try{localStorage.setItem('msgsOpened',JSON.stringify(o));}catch(e){}
+  _majBadgeMessages();
+}
+function _nbNonLus(){
+  return (S.conversations||[]).filter(_isUnread).length;
+}
+function _renderNav(){
+  var el=document.getElementById('nav');
+  if(!el)return;
+  var unread=_nbNonLus();
+  el.innerHTML=navDef.map(function(n){
+    return '<div class="nav-item '+(S.page===n.id?'active':'')+'" onclick="navigate(\''+n.id+'\')">'
+      +'<span style="font-size:12px">'+n.icon+'</span><span>'+n.label+'</span>'
+      +(n.id==='messages'&&unread?'<span class="nav-badge">'+unread+'</span>':'')
+    +'</div>';
+  }).join('');
+}
+function _majBadgeMessages(){ _renderNav(); }
+
+// ===== Notification de nouveaux messages =====
+async function _pollMessages(){
+  try{
+    var d=await api('/conversations?limit=50&offset=0');
+    var convs=(d&&d.data&&d.data.conversations)||[];
+    if(!convs.length)return;
+    var prev=window._convSnapshot;
+    var nouveaux=[];
+    if(prev){
+      convs.forEach(function(c){
+        var t=String(c.last_message_at||'');
+        var avant=prev[c.id];
+        if((avant===undefined||t>avant)&&_isUnread(c))nouveaux.push(c);
+      });
+    }
+    window._convSnapshot={};
+    convs.forEach(function(c){window._convSnapshot[c.id]=String(c.last_message_at||'');});
+
+    S._convList=convs;
+    S.conversations=convs.map(function(c){
+      return {id:String(c.id),guest:(c.guest&&c.guest.name)||c.guest_name||'Voyageur',
+        platform:c.channel_type||c.channel||'direct',channel_type:c.channel_type||'',
+        preview:c.last_message||'',prop_id:String((c.property&&c.property.id)||c.property_id||''),
+        last_message_at:c.last_message_at||'',property_title:c.property_title||''};
+    });
+    _majBadgeMessages();
+    if(S.page==='messages')_renderConvList(convs);
+    if(nouveaux.length)_notifierMessages(nouveaux);
+  }catch(e){}
+}
+function _notifierMessages(list){
+  var n=list.length;
+  var noms=list.slice(0,3).map(function(c){return ((c.guest&&c.guest.name)||c.guest_name||'Voyageur').split(' ')[0];}).join(', ');
+  showToast('💬 '+n+' nouveau'+(n>1?'x':'')+' message'+(n>1?'s':'')+' — '+noms,6000);
+  try{
+    if('Notification' in window&&Notification.permission==='granted'){
+      var t=n>1?(n+' nouveaux messages'):'Nouveau message de '+noms;
+      var not=new Notification(t,{body:list[0].last_message||'Ouvrir la messagerie',tag:'illiberis-msg',renotify:true});
+      not.onclick=function(){try{window.focus();}catch(e){}navigate('messages');not.close();};
+    }
+  }catch(e){}
+}
+function _demanderNotifs(){
+  if(!('Notification' in window)){showToast('Notifications non supportees par ce navigateur');return;}
+  Notification.requestPermission().then(function(p){
+    if(p==='granted'){showToast('✓ Notifications activees');}
+    else{showToast('Notifications refusees');}
+    if(S.page==='messages')renderMsgs();
+  });
+}
+function _demarrerPollMessages(){
+  if(window._msgPollTimer)return;
+  _pollMessages();
+  window._msgPollTimer=setInterval(_pollMessages,60000);
+}
+
 function showModal(h){var m=document.getElementById('modal');var mb=document.getElementById('modal-body');if(!m){m=document.createElement('div');m.id='modal';m.style.cssText='display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.4);z-index:1000;align-items:center;justify-content:center;';var inner=document.createElement('div');inner.style.cssText='background:#fff;border-radius:12px;padding:20px;max-width:500px;width:90%;max-height:85vh;overflow-y:auto;position:relative;';mb=document.createElement('div');mb.id='modal-body';inner.appendChild(mb);var cl=document.createElement('button');cl.textContent='×';cl.style.cssText='position:absolute;top:10px;right:14px;background:none;border:none;font-size:20px;cursor:pointer;color:#888;';cl.onclick=closeModal;inner.appendChild(cl);m.appendChild(inner);m.onclick=function(e){if(e.target===m)closeModal();};document.body.appendChild(m);}mb.innerHTML=h;m.style.display='flex';}
 function closeModal(){var m=document.getElementById('modal');if(m)m.style.display='none';}
 
@@ -1397,7 +1720,7 @@ function _showRevPct(rev,m,past2,now2,netRev4fn){
 
 
 function renderDash(){
-  if(!S._msgsOpened){try{S._msgsOpened=JSON.parse(localStorage.getItem("msgsOpened")||"{}");}catch(e){S._msgsOpened={};}}
+  _loadMsgsOpened();
   var now=new Date();
   var today=new Date(now.getFullYear(),now.getMonth(),now.getDate());
   var todayStr=today.toISOString().split("T")[0];
@@ -1416,7 +1739,7 @@ function renderDash(){
   var monthRev=monthRes.reduce(function(s,r){return s+netRev(r);},0);
   var yearRes=past.filter(function(r){var d=new Date(r.check_in+"T00:00:00");return d.getFullYear()===now.getFullYear()&&d<=now;});
   var yearRev=yearRes.reduce(function(s,r){return s+netRev(r);},0);
-  var unread=S.conversations.filter(function(c){return !S._msgsOpened[c.id];}).length;
+  var unread=_nbNonLus();
   var upcoming=past.filter(function(r){return r.check_in>=todayStr;}).sort(function(a,b){return a.check_in.localeCompare(b.check_in);});
   var daysInMonth=new Date(now.getFullYear(),now.getMonth()+1,0).getDate();
 
@@ -1478,26 +1801,27 @@ function renderDash(){
   var bkPct=100-airPct;
 
   var h="";
-  var CS="border-radius:16px;padding:16px;border:1px solid;margin-bottom:12px;";
+  var CS="border-radius:var(--r-lg);padding:18px;box-shadow:var(--shadow-sm);margin-bottom:12px;border-width:1px;border-style:solid;";
 
   // 1. KPIs
   h+="<div style=\"display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px;\">";
   var kDs=[
-    {l:"Ce mois",v:Math.round(monthRev).toLocaleString("fr-FR")+" \u20ac",s:monthRes.length+" r\u00e9s.",bg:"#EEF2FF",bd:"#C7D7FE",lc:"#3730A3",vc:"#312E81",sc:"#6366F1",ic:"#C7D7FE",ii:"\u20ac",fn:"_showMonthDetail('month')"},
-    {l:"Encaiss\u00e9 "+now.getFullYear(),v:Math.round(yearRev).toLocaleString("fr-FR")+" \u20ac",s:yearRes.length+" r\u00e9s.",bg:"#FFF7ED",bd:"#FED7AA",lc:"#9A3412",vc:"#7C2D12",sc:"#EA580C",ic:"#FED7AA",ii:"\u25a3",fn:"_showMonthDetail('year')"},
-    {l:"Messages",v:unread,s:unread>0?"non lus":"tout lu",bg:"#FFF1F2",bd:"#FECDD3",lc:"#9F1239",vc:"#881337",sc:"#E11D48",ic:"#FECDD3",ii:"\u2709",fn:"navigate('messages')"},
-    {l:"Arriv\u00e9es",v:upcoming.length,s:"\u00e0 venir",bg:"#F0FDF4",bd:"#BBF7D0",lc:"#14532D",vc:"#052E16",sc:"#16A34A",ic:"#BBF7D0",ii:"\u2192",fn:"_showMonthDetail('upcoming')"}
+    {id:"kv0",n:Math.round(monthRev),fmt:"eur",l:"Ce mois",s:monthRes.length+" r\u00e9s.",bg:"#EEF2FF",bd:"#C7D7FE",lc:"#3730A3",vc:"#312E81",sc:"#6366F1",ic:"#C7D7FE",ii:"\u20ac",fn:"_showMonthDetail('month')"},
+    {id:"kv1",n:Math.round(yearRev),fmt:"eur",l:"Encaiss\u00e9 "+now.getFullYear(),s:yearRes.length+" r\u00e9s.",bg:"#FFF7ED",bd:"#FED7AA",lc:"#9A3412",vc:"#7C2D12",sc:"#EA580C",ic:"#FED7AA",ii:"\u25a3",fn:"_showMonthDetail('year')"},
+    {id:"kv2",n:unread,fmt:"int",l:"Messages",s:unread>0?"non lus":"tout lu",bg:"#FFF1F2",bd:"#FECDD3",lc:"#9F1239",vc:"#881337",sc:"#E11D48",ic:"#FECDD3",ii:"\u2709",fn:"navigate('messages')"},
+    {id:"kv3",n:upcoming.length,fmt:"int",l:"Arriv\u00e9es",s:"\u00e0 venir",bg:"#F0FDF4",bd:"#BBF7D0",lc:"#14532D",vc:"#052E16",sc:"#16A34A",ic:"#BBF7D0",ii:"\u2192",fn:"_showMonthDetail('upcoming')"}
   ];
-  kDs.forEach(function(k){
-    h+="<div onclick=\""+k.fn+"\" style=\"background:"+k.bg+";border-color:"+k.bd+";"+CS+"cursor:pointer;position:relative;transition:transform .15s,box-shadow .15s;\" onmouseover=\"this.style.transform='translateY(-3px)';this.style.boxShadow='0 8px 24px rgba(0,0,0,.1)'\" onmouseout=\"this.style.transform='';this.style.boxShadow=''\">"
+  kDs.forEach(function(k,ki){
+    h+="<div class=\"fade-in-up\" style=\"--i:"+ki+";background:"+k.bg+";border-color:"+k.bd+";"+CS+"cursor:pointer;position:relative;transition:transform .15s,box-shadow .15s;\" onclick=\""+k.fn+"\" onmouseover=\"this.style.transform='translateY(-3px)';this.style.boxShadow='0 8px 24px rgba(0,0,0,.1)'\" onmouseout=\"this.style.transform='';this.style.boxShadow=''\">"
       +"<div style=\"position:absolute;top:12px;right:12px;font-size:11px;opacity:.5;color:"+k.vc+"\">\u2197</div>"
       +"<div style=\"width:32px;height:32px;border-radius:10px;background:"+k.ic+";display:flex;align-items:center;justify-content:center;font-size:14px;margin-bottom:10px;color:"+k.lc+"\">"+k.ii+"</div>"
       +"<div style=\"font-size:10px;font-weight:500;letter-spacing:.04em;text-transform:uppercase;color:"+k.lc+";margin-bottom:4px;\">"+k.l+"</div>"
-      +"<div style=\"font-size:24px;font-weight:500;color:"+k.vc+";line-height:1;margin-bottom:3px;\">"+k.v+"</div>"
+      +"<div id=\""+k.id+"\" style=\"font-size:24px;font-weight:500;color:"+k.vc+";line-height:1;margin-bottom:3px;\">0</div>"
       +"<div style=\"font-size:11px;color:"+k.sc+"\">"+k.s+" \u2197</div>"
     +"</div>";
   });
   h+="</div>";
+  window._dashKDs=kDs;
 
   // 2. Zone détail KPI
   h+="<div id=\"kpi-detail\" style=\"display:none;margin-bottom:12px;\"></div>";
@@ -1507,7 +1831,7 @@ function renderDash(){
   S.props.forEach(function(prop){
     var pc=prop.id==="12619011"?"#0F6E56":"#6366F1";
     var evt=nextEvt(prop.id);
-    h+="<div style=\"background:var(--color-background-primary);border:1px solid var(--color-border-tertiary);border-radius:16px;padding:14px;\">"
+    h+="<div class=\"fade-in-up\" style=\"--i:4;background:var(--color-background-primary);border:1px solid var(--color-border-tertiary);border-radius:16px;padding:14px;\">"
       +"<div style=\"font-size:12px;font-weight:500;color:"+pc+";margin-bottom:10px;padding-bottom:8px;border-bottom:0.5px solid var(--color-border-tertiary);display:flex;align-items:center;gap:6px;\">"
         +"<div style=\"width:8px;height:8px;border-radius:50%;background:"+pc+";\"></div>"
         +prop.name
@@ -1551,7 +1875,7 @@ function renderDash(){
       +"<div style=\"font-size:7px;color:"+(m.isCur?"#4F46E5":"var(--color-text-tertiary)")+";font-weight:"+(m.isCur?500:400)+";\">"+m.lbl+"</div>"
     +"</div>";
   });
-  h+="<div style=\"background:var(--color-background-primary);border:1px solid var(--color-border-tertiary);border-radius:16px;padding:14px;\">"
+  h+="<div class=\"fade-in-up\" style=\"--i:5;background:var(--color-background-primary);border:1px solid var(--color-border-tertiary);border-radius:16px;padding:14px;\">"
     +"<div style=\"display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;\">"
       +"<div style=\"font-size:13px;font-weight:500;\">Revenus nets \u2014 12 mois</div>"
       +"<div id=\"btt\" style=\"font-size:11px;color:var(--color-text-tertiary);\">"+Math.round(yearRev).toLocaleString("fr-FR")+" \u20ac encaiss\u00e9</div>"
@@ -1560,7 +1884,7 @@ function renderDash(){
     +"<div id=\"bdt\" style=\"display:none;background:#EEF2FF;border-radius:10px;padding:10px;margin-top:10px;font-size:12px;\"></div>"
   +"</div>";
 
-  h+="<div style=\"background:var(--color-background-primary);border:1px solid var(--color-border-tertiary);border-radius:16px;padding:14px;\">"
+  h+="<div class=\"fade-in-up\" style=\"--i:6;background:var(--color-background-primary);border:1px solid var(--color-border-tertiary);border-radius:16px;padding:14px;\">"
     +"<div style=\"font-size:13px;font-weight:500;margin-bottom:10px;\">"+MFULL[calMonth]+" "+calYear+"</div>"
     +"<div style=\"display:grid;grid-template-columns:repeat(7,1fr);gap:2px;\">"+calCells+"</div>"
     +"<div style=\"display:flex;gap:8px;margin-top:8px;\">"
@@ -1572,7 +1896,7 @@ function renderDash(){
 
   // 5. Occupation + Plateformes
   h+="<div style=\"display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;\">";
-  h+="<div style=\"background:var(--color-background-primary);border:1px solid var(--color-border-tertiary);border-radius:16px;padding:14px;\">"
+  h+="<div class=\"fade-in-up\" style=\"--i:7;background:var(--color-background-primary);border:1px solid var(--color-border-tertiary);border-radius:16px;padding:14px;\">"
     +"<div style=\"font-size:13px;font-weight:500;margin-bottom:10px;\">Taux d&#8217;occ. "+MONTHS[calMonth]+"</div>"
     +"<div style=\"display:grid;grid-template-columns:1fr 1fr;gap:8px;\">"
     +S.props.map(function(p){
@@ -1591,7 +1915,7 @@ function renderDash(){
     }).join("")
     +"</div></div>";
 
-  h+="<div style=\"background:var(--color-background-primary);border:1px solid var(--color-border-tertiary);border-radius:16px;padding:14px;\">"
+  h+="<div class=\"fade-in-up\" style=\"--i:8;background:var(--color-background-primary);border:1px solid var(--color-border-tertiary);border-radius:16px;padding:14px;\">"
     +"<div style=\"font-size:13px;font-weight:500;margin-bottom:10px;\">Plateformes "+MONTHS[calMonth]+"</div>"
     +"<div style=\"display:flex;height:8px;border-radius:4px;overflow:hidden;margin-bottom:10px;\">"
       +"<div style=\"width:"+airPct+"%;background:#FF385C;\"></div><div style=\"flex:1;background:#003580;\"></div>"
@@ -1650,7 +1974,7 @@ function renderDash(){
     var avC=av(gname);
     var pl=c.channel_type==="airbnb"||c.platform==="airbnb"?"airbnb":"booking";
     var plColor=pl==="airbnb"?"#FF385C":"#003580";
-    var isUnread=!S._msgsOpened[c.id];
+    var isUnread=_isUnread(c);
     var dt=c.last_message_at?new Date(c.last_message_at).toLocaleDateString("fr-FR",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}):"";
     h+="<div onclick=\"navigate('messages');setTimeout(function(){openConv('"+c.id+"')},300)\" style=\"display:flex;align-items:center;gap:10px;padding:9px 8px;border-radius:10px;cursor:pointer;transition:background .1s;\" onmouseover=\"this.style.background='var(--color-background-secondary)'\" onmouseout=\"this.style.background=''\">"
       +"<div style=\"width:8px;height:8px;border-radius:50%;background:"+(isUnread?"#E24B4A":"transparent")+";flex-shrink:0;\"></div>"
@@ -1703,327 +2027,413 @@ function renderDash(){
   }
 
   document.getElementById("main-content").innerHTML=h;
+  _animateKPIs(kDs);
+}
+window._kpiPrevVals=window._kpiPrevVals||{};
+function _animateKPIs(kDs){
+  kDs.forEach(function(k){
+    var el=document.getElementById(k.id);
+    if(!el)return;
+    var from=window._kpiPrevVals[k.id]||0;
+    var to=k.n||0;
+    var start=performance.now();
+    var dur=700;
+    function tick(now){
+      var t=Math.min((now-start)/dur,1);
+      var eased=1-Math.pow(1-t,3);
+      var val=Math.round(from+(to-from)*eased);
+      el.textContent=k.fmt==="eur"?val.toLocaleString("fr-FR")+" €":val.toLocaleString("fr-FR");
+      if(t<1)requestAnimationFrame(tick);
+      else window._kpiPrevVals[k.id]=to;
+    }
+    requestAnimationFrame(tick);
+  });
 }
 function renderRates(){
-  if(!S.ratesPrices)S.ratesPrices={};if(!S.ratesMinStay)S.ratesMinStay={};if(!S.ratesSelected)S.ratesSelected={};if(!S.ratesMonth)S.ratesMonth=new Date();if(!S.cleaning)S.cleaning={};
+  if(!S.ratesPrices)S.ratesPrices={};if(!S.ratesMinStay)S.ratesMinStay={};if(!S.ratesSelected)S.ratesSelected={};if(!S.cleaning)S.cleaning={};
+  if(!S.ratesMonth)S.ratesMonth=new Date(new Date().getFullYear(),new Date().getMonth(),1);
+  if(!S.ratesSpan)S.ratesSpan=1;
   var prop=S.props.find(function(p){return p.id===S.ratesProp;})||S.props[0];
-  if(!prop){document.getElementById('main-content').innerHTML='<div style="padding:20px;color:#888;">Aucun bien.</div>';return;}
+  if(!prop){document.getElementById('main-content').innerHTML='<div style="padding:20px;color:var(--text-3);">Aucun bien.</div>';return;}
   if(!S.ratesLoaded)S.ratesLoaded={};
   if(!S.ratesLoaded[prop.id]){_loadPricesFromAPI(prop.id);S.ratesLoaded[prop.id]=true;}
 
-  var MONTHS=['Janvier','F\u00e9vrier','Mars','Avril','Mai','Juin','Juillet','Ao\u00fbt','Septembre','Octobre','Novembre','D\u00e9cembre'];
-  var DAYS=['L','M','M','J','V','S','D'];
+  var MOIS=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+  var JOURS=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
+  var AIR='#D8544E',AIR_BG='#FBEEEA',BK='#1E5490',BK_BG='#E8EFF7';
   var now=new Date();
-
+  var today=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+  var NUM='font-variant-numeric:tabular-nums;font-feature-settings:"tnum";';
   function pad(n){return String(n).padStart(2,'0');}
+  function dsOf(y,m,d){return y+'-'+pad(m+1)+'-'+pad(d);}
+  function prixAir(ds){return S.ratesPrices[prop.id+'_'+ds+'_air']||null;}
+  function prixBk(ds){return S.ratesPrices[prop.id+'_'+ds+'_bk']||null;}
+  function resaDu(ds){return S.reservations.find(function(r){return r.prop_id===prop.id&&r.check_in&&r.check_out&&r.status!=='cancelled'&&r.check_in<=ds&&r.check_out>ds;});}
+  function bloque(ds){return S.blockedDates&&S.blockedDates.indexOf(ds)>=0;}
 
-  // Sidebar
-  var propTabs=S.props.map(function(p){
-    var active=p.id===prop.id;
-    return '<div onclick="S.ratesProp=\''+p.id+'\';S.ratesLoaded={};renderRates()" style="flex:1;padding:8px 4px;border-radius:8px;border:1.5px solid '+(active?'#0F6E56':'#e5e4e0')+';background:'+(active?'#E1F5EE':'#f9f9f7')+';text-align:center;cursor:pointer;"><div style="font-size:10px;font-weight:500;color:'+(active?'#0F6E56':'#888')+';">'+p.name.split(' ')[0]+'</div></div>';
+  var selMap=window._ratesDragSel&&Object.keys(window._ratesDragSel).length?window._ratesDragSel:S.ratesSelected;
+  var selDays=Object.keys(selMap||{}).filter(function(k){return selMap[k];});
+  var selCount=selDays.length;
+
+  var mRef=S.ratesMonth;
+  var span=S.ratesSpan;
+
+  // ===== Barre d'outils =====
+  var propBtns=S.props.map(function(p){
+    var on=p.id===prop.id;
+    return '<button onclick="S.ratesProp=\''+p.id+'\';S.ratesLoaded={};S.ratesSelected={};window._ratesDragSel={};renderRates()" class="btn" style="'+(on?'background:var(--accent);color:#fff;border-color:var(--accent);':'')+'">'+p.name+'</button>';
   }).join('');
 
-  var cl=S.cleaning[prop.id]||{base:20,extra:5};
-  var cleanHtml='<div class="sep" style="height:1px;background:#e5e4e0;margin:12px 0;"></div>'
-    +'<div style="font-size:10px;font-weight:500;color:#888;letter-spacing:.05em;text-transform:uppercase;margin-bottom:10px;">Fr. m\u00e9nage</div>'
-    +S.props.map(function(p){
-      var c=S.cleaning[p.id]||{base:20,extra:5};
-      return '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">'
-        +'<div style="font-size:11px;color:#444;">'+p.name.split(' ')[0]+'</div>'
-        +'<div style="display:flex;align-items:center;gap:3px;">'
-        +'<input id="cl-'+p.id+'" type="number" value="'+c.base+'" style="width:52px;border:1px solid #d1d0c8;border-radius:6px;padding:3px 5px;font-size:12px;text-align:right;">'
-        +'<span style="font-size:10px;color:#888;">\u20ac</span>'
-        +'</div></div>';
-    }).join('')
-    +'<button onclick="S.props.forEach(function(p){_saveClean(p.id);})" style="width:100%;padding:7px;border-radius:8px;border:none;background:#0F6E56;color:#fff;font-size:12px;font-weight:500;cursor:pointer;margin-top:6px;">Enregistrer</button>';
+  var spanBtns=[[1,'1 mois'],[3,'3 mois'],[12,'12 mois']].map(function(s){
+    var on=span===s[0];
+    return '<button onclick="S.ratesSpan='+s[0]+';renderRates()" class="btn" style="'+(on?'background:var(--accent-light);color:var(--accent);border-color:var(--accent);font-weight:500;':'')+'">'+s[1]+'</button>';
+  }).join('');
 
-  var selCount=Object.keys(window._ratesDragSel||S.ratesSelected||{}).length;
-    var blockBtn='<div style="height:1px;background:#e5e4e0;margin:12px 0;"></div>'
-    +(selCount>0?'<button onclick="_openBlockDates(\''+prop.id+'\')" style="width:100%;padding:8px;border-radius:8px;border:none;background:#ef4444;color:#fff;font-size:12px;font-weight:600;cursor:pointer;margin-bottom:6px;">⛔ Bloquer '+selCount+' jour'+(selCount>1?'s':'')+'</button>':''
-    )+'<a href="https://app.hostex.io/calendar" target="_blank" style="display:block;width:100%;padding:8px;border-radius:8px;border:1.5px solid #6366f1;background:#fff;color:#6366f1;font-size:12px;font-weight:500;text-align:center;text-decoration:none;box-sizing:border-box;">📅 Ouvrir calendrier Hostex</a>'
-    +'<div style="font-size:10px;color:#aaa;margin-top:5px;text-align:center;">S\u00e9lectionnez puis bloquez</div>';
+  var titrePeriode=span===1?(MOIS[mRef.getMonth()]+' '+mRef.getFullYear())
+    :(MOIS[mRef.getMonth()].slice(0,3)+' '+mRef.getFullYear()+' → '+MOIS[new Date(mRef.getFullYear(),mRef.getMonth()+span-1,1).getMonth()].slice(0,3)+' '+new Date(mRef.getFullYear(),mRef.getMonth()+span-1,1).getFullYear());
 
-  var r=S.ratesRules[prop.id]||S.basePrices[prop.id]||{airWeek:80,bkWeek:70,airWE:95,bkWE:88};
-  var pricesHtml='<div style="height:1px;background:#e5e4e0;margin:12px 0;"></div>'
-    +'<div style="font-size:10px;font-weight:500;color:#888;letter-spacing:.05em;text-transform:uppercase;margin-bottom:10px;">Prix de base</div>'
-    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px;">'
-      +'<div style="font-size:10px;color:#888;">Semaine</div>'
-      +'<div style="font-size:10px;color:#888;">Week-end</div>'
+  var toolbar='<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px;">'
+    +'<div style="display:flex;gap:6px;flex-wrap:wrap;">'+propBtns+'</div>'
+    +'<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">'+spanBtns+'</div>'
+  +'</div>'
+  +'<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px;">'
+    +'<div style="display:flex;align-items:center;gap:8px;">'
+      +'<button onclick="chgRatesMonth(-1)" class="btn" title="Mois précédent" style="width:32px;padding:6px 0;">‹</button>'
+      +'<div style="font-size:15px;font-weight:600;min-width:190px;text-align:center;">'+titrePeriode+'</div>'
+      +'<button onclick="chgRatesMonth(1)" class="btn" title="Mois suivant" style="width:32px;padding:6px 0;">›</button>'
+      +'<button onclick="goRatesToday()" class="btn">Aujourd’hui</button>'
     +'</div>'
-    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:4px;">'
-      +'<div style="display:flex;align-items:center;gap:4px;background:#FFF5F5;border-radius:6px;padding:6px 8px;">'
-        +'<span style="font-size:10px;font-weight:500;color:#FF385C;background:#FFE0E0;border-radius:3px;padding:1px 4px;">A</span>'
-        +'<input id="rr-airWeek" type="number" value="'+(r.airWeek||80)+'" style="width:100%;border:none;background:transparent;font-size:13px;font-weight:500;outline:none;color:#E53E3E;">'
-        +'<span style="font-size:10px;color:#888;">€</span>'
-      +'</div>'
-      +'<div style="display:flex;align-items:center;gap:4px;background:#FFF5F5;border-radius:6px;padding:6px 8px;">'
-        +'<span style="font-size:10px;font-weight:500;color:#FF385C;background:#FFE0E0;border-radius:3px;padding:1px 4px;">A</span>'
-        +'<input id="rr-airWE" type="number" value="'+(r.airWE||95)+'" style="width:100%;border:none;background:transparent;font-size:13px;font-weight:500;outline:none;color:#E53E3E;">'
-        +'<span style="font-size:10px;color:#888;">€</span>'
-      +'</div>'
+    +'<div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center;">'
+      +'<span style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-2);"><span style="width:9px;height:9px;border-radius:2px;background:'+AIR+';"></span>Airbnb</span>'
+      +'<span style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-2);"><span style="width:9px;height:9px;border-radius:2px;background:'+BK+';"></span>Booking</span>'
+      +'<span style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-2);"><span style="width:9px;height:9px;border-radius:2px;background:var(--accent);"></span>Aujourd’hui</span>'
+      +'<span style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-2);"><span style="width:9px;height:9px;border-radius:2px;background:#E5B84B;"></span>Bloqué</span>'
+      +'<span style="font-size:11px;color:var(--text-3);">Glissez pour sélectionner plusieurs jours</span>'
     +'</div>'
-    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px;">'
-      +'<div style="display:flex;align-items:center;gap:4px;background:#EEF3FF;border-radius:6px;padding:6px 8px;">'
-        +'<span style="font-size:10px;font-weight:500;color:#003580;background:#C7D7F5;border-radius:3px;padding:1px 4px;">B</span>'
-        +'<input id="rr-bkWeek" type="number" value="'+(r.bkWeek||70)+'" style="width:100%;border:none;background:transparent;font-size:13px;font-weight:500;outline:none;color:#003580;">'
-        +'<span style="font-size:10px;color:#888;">€</span>'
-      +'</div>'
-      +'<div style="display:flex;align-items:center;gap:4px;background:#EEF3FF;border-radius:6px;padding:6px 8px;">'
-        +'<span style="font-size:10px;font-weight:500;color:#003580;background:#C7D7F5;border-radius:3px;padding:1px 4px;">B</span>'
-        +'<input id="rr-bkWE" type="number" value="'+(r.bkWE||88)+'" style="width:100%;border:none;background:transparent;font-size:13px;font-weight:500;outline:none;color:#003580;">'
-        +'<span style="font-size:10px;color:#888;">€</span>'
-      +'</div>'
-    +'</div>'
-    +'<button onclick="_initRulesEvents(this.dataset.pid)" data-pid="'+prop.id+'" style="width:100%;padding:7px;border-radius:8px;border:none;background:#1D9E75;color:#fff;font-size:12px;font-weight:500;cursor:pointer;">↻ Appliquer sur 12 mois</button>';
+  +'</div>';
 
-  var sidebar='<div style="background:#f9f9f7;border-radius:12px;border:1px solid #e5e4e0;padding:14px;">'
-    +'<div style="display:flex;gap:6px;margin-bottom:14px;">'+propTabs+'</div>'
-    +pricesHtml
-    +cleanHtml
-    +blockBtn
+  // ===== Barre de sélection =====
+  var selBar='';
+  if(selCount>0){
+    var tri=selDays.slice().sort();
+    selBar='<div style="position:sticky;top:56px;z-index:20;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:var(--accent);color:#fff;border-radius:var(--r-md);padding:11px 16px;margin-bottom:14px;box-shadow:var(--shadow-md);">'
+      +'<div style="font-size:13px;font-weight:500;">'+selCount+' jour'+(selCount>1?'s':'')+' sélectionné'+(selCount>1?'s':'')
+        +'<span style="font-weight:400;opacity:.8;font-size:11.5px;margin-left:8px;">du '+tri[0].split('-').reverse().join('/')+' au '+tri[tri.length-1].split('-').reverse().join('/')+'</span></div>'
+      +'<div style="display:flex;gap:7px;flex-wrap:wrap;">'
+        +'<button onclick="_rateApplySelected()" class="btn" style="background:#fff;color:var(--accent);border-color:#fff;font-weight:500;">Définir les tarifs</button>'
+        +'<button onclick="_openBlockDates(\''+prop.id+'\')" class="btn" style="background:transparent;color:#fff;border-color:rgba(255,255,255,.55);">Bloquer</button>'
+        +'<button onclick="_clearRatesSel()" class="btn" style="background:transparent;color:#fff;border-color:rgba(255,255,255,.55);">Effacer</button>'
+      +'</div>'
     +'</div>';
+  }
 
-  // Calendrier 12 mois
-  var legend='<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px;">'
-    +'<div style="display:flex;align-items:center;gap:4px;font-size:11px;color:#666;"><div style="width:8px;height:8px;border-radius:50%;background:#FF385C;"></div>Airbnb</div>'
-    +'<div style="display:flex;align-items:center;gap:4px;font-size:11px;color:#666;"><div style="width:8px;height:8px;border-radius:50%;background:#003580;"></div>Booking</div>'
-    +'<div style="display:flex;align-items:center;gap:4px;font-size:11px;color:#666;"><div style="width:8px;height:8px;border-radius:50%;background:#F59E0B;"></div>Aujourd\u2019hui</div>'
-    +'<div style="display:flex;align-items:center;gap:4px;font-size:11px;color:#666;"><div style="width:8px;height:8px;border-radius:50%;background:#FECACA;"></div>R\u00e9serv\u00e9</div>'
-    +'<div style="display:flex;align-items:center;gap:4px;font-size:11px;color:#666;"><div style="width:8px;height:8px;border-radius:50%;background:#f87171;"></div>Bloqu\u00e9</div>'
-    +'</div>';
-
+  // ===== Calendriers =====
+  var CELL=94,GAP=5;
   var calHtml='';
-  for(var mo=0;mo<12;mo++){
-    var mDate=new Date(now.getFullYear(),now.getMonth()+mo,1);
+  var totA=[],totB=[],nuitsOcc=0,joursTot=0,sansPrix=0;
+
+  for(var mo=0;mo<span;mo++){
+    var mDate=new Date(mRef.getFullYear(),mRef.getMonth()+mo,1);
     var yr=mDate.getFullYear(),mn=mDate.getMonth();
     var firstDow=(new Date(yr,mn,1).getDay()+6)%7;
     var dim=new Date(yr,mn+1,0).getDate();
-    var dowRow=DAYS.map(function(d){return'<div style="font-size:10px;color:#bbb;text-align:center;padding:2px 0;">'+d+'</div>';}).join('');
 
-    var monthPrices=[];
-    for(var dd=1;dd<=dim;dd++){
-      var ds0=yr+'-'+pad(mn+1)+'-'+pad(dd);
-      var ap0=S.ratesPrices[prop.id+'_'+ds0+'_air'];
-      if(ap0) monthPrices.push(ap0);
+    var mA=[],mB=[],mOcc=0,mSansPrix=0;
+    for(var k=1;k<=dim;k++){
+      var dsk=dsOf(yr,mn,k);
+      var pa=prixAir(dsk),pb=prixBk(dsk);
+      if(pa)mA.push(pa); if(pb)mB.push(pb);
+      if(resaDu(dsk))mOcc++;
+      else if(!pa&&!pb&&!bloque(dsk)&&new Date(yr,mn,k)>=today)mSansPrix++;
     }
-    var avgA=monthPrices.length?Math.round(monthPrices.reduce(function(s,v){return s+v;},0)/monthPrices.length):null;
+    totA=totA.concat(mA);totB=totB.concat(mB);nuitsOcc+=mOcc;joursTot+=dim;sansPrix+=mSansPrix;
+    var moyA=mA.length?Math.round(mA.reduce(function(s,v){return s+v;},0)/mA.length):null;
+    var moyB=mB.length?Math.round(mB.reduce(function(s,v){return s+v;},0)/mB.length):null;
+
+    var dowRow=JOURS.map(function(d,i){return '<div style="font-size:10.5px;font-weight:500;color:'+(i>=5?'var(--text-2)':'var(--text-3)')+';text-align:center;padding:3px 0;">'+d+'</div>';}).join('');
 
     var cells='';
     for(var i=0;i<firstDow;i++) cells+='<div></div>';
     for(var d=1;d<=dim;d++){
-      var ds=yr+'-'+pad(mn+1)+'-'+pad(d);
-      var dateObj=new Date(yr,mn,d);
-      var isToday=dateObj.toDateString()===now.toDateString();
-      var isPast=dateObj<new Date(now.getFullYear(),now.getMonth(),now.getDate());
-      var isSel=S.ratesSelected[ds]||false;
-      var isBlk=S.blockedDates&&S.blockedDates.indexOf(ds)>=0;
-      var isBooked=S.reservations.some(function(r){return r.prop_id===prop.id&&r.check_in&&r.check_out&&r.status!=='cancelled'&&r.check_in<=ds&&r.check_out>ds;});
-      var isWE=dateObj.getDay()===0||dateObj.getDay()===6;
-      var ap=S.ratesPrices[prop.id+'_'+ds+'_air']||null;
-      var bp=S.ratesPrices[prop.id+'_'+ds+'_bk']||null;
+      var ds=dsOf(yr,mn,d);
+      var dObj=new Date(yr,mn,d);
+      var isToday=dObj.getTime()===today.getTime();
+      var isPast=dObj<today;
+      var isSel=!!selMap[ds];
+      var isBlk=bloque(ds);
+      var res=resaDu(ds);
+      var isWE=dObj.getDay()===0||dObj.getDay()===6;
+      var pa=prixAir(ds),pb=prixBk(ds);
 
-      var bg=isBlk?'#fef2f2':isSel?'#EEF4FF':isBooked?'#FFF5F3':isPast?'#f5f5f3':isToday?'#FFFBEB':isWE?'#F8F8FF':'#fff';
-      var bdr=isToday?'2px solid #F59E0B':isBlk?'2px solid #f87171':isSel?'2px solid #6366F1':isBooked?'1px solid #FECACA':'1px solid #d1d0c8';
-      var numCol=isToday?'#D97706':isPast?'#bbb':isBlk?'#ef4444':isBooked?'#dc2626':'#555';
+      var bg='var(--surface)',bd='1px solid var(--border)';
+      if(isPast){bg='#F4F3EE';}
+      else if(isWE){bg='#FCFBF7';}
+      if(res){bg=platClass(res.platform)==='airbnb'?AIR_BG:BK_BG;bd='1px solid '+(platClass(res.platform)==='airbnb'?'#E8B5A8':'#B3C8E0');}
+      if(isBlk){bg='#FDF6E3';bd='1px solid #E5B84B';}
+      if(isToday){bd='2px solid var(--accent)';}
+      if(isSel){bg='var(--accent-light)';bd='2px solid var(--accent)';}
 
-      cells+='<div data-ds="'+ds+'" data-past="'+(isPast?1:0)+'" data-booked="'+(isBooked?1:0)+'" onclick="_rcClick(this.dataset.ds)" style="border-radius:8px;height:78px;padding:6px 5px;border:'+bdr+';background:'+bg+';cursor:pointer;position:relative;">'
-        +'<div style="font-size:11px;font-weight:500;color:'+numCol+';line-height:1;margin-bottom:4px;">'+d+'</div>'
-        +(isBlk?'<div style="font-size:9px;color:#ef4444;font-weight:500;">\u26d4 bloqu\u00e9</div>'
-          :isBooked?(function(){
-          var r2=S.reservations.find(function(r){return r.prop_id===prop.id&&r.check_in<=ds&&r.check_out>ds&&r.status!=='cancelled';});
-          if(!r2)return '<div style="font-size:9px;color:#dc2626;">r\u00e9serv\u00e9</div>';
-          var pl=platClass(r2.platform);
-          var plColor=pl==='airbnb'?'#FF385C':'#003580';
-          var n2=Math.round((new Date(r2.check_out)-new Date(r2.check_in))/86400000);
-          return '<div style="font-size:9px;font-weight:500;color:'+plColor+';overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">'+r2.guest.split(' ')[0]+'</div>'
-            +'<div style="display:flex;align-items:center;gap:3px;margin-top:1px;">'
-              +'<span style="font-size:8px;font-weight:500;background:'+plColor+';color:#fff;border-radius:2px;padding:0 3px;">'+(pl==='airbnb'?'AIR':'BK')+'</span>'
-              +'<span style="font-size:8px;color:#888;">'+n2+'n</span>'
-            +'</div>';
-        })()
-          :(ap||bp)?'<div style="display:flex;flex-direction:column;gap:2px;">'
-            +(ap?'<div style="display:flex;align-items:center;gap:3px;"><div style="width:6px;height:6px;border-radius:50%;background:#FF385C;flex-shrink:0;"></div><span style="font-size:11px;font-weight:500;color:#E53E3E;">'+ap+'\u20ac</span></div>':'')
-            +(bp?'<div style="display:flex;align-items:center;gap:3px;"><div style="width:6px;height:6px;border-radius:50%;background:#003580;flex-shrink:0;"></div><span style="font-size:11px;font-weight:500;color:#003580;">'+bp+'\u20ac</span></div>':'')
-            +'</div>':'')
+      var numCol=isToday?'var(--accent)':isPast?'var(--text-3)':'var(--text)';
+      var corps='';
+      if(isBlk){
+        corps='<div style="font-size:10.5px;color:#8A6A12;font-weight:500;margin-top:4px;">Bloqué</div>';
+      } else if(res){
+        var pl=platClass(res.platform);
+        var plC=pl==='airbnb'?AIR:BK;
+        corps='<div style="font-size:10.5px;font-weight:500;color:'+plC+';overflow:hidden;white-space:nowrap;text-overflow:ellipsis;margin-top:3px;">'+(res.guest||'').split(' ')[0]+'</div>'
+          +'<div style="font-size:9.5px;color:var(--text-3);margin-top:1px;">'+(pl==='airbnb'?'Airbnb':'Booking')+'</div>';
+      } else {
+        corps='<div style="display:flex;flex-direction:column;gap:3px;margin-top:5px;">'
+          +'<div style="display:flex;align-items:center;gap:5px;">'
+            +'<span style="width:15px;height:15px;border-radius:4px;background:'+(pa?AIR:'var(--bg)')+';color:'+(pa?'#fff':'var(--text-3)')+';font-size:9px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0;">A</span>'
+            +'<span style="font-size:13px;font-weight:600;color:'+(pa?'var(--text)':'var(--text-3)')+';'+NUM+'">'+(pa?pa+' €':'—')+'</span>'
+          +'</div>'
+          +'<div style="display:flex;align-items:center;gap:5px;">'
+            +'<span style="width:15px;height:15px;border-radius:4px;background:'+(pb?BK:'var(--bg)')+';color:'+(pb?'#fff':'var(--text-3)')+';font-size:9px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0;">B</span>'
+            +'<span style="font-size:13px;font-weight:600;color:'+(pb?'var(--text)':'var(--text-3)')+';'+NUM+'">'+(pb?pb+' €':'—')+'</span>'
+          +'</div>'
         +'</div>';
+      }
+
+      cells+='<div data-ds="'+ds+'" data-past="'+(isPast?1:0)+'" data-booked="'+(res?1:0)+'" class="rate-cell" title="'+ds.split('-').reverse().join('/')+(pa?' · Airbnb '+pa+' €':'')+(pb?' · Booking '+pb+' €':'')+'" style="border-radius:var(--r-sm);min-height:'+CELL+'px;padding:6px 7px;border:'+bd+';background:'+bg+';cursor:pointer;position:relative;'+(isPast?'opacity:.6;':'')+'">'
+        +'<div style="display:flex;align-items:center;justify-content:space-between;">'
+          +'<span style="font-size:12px;font-weight:'+(isToday?'600':'500')+';color:'+numCol+';'+NUM+'">'+d+'</span>'
+          +(isWE&&!res&&!isBlk?'<span style="font-size:8.5px;color:var(--text-3);letter-spacing:.03em;">WE</span>':'')
+        +'</div>'
+        +corps
+      +'</div>';
     }
 
-    calHtml+='<div style="margin-bottom:24px;">'
-      +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">'
-        +'<div style="font-size:12px;font-weight:500;color:#555;letter-spacing:.05em;text-transform:uppercase;">'+MONTHS[mn]+' '+yr+'</div>'
-        +(avgA?'<div style="font-size:10px;color:#888;">moy. Airbnb '+avgA+'\u20ac</div>':'')
+    calHtml+='<div style="margin-bottom:22px;">'
+      +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:7px;flex-wrap:wrap;gap:8px;">'
+        +'<div style="font-size:13px;font-weight:600;">'+MOIS[mn]+' '+yr+'</div>'
+        +'<div style="display:flex;gap:12px;flex-wrap:wrap;font-size:11px;color:var(--text-2);'+NUM+'">'
+          +(moyA?'<span><span style="color:'+AIR+';font-weight:600;">A</span> moy. '+moyA+' €</span>':'')
+          +(moyB?'<span><span style="color:'+BK+';font-weight:600;">B</span> moy. '+moyB+' €</span>':'')
+          +'<span>'+mOcc+'/'+dim+' nuits réservées</span>'
+          +(mSansPrix>0?'<span style="color:#8A6A12;">'+mSansPrix+' jour(s) sans tarif</span>':'')
+        +'</div>'
       +'</div>'
-      +'<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:4px;">'+dowRow+'</div>'
-      +'<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;position:relative;" id="rates-grid-'+yr+'-'+mn+'">'+cells+'</div>'
-      +'</div>';
+      +'<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:'+GAP+'px;margin-bottom:4px;">'+dowRow+'</div>'
+      +'<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:'+GAP+'px;position:relative;" id="rates-grid-'+yr+'-'+mn+'">'+cells+'</div>'
+    +'</div>';
   }
 
+  var moyTotA=totA.length?Math.round(totA.reduce(function(s,v){return s+v;},0)/totA.length):0;
+  var moyTotB=totB.length?Math.round(totB.reduce(function(s,v){return s+v;},0)/totB.length):0;
+  var ecart=moyTotA&&moyTotB?Math.round((moyTotA-moyTotB)/moyTotA*100):0;
+
+  var resume='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px;">'
+    +'<div style="background:'+AIR_BG+';border:1px solid #E8B5A8;border-radius:var(--r-md);padding:12px 14px;">'
+      +'<div style="font-size:10.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:#8C3521;margin-bottom:5px;">Tarif moyen Airbnb</div>'
+      +'<div style="font-size:22px;font-weight:600;color:#7C2718;'+NUM+'">'+(moyTotA||'—')+(moyTotA?' €':'')+'</div>'
+      +'<div style="font-size:10.5px;color:#A8382A;margin-top:2px;">'+totA.length+' jour(s) tarifé(s)</div>'
+    +'</div>'
+    +'<div style="background:'+BK_BG+';border:1px solid #B3C8E0;border-radius:var(--r-md);padding:12px 14px;">'
+      +'<div style="font-size:10.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:#1E5490;margin-bottom:5px;">Tarif moyen Booking</div>'
+      +'<div style="font-size:22px;font-weight:600;color:#123A66;'+NUM+'">'+(moyTotB||'—')+(moyTotB?' €':'')+'</div>'
+      +'<div style="font-size:10.5px;color:#1E5490;margin-top:2px;">'+totB.length+' jour(s) tarifé(s)</div>'
+    +'</div>'
+    +'<div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--r-md);padding:12px 14px;">'
+      +'<div style="font-size:10.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--text-2);margin-bottom:5px;">Écart Airbnb / Booking</div>'
+      +'<div style="font-size:22px;font-weight:600;'+NUM+'">'+(moyTotA&&moyTotB?(ecart>0?'+':'')+ecart+' %':'—')+'</div>'
+      +'<div style="font-size:10.5px;color:var(--text-3);margin-top:2px;">'+(moyTotA&&moyTotB?(ecart>0?'Airbnb plus cher':ecart<0?'Booking plus cher':'tarifs alignés'):'à comparer')+'</div>'
+    +'</div>'
+    +'<div style="background:'+(sansPrix>0?'#FDF6E3':'var(--accent-light)')+';border:1px solid '+(sansPrix>0?'#E5B84B':'#A8CFC0')+';border-radius:var(--r-md);padding:12px 14px;">'
+      +'<div style="font-size:10.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:'+(sansPrix>0?'#8A6A12':'var(--accent)')+';margin-bottom:5px;">Jours sans tarif</div>'
+      +'<div style="font-size:22px;font-weight:600;color:'+(sansPrix>0?'#6B4E0B':'#0B4A3A')+';'+NUM+'">'+sansPrix+'</div>'
+      +'<div style="font-size:10.5px;color:'+(sansPrix>0?'#8A6A12':'var(--accent)')+';margin-top:2px;">'+(sansPrix>0?'à venir, non tarifés':'tout est tarifé')+'</div>'
+    +'</div>'
+  +'</div>';
+
+  // ===== Panneau latéral =====
+  var r=S.ratesRules[prop.id]||S.basePrices[prop.id]||{airWeek:80,bkWeek:70,airWE:95,bkWE:88};
+  function champ(id,val,coul,fond,lbl){
+    return '<div style="flex:1;background:'+fond+';border-radius:var(--r-sm);padding:8px 10px;">'
+      +'<div style="font-size:9.5px;font-weight:600;color:'+coul+';margin-bottom:3px;">'+lbl+'</div>'
+      +'<div style="display:flex;align-items:baseline;gap:3px;">'
+        +'<input id="'+id+'" type="number" value="'+val+'" style="width:100%;border:none;background:transparent;font-size:16px;font-weight:600;outline:none;padding:0;color:'+coul+';'+NUM+'">'
+        +'<span style="font-size:11px;color:var(--text-3);">€</span>'
+      +'</div></div>';
+  }
+
+  var sidebar='<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:15px;box-shadow:var(--shadow-sm);">'
+    +'<div style="font-size:10.5px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--text-3);margin-bottom:9px;">Tarifs de référence</div>'
+    +'<div style="font-size:10.5px;color:var(--text-3);margin-bottom:5px;">Semaine — lun. à jeu.</div>'
+    +'<div style="display:flex;gap:7px;margin-bottom:9px;">'+champ('rr-airWeek',r.airWeek||80,AIR,AIR_BG,'Airbnb')+champ('rr-bkWeek',r.bkWeek||70,BK,BK_BG,'Booking')+'</div>'
+    +'<div style="font-size:10.5px;color:var(--text-3);margin-bottom:5px;">Week-end — ven. à dim.</div>'
+    +'<div style="display:flex;gap:7px;margin-bottom:11px;">'+champ('rr-airWE',r.airWE||95,AIR,AIR_BG,'Airbnb')+champ('rr-bkWE',r.bkWE||88,BK,BK_BG,'Booking')+'</div>'
+    +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:11px;">'
+      +'<span style="font-size:11.5px;color:var(--text-2);">Séjour minimum</span>'
+      +'<div style="display:flex;align-items:center;gap:5px;"><input id="rr-minStay" type="number" min="1" value="'+(r.minStay||2)+'" style="width:52px;text-align:center;padding:5px;font-size:13px;"><span style="font-size:11px;color:var(--text-3);">nuits</span></div>'
+    +'</div>'
+    +'<button onclick="_applyBaseRules(\''+prop.id+'\')" class="btn btn-green" style="width:100%;">Appliquer sur '+MOIS[mRef.getMonth()]+'</button>'
+    +'<div style="font-size:10px;color:var(--text-3);margin-top:5px;text-align:center;">Les jours réservés ne sont pas modifiés</div>'
+
+    +'<div style="height:1px;background:var(--border);margin:15px 0;"></div>'
+    +'<div style="font-size:10.5px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--text-3);margin-bottom:9px;">Frais de ménage</div>'
+    +S.props.map(function(p){
+      var c=S.cleaning[p.id]||{base:20,extra:5};
+      return '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:7px;gap:8px;">'
+        +'<span style="font-size:11.5px;color:var(--text-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+p.name+'</span>'
+        +'<div style="display:flex;align-items:center;gap:4px;flex-shrink:0;"><input id="cl-'+p.id+'" type="number" value="'+c.base+'" style="width:58px;text-align:right;padding:5px;font-size:12.5px;"><span style="font-size:11px;color:var(--text-3);">€</span></div>'
+      +'</div>';
+    }).join('')
+    +'<button onclick="_saveAllClean()" class="btn" style="width:100%;margin-top:5px;">Enregistrer</button>'
+
+    +'<div style="height:1px;background:var(--border);margin:15px 0;"></div>'
+    +'<a href="https://app.hostex.io/calendar" target="_blank" class="btn" style="display:block;text-align:center;text-decoration:none;">Ouvrir le calendrier Hostex</a>'
+  +'</div>';
+
   document.getElementById('main-content').innerHTML=
-    '<div style="display:grid;grid-template-columns:1fr 190px;gap:16px;align-items:start;">'
-      +'<div>'+legend+calHtml+'</div>'
-      +'<div style="position:sticky;top:10px;">'+sidebar+'</div>'
+    toolbar+selBar+resume
+    +'<div style="display:grid;grid-template-columns:minmax(0,1fr) 232px;gap:16px;align-items:start;">'
+      +'<div>'+calHtml+'</div>'
+      +'<div style="position:sticky;top:'+(selCount>0?118:56)+'px;">'+sidebar+'</div>'
     +'</div>';
 
-  // Drag select
-  // Dessiner barres reservations
+  // ===== Barres de réservation =====
   setTimeout(function(){
-    var CELL=78,GAP=4;
     var grids=document.querySelectorAll('[id^="rates-grid-"]');
     if(!grids.length)return;
     var gridW=grids[0].getBoundingClientRect().width;
+    var cellH=grids[0].querySelector('[data-ds]')?grids[0].querySelector('[data-ds]').getBoundingClientRect().height:CELL;
     var cellW=(gridW-(GAP*6))/7;
-    S.reservations.filter(function(r){return r.prop_id===prop.id&&r.status!=='cancelled';}).forEach(function(res){
-      var platCls=platClass(res.platform)==='airbnb'?'air':'bk';
-      var barColor=platCls==='air'?'linear-gradient(90deg,#ef4444,#f87171)':'linear-gradient(90deg,#3b82f6,#60a5fa)';
+    S.reservations.filter(function(x){return x.prop_id===prop.id&&x.status!=='cancelled';}).forEach(function(res){
+      var pl=platClass(res.platform)==='airbnb'?'air':'bk';
       var startD=new Date(res.check_in+'T00:00:00');
       var endD=new Date(res.check_out+'T00:00:00');
-      var endDplus1=new Date(endD.getFullYear(),endD.getMonth(),endD.getDate()+1);
-      for(var mo2=0;mo2<12;mo2++){
-        var mDate2=new Date(now.getFullYear(),now.getMonth()+mo2,1);
-        var yr2=mDate2.getFullYear(),mn2=mDate2.getMonth();
-        var grid=document.getElementById('rates-grid-'+yr2+'-'+mn2);
+      var endPlus=new Date(endD.getFullYear(),endD.getMonth(),endD.getDate()+1);
+      for(var mo2=0;mo2<span;mo2++){
+        var mD=new Date(mRef.getFullYear(),mRef.getMonth()+mo2,1);
+        var y2=mD.getFullYear(),m2=mD.getMonth();
+        var grid=document.getElementById('rates-grid-'+y2+'-'+m2);
         if(!grid)continue;
-        var firstDow2=(new Date(yr2,mn2,1).getDay()+6)%7;
-        var lastD2=new Date(yr2,mn2+1,0).getDate();
-        var monthStart2=new Date(yr2,mn2,1);
-        var monthEnd2=new Date(yr2,mn2+1,0);
-        if(endD<=monthStart2||startD>monthEnd2)continue;
-        var clampStart2=startD<monthStart2?monthStart2:startD;
-        var clampEnd2=endDplus1>new Date(yr2,mn2+1,1)?new Date(yr2,mn2+1,1):endDplus1;
-        var cur2=new Date(clampStart2);
-        while(cur2<clampEnd2){
-          var idx2=firstDow2+cur2.getDate()-1;
-          var rowEndIdx2=Math.floor(idx2/7)*7+7;
-          var rowEndDate2=new Date(yr2,mn2,cur2.getDate()+(rowEndIdx2-idx2));
-          if(rowEndDate2>clampEnd2)rowEndDate2=new Date(clampEnd2);
-          var cellCount2=Math.round((rowEndDate2-cur2)/86400000);
-          var col2=idx2%7;
-          var row2=Math.floor(idx2/7);
-          var isRS=cur2.toDateString()===startD.toDateString();
-          var isRE=rowEndDate2>=endDplus1&&!isRS||rowEndDate2>=endDplus1&&isRS&&cellCount2>1;
-          var left2=col2*(cellW+GAP)+(isRS?cellW/2:0);
-          var rawW2=cellCount2*(cellW+GAP)-GAP;
-          var width2=rawW2-(isRS?cellW/2:0)-(isRE?cellW/2:0);
-          var top2=row2*(CELL+GAP)+CELL-22;
-          var br2=isRS&&isRE?'6px':isRS?'6px 0 0 6px':isRE?'0 6px 6px 0':'0';
-          var nights2=Math.round((endD-startD)/86400000);
-          var label2=isRS?(res.guest.split(' ')[0]+' · '+nights2+'n · '+(platCls==='air'?'AIR':'BK')+' · '+Math.round(res.amount)+'€'):'';
+        var fdow=(new Date(y2,m2,1).getDay()+6)%7;
+        var mStart=new Date(y2,m2,1),mEnd=new Date(y2,m2+1,0);
+        if(endD<=mStart||startD>mEnd)continue;
+        var cs=startD<mStart?mStart:startD;
+        var ce=endPlus>new Date(y2,m2+1,1)?new Date(y2,m2+1,1):endPlus;
+        var cur=new Date(cs);
+        while(cur<ce){
+          var idx=fdow+cur.getDate()-1;
+          var rowEndIdx=Math.floor(idx/7)*7+7;
+          var rowEnd=new Date(y2,m2,cur.getDate()+(rowEndIdx-idx));
+          if(rowEnd>ce)rowEnd=new Date(ce);
+          var nb=Math.round((rowEnd-cur)/86400000);
+          var col=idx%7,row=Math.floor(idx/7);
+          var isS=cur.toDateString()===startD.toDateString();
+          var isE=rowEnd>=endPlus;
+          var left=col*(cellW+GAP)+(isS?cellW/2:0);
+          var w=nb*(cellW+GAP)-GAP-(isS?cellW/2:0)-(isE?cellW/2:0);
+          var top=row*(cellH+GAP)+cellH-19;
+          var br=isS&&isE?'4px':isS?'4px 0 0 4px':isE?'0 4px 4px 0':'0';
+          var nuits=Math.round((endD-startD)/86400000);
           var bar=document.createElement('div');
-          var bgColor2=platCls==='air'?'#fff5f5':'#eff6ff';var txtColor2=platCls==='air'?'#dc2626':'#1d4ed8';var borderColor2=platCls==='air'?'#fca5a5':'#93c5fd';var borderLR2=platCls==='air'?'#ef4444':'#3b82f6';
-          bar.style.cssText='position:absolute;height:22px;border-radius:4px;z-index:3;display:flex;align-items:center;padding:0 8px;font-size:10px;font-weight:500;white-space:nowrap;overflow:hidden;cursor:pointer;background:'+bgColor2+';color:'+txtColor2+';border-top:1px solid '+borderColor2+';border-bottom:1px solid '+borderColor2+';border-left:3px solid '+borderLR2+';border-right:3px solid '+borderLR2+';left:'+left2+'px;top:'+top2+'px;width:'+width2+'px;';
-          bar.textContent=label2;
-          (function(r3){bar.onclick=function(e){e.stopPropagation();openResDetail(r3.id);};})(res);
+          bar.style.cssText='position:absolute;height:17px;border-radius:'+br+';z-index:3;display:flex;align-items:center;padding:0 6px;font-size:9.5px;font-weight:500;white-space:nowrap;overflow:hidden;cursor:pointer;background:'+(pl==='air'?AIR:BK)+';color:#fff;left:'+left+'px;top:'+top+'px;width:'+Math.max(w,6)+'px;';
+          bar.textContent=isS?((res.guest||'').split(' ')[0]+' · '+nuits+'n · '+Math.round(res.amount)+'€'):'';
+          (function(rr){bar.onclick=function(e){e.stopPropagation();openResDetail(rr.id);};})(res);
           grid.appendChild(bar);
-          cur2=rowEndDate2;
+          cur=rowEnd;
         }
       }
     });
-  },100);
+  },60);
 
-  var isDragging=false,hasDragged=false,dragStart=null;
+  // ===== Sélection (souris + tactile) =====
   var rc=document.getElementById('main-content');
+  var dragging=false,moved=false,anchor=null;
+
+  function cellAt(x,y){var el=document.elementFromPoint(x,y);return el&&el.closest('[data-ds]');}
+  function selectable(el){return el&&el.dataset.past!=='1'&&el.dataset.booked!=='1';}
+  function peindre(a,b){
+    var lo=a<b?a:b, hi=a<b?b:a;
+    S.ratesSelected={};
+    rc.querySelectorAll('[data-ds]').forEach(function(c){
+      if(c.dataset.ds>=lo&&c.dataset.ds<=hi&&selectable(c)){
+        S.ratesSelected[c.dataset.ds]=true;
+        c.style.outline='2px solid var(--accent)';
+        c.style.outlineOffset='-2px';
+        c.style.background='var(--accent-light)';
+      } else {
+        c.style.outline='';c.style.outlineOffset='';
+      }
+    });
+    window._ratesDragSel=Object.assign({},S.ratesSelected);
+  }
+
   rc.addEventListener('mousedown',function(e){
     var el=e.target.closest('[data-ds]');
-    if(!el||el.dataset.past==='1'||el.dataset.booked==='1')return;
+    if(!el){
+      if(!e.target.closest('.btn')&&selCount>0){_clearRatesSel();}
+      return;
+    }
+    if(!selectable(el))return;
     e.preventDefault();
-    isDragging=true;hasDragged=false;dragStart=el.dataset.ds;
+    dragging=true;moved=false;anchor=el.dataset.ds;
   });
   rc.addEventListener('mousemove',function(e){
-    if(!isDragging||!dragStart)return;
+    if(!dragging||!anchor)return;
     var el=e.target.closest('[data-ds]');
-    if(!el||el.dataset.past==='1'||el.dataset.booked==='1')return;
-    if(el.dataset.ds!==dragStart&&!hasDragged){hasDragged=true;}
-    if(hasDragged&&dragStart<=el.dataset.ds){
-      var all=rc.querySelectorAll('[data-ds]');
-      // Mise à jour visuelle légère sans re-render complet
-      S.ratesSelected={};
-      all.forEach(function(c){
-        if(c.dataset.ds>=dragStart&&c.dataset.ds<=el.dataset.ds&&c.dataset.past!=='1'&&c.dataset.booked!=='1'){
-          S.ratesSelected[c.dataset.ds]=true;
-          c.style.outline='2px solid #0F6E56';
-          c.style.background='rgba(15,110,86,0.15)';
-        } else {
-          c.style.outline='';
-          c.style.background='';
-        }
-      });
-      // Mettre à jour le compteur sans re-render
-      // Le bouton sera mis à jour par renderRates via _pendingBlock
-      window._ratesDragSel=Object.assign({},S.ratesSelected);
-    }
+    if(!selectable(el))return;
+    if(el.dataset.ds!==anchor)moved=true;
+    if(moved)peindre(anchor,el.dataset.ds);
   });
   rc.addEventListener('mouseup',function(e){
+    if(!dragging){return;}
     var el=e.target.closest('[data-ds]');
-    if(!hasDragged&&el&&el.dataset.ds){
-      _rcClick(el.dataset.ds);
-    } else if(hasDragged) {
-      // Sauvegarder la sélection AVANT que renderRates la vide
-      window._ratesDragSel = Object.assign({}, S.ratesSelected);
-      renderRates();
-    }
-    isDragging=false;hasDragged=false;
+    if(!moved&&el&&el.dataset.ds){ dragging=false;anchor=null; _rcClick(el.dataset.ds); return; }
+    if(moved){ renderRates(); }
+    dragging=false;moved=false;anchor=null;
   });
-  document.addEventListener('mouseup',function(){isDragging=false;});
+  document.addEventListener('mouseup',function(){if(dragging&&!moved){dragging=false;anchor=null;}});
 
-  // Mobile: tap simple uniquement
-  if(window.innerWidth<=768){
-    rc.addEventListener('touchend',function(e){
-      var t=e.changedTouches[0];
-      var el=document.elementFromPoint(t.clientX,t.clientY);
-      el=el&&el.closest('[data-ds]');
-      if(!el||el.dataset.past==='1'||el.dataset.booked==='1')return;
-      e.preventDefault();
-      _rcClick(el.dataset.ds);
-    },{passive:false});
-  }
-  // Désélectionner en cliquant à côté des cases
-  rc.addEventListener('mousedown',function(e){
-    if(!e.target.closest('[data-ds]')&&!e.target.closest('[onclick*="_openBlockDates"]')&&!e.target.closest('[onclick*="_saveBlock"]')&&Object.keys(S.ratesSelected||{}).length>0){
-      S.ratesSelected={};window._ratesDragSel={};renderRates();
-    }
-  });
-
-  // ===== TOUCH EVENTS pour sélection mobile =====
   rc.addEventListener('touchstart',function(e){
-    var el=document.elementFromPoint(e.touches[0].clientX,e.touches[0].clientY);
-    el=el&&el.closest('[data-ds]');
-    if(!el||el.dataset.past==='1'||el.dataset.booked==='1')return;
-    isDragging=true;hasDragged=false;dragStart=el.dataset.ds;
+    var el=cellAt(e.touches[0].clientX,e.touches[0].clientY);
+    if(!selectable(el))return;
+    dragging=true;moved=false;anchor=el.dataset.ds;
   },{passive:true});
-
   rc.addEventListener('touchmove',function(e){
-    if(!isDragging||!dragStart)return;
-    var el=document.elementFromPoint(e.touches[0].clientX,e.touches[0].clientY);
-    el=el&&el.closest('[data-ds]');
-    if(!el||el.dataset.past==='1'||el.dataset.booked==='1')return;
-    if(el.dataset.ds!==dragStart&&!hasDragged){hasDragged=true;}
-    if(hasDragged&&dragStart<=el.dataset.ds){
-      e.preventDefault();
-      var all=rc.querySelectorAll('[data-ds]');
-      S.ratesSelected={};
-      all.forEach(function(c){
-        if(c.dataset.ds>=dragStart&&c.dataset.ds<=el.dataset.ds&&c.dataset.past!=='1'&&c.dataset.booked!=='1'){
-          S.ratesSelected[c.dataset.ds]=true;
-          c.style.outline='2px solid #0F6E56';
-          c.style.background='rgba(15,110,86,0.15)';
-        } else {
-          c.style.outline='';
-          c.style.background='';
-        }
-      });
-      window._ratesDragSel=Object.assign({},S.ratesSelected);
-    }
+    if(!dragging||!anchor)return;
+    var el=cellAt(e.touches[0].clientX,e.touches[0].clientY);
+    if(!selectable(el))return;
+    if(el.dataset.ds!==anchor)moved=true;
+    if(moved){e.preventDefault();peindre(anchor,el.dataset.ds);}
   },{passive:false});
-
-  rc.addEventListener('touchend',function(e){
-    if(!hasDragged&&dragStart){
-      _rcClick(dragStart);
-    } else if(hasDragged){
-      window._ratesDragSel=Object.assign({},S.ratesSelected);
-      renderRates();
-    }
-    isDragging=false;hasDragged=false;dragStart=null;
+  rc.addEventListener('touchend',function(){
+    if(!dragging)return;
+    if(!moved&&anchor){var a=anchor;dragging=false;anchor=null;_rcClick(a);return;}
+    if(moved)renderRates();
+    dragging=false;moved=false;anchor=null;
   },{passive:true});
+
+  if(!window._ratesKeys){
+    window._ratesKeys=true;
+    document.addEventListener('keydown',function(e){
+      if(S.page!=='rates')return;
+      var t=e.target.tagName;
+      if(t==='INPUT'||t==='TEXTAREA'||t==='SELECT')return;
+      if(e.key==='ArrowLeft'){chgRatesMonth(-1);}
+      else if(e.key==='ArrowRight'){chgRatesMonth(1);}
+      else if(e.key==='Escape'&&Object.keys(S.ratesSelected||{}).length){_clearRatesSel();}
+    });
+  }
+}
+
+function goRatesToday(){var n=new Date();S.ratesMonth=new Date(n.getFullYear(),n.getMonth(),1);S.ratesSelected={};window._ratesDragSel={};renderRates();}
+function _clearRatesSel(){S.ratesSelected={};window._ratesDragSel={};renderRates();}
+function _saveAllClean(){
+  if(!S.cleaning)S.cleaning={};
+  S.props.forEach(function(p){
+    var el=document.getElementById('cl-'+p.id);
+    if(!el)return;
+    var b=parseInt(el.value)||0;
+    var prev=S.cleaning[p.id]||{base:20,extra:5};
+    S.cleaning[p.id]={base:b,extra:prev.extra||0};
+    try{localStorage.setItem('cleaning_'+p.id,JSON.stringify(S.cleaning[p.id]));}catch(ex){}
+  });
+  showToast('✓ Frais de ménage enregistrés');
+  renderRates();
 }
 function _renderRules(prop){window._rpropId=prop.id;
   if(!S.ratesRules)S.ratesRules={};
@@ -2320,7 +2730,7 @@ function openWeekend(){showModal(`<h3>Supplément week-end</h3><div class="form-
 function renderProps(){var h2='<div style="display:grid;gap:14px">';S.props.forEach(function(p){h2+='<div class="card" style="padding:16px"><div style="font-size:14px;font-weight:600">'+p.name+'</div><div style="font-size:11px;color:#888;margin-top:4px">Check-in '+p.checkin+' • Check-out '+p.checkout+'</div><div style="margin-top:8px;display:flex;gap:6px">'+p.channels.map(function(ch){return'<span class="badge b-'+platClass(ch.channel_type)+'">'+platLabel(ch.channel_type)+'</span>';}).join('')+'</div></div>';});document.getElementById('main-content').innerHTML=h2+'</div>';}
 
 function renderMsgs(){
-  if(!S._msgsOpened){try{S._msgsOpened=JSON.parse(localStorage.getItem("msgsOpened")||"{}");} catch(e){S._msgsOpened={};}}
+  _loadMsgsOpened();
   if(!S._msgFilter)S._msgFilter="all";
   var mc=document.getElementById("main-content");
   var filterBtns=["all","unread","airbnb","booking"].map(function(f){
@@ -2334,6 +2744,7 @@ function renderMsgs(){
         +"<div style=\"font-size:14px;font-weight:500;\">Messages</div>"
         +"<div style=\"display:flex;gap:6px;align-items:center;\">"
           +"<span id=\"unread-count\" style=\"background:#E24B4A;color:#fff;border-radius:10px;padding:2px 8px;font-size:10px;\"></span>"
+          +((('Notification' in window)&&Notification.permission!=='granted')?"<button onclick=\"_demanderNotifs()\" title=\"Etre alerte des nouveaux messages\" style=\"border:1px solid var(--border-strong);background:var(--surface);border-radius:var(--r-sm);padding:3px 9px;font-size:10.5px;cursor:pointer;color:var(--text-2);\">Activer les alertes</button>":"<span title=\"Alertes actives\" style=\"display:flex;align-items:center;gap:4px;font-size:10px;color:var(--accent);\"><span class=\"live-dot\"></span>Alertes</span>")
           +"<button onclick=\"S._msgsLoaded=false;renderMsgs()\" style=\"border:none;background:none;cursor:pointer;color:var(--color-text-tertiary);font-size:16px;\">\u21bb</button>"
         +"</div>"
       +"</div>"
@@ -2362,12 +2773,12 @@ function _loadConvList(){
 function _renderConvList(convs){
   var filter=S._msgFilter||"all";
   var filtered=convs.filter(function(c){
-    if(filter==="unread")return !S._msgsOpened[c.id];
+    if(filter==="unread")return _isUnread(c);
     if(filter==="airbnb")return c.channel_type==="airbnb";
     if(filter==="booking")return c.channel_type==="booking.com";
     return true;
   });
-  var unreadCount=convs.filter(function(c){return !S._msgsOpened[c.id];}).length;
+  var unreadCount=convs.filter(_isUnread).length;
   var uc=document.getElementById("unread-count");
   if(uc)uc.innerHTML=unreadCount>0?unreadCount+" non lus":"";
   if(!filtered.length){
@@ -2380,7 +2791,7 @@ function _renderConvList(convs){
   filtered.forEach(function(c){
     var pl=c.channel_type==="airbnb"?"airbnb":"booking";
     var plColor=pl==="airbnb"?"#FF385C":"#003580";
-    var isUnread=!S._msgsOpened[c.id];
+    var isUnread=_isUnread(c);
     var isActive=S._activeConv===c.id;
     var dt=c.last_message_at?new Date(c.last_message_at).toLocaleDateString("fr-FR",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}):"";
     var gname=(c.guest&&c.guest.name)||"Voyageur";
@@ -2406,10 +2817,8 @@ function _renderConvList(convs){
 }
 
 function openConv(convId){
-  if(!S._msgsOpened)S._msgsOpened={};
-  S._msgsOpened[convId]=true;
+  _marquerLu(convId);
   S._activeConv=convId;
-  try{localStorage.setItem("msgsOpened",JSON.stringify(S._msgsOpened));}catch(e){}
   if(S._convList)_renderConvList(S._convList);
   var detail=document.getElementById("conv-detail");
   if(!detail)return;
@@ -2493,18 +2902,13 @@ async function _aiSuggestMsg(convId,auto){
     var checkout=act&&act.check_out_date?act.check_out_date:"";
     var gname=((conv.guest&&conv.guest.name)||"le voyageur").split(" ")[0];
     var systemPrompt="Tu es un assistant pour un hote Airbnb/Booking. Reponds aux messages des voyageurs de facon professionnelle et concise en francais. Appartement: "+propTitle+". Check-in: 15h. Check-out: 12h. Dates: "+checkin+" au "+checkout+". Max 3 phrases. Signe: Llorenc.";
-    var resp=await fetch("/api-claude",{
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({
-        model:"claude-sonnet-4-5",
-        max_tokens:300,
-        system:systemPrompt,
-        messages:[{role:"user",content:"Message de "+gname+": "+lastGuest.content}]
-      })
+    var histo=msgs.slice(-6).map(function(m){
+      return (m.sender_role==='host'?'Hote':gname)+' : '+(m.content||'');
+    }).join('\n');
+    var suggestion=await _claude({
+      system:systemPrompt,
+      messages:[{role:"user",content:"Derniers echanges :\n"+histo+"\n\nRedige la reponse de l'hote au dernier message de "+gname+"."}]
     });
-    var data=await resp.json();
-    var suggestion=(data.content&&data.content[0]&&data.content[0].text)||"";
     if(!suggestion){box.innerHTML="";return;}
     window._aiSuggestion=suggestion;
     window._aiConvId=convId;
@@ -2584,118 +2988,516 @@ function renderRes(){
   document.getElementById('main-content').innerHTML=h;
 }
 
+function _propsSauver(){
+  try{ localStorage.setItem('props_config', JSON.stringify(S.props)); }catch(e){}
+}
+function _propsCharger(){
+  try{
+    var raw=localStorage.getItem('props_config');
+    if(!raw)return null;
+    var arr=JSON.parse(raw);
+    if(Array.isArray(arr)&&arr.length)return arr;
+  }catch(e){}
+  return null;
+}
+function _propVide(){
+  return {id:'',name:'',checkin:'15:00',checkout:'12:00',adresse:'',channels:[]};
+}
+function _chOf(p,type){
+  return (p.channels||[]).find(function(c){return platClass(c.channel_type)===type;});
+}
+
 function renderProps(){
-  var h='<div style="display:grid;gap:14px">';
-  S.props.forEach(function(p){
-    h+='<div class="card" style="padding:16px"><div style="font-size:14px;font-weight:600">'+p.name+'</div>'
-      +'<div style="font-size:11px;color:#888;margin-top:4px">Check-in '+p.checkin+' \u2022 Check-out '+p.checkout+'</div>'
-      +'<div style="margin-top:8px;display:flex;gap:6px">'+p.channels.map(function(ch){return'<span class="badge b-'+platClass(ch.channel_type)+'">'+platLabel(ch.channel_type)+'</span>';}).join('')+'</div>'
-      +'</div>';
+  var AIR='#D8544E',AIR_BG='#FBEEEA',BK='#1E5490',BK_BG='#E8EFF7';
+  var NUM='font-variant-numeric:tabular-nums;font-feature-settings:"tnum";';
+  var now=new Date();
+
+  function statsBien(p){
+    var an=now.getFullYear();
+    var d1=new Date(an,0,1),d2=new Date(an+1,0,1);
+    var nuits=0,brut=0,nb=0;
+    S.reservations.forEach(function(r){
+      if(r.prop_id!==p.id||r.status==='cancelled'||!r.check_in||!r.check_out)return;
+      var ci=new Date(r.check_in+'T00:00:00'),co=new Date(r.check_out+'T00:00:00');
+      var a=Math.max(ci,d1),b=Math.min(co,d2);
+      var n=Math.round((b-a)/86400000);
+      if(n<=0)return;
+      var nt=Math.round((co-ci)/86400000);
+      nuits+=n; nb++;
+      brut+=nt>0?(r.amount||0)*n/nt:(r.amount||0);
+    });
+    var jours=Math.round((d2-d1)/86400000);
+    return {nuits:nuits,brut:brut,nb:nb,occ:jours>0?Math.round(nuits/jours*100):0,an:an};
+  }
+
+  var h='<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px;">'
+    +'<div style="font-size:12px;color:var(--text-2);">'+S.props.length+' logement'+(S.props.length>1?'s':'')+' configuré'+(S.props.length>1?'s':'')+'</div>'
+    +'<div style="display:flex;gap:7px;flex-wrap:wrap;">'
+      +'<button class="btn" onclick="_importerHostex()">Importer depuis Hostex</button>'
+      +'<button class="btn btn-green" onclick="_editerBien(null)">+ Ajouter un logement</button>'
+    +'</div>'
+  +'</div>';
+
+  if(!S.props.length){
+    h+='<div style="border:1px dashed var(--border-strong);border-radius:var(--r-md);padding:36px 24px;text-align:center;">'
+      +'<div style="font-size:15px;font-weight:600;margin-bottom:6px;">Aucun logement</div>'
+      +'<div style="font-size:12.5px;color:var(--text-2);margin-bottom:16px;line-height:1.6;">Importez vos logements depuis Hostex, ou ajoutez-en un manuellement<br>en renseignant ses identifiants d’annonce Airbnb et Booking.</div>'
+      +'<button class="btn btn-green" onclick="_editerBien(null)">+ Ajouter un logement</button>'
+    +'</div>';
+  }
+
+  S.props.forEach(function(p,i){
+    var st=statsBien(p);
+    var cl=(S.cleaning&&S.cleaning[p.id])||{base:20};
+    var air=_chOf(p,'airbnb'),bk=_chOf(p,'booking');
+    var couleur=i===0?'#0F6E56':'#6366F1';
+
+    h+='<div class="card-hover" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:18px 20px;margin-bottom:12px;box-shadow:var(--shadow-sm);">'
+      +'<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap;margin-bottom:14px;">'
+        +'<div style="display:flex;align-items:center;gap:11px;">'
+          +'<div style="width:38px;height:38px;border-radius:var(--r-sm);background:'+couleur+'18;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;color:'+couleur+';flex-shrink:0;">'+(p.name||'?').charAt(0).toUpperCase()+'</div>'
+          +'<div>'
+            +'<div style="font-size:15px;font-weight:600;">'+(p.name||'Sans nom')+'</div>'
+            +'<div style="font-size:11.5px;color:var(--text-3);margin-top:2px;">'
+              +(p.adresse?p.adresse+' · ':'')+'Arrivée '+(p.checkin||'15:00')+' · Départ '+(p.checkout||'12:00')
+            +'</div>'
+          +'</div>'
+        +'</div>'
+        +'<div style="display:flex;gap:6px;flex-shrink:0;">'
+          +'<button class="btn" onclick="_editerBien(\''+p.id+'\')">Modifier</button>'
+          +'<button class="btn" style="color:#A8382A;border-color:#E8B5A8;" onclick="_supprimerBien(\''+p.id+'\')">Retirer</button>'
+        +'</div>'
+      +'</div>'
+
+      +'<div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:14px;">'
+        +[['Revenus '+st.an,Math.round(st.brut).toLocaleString('fr-FR')+' €'],
+          ['Nuits louées',String(st.nuits)],
+          ['Occupation',st.occ+' %'],
+          ['Frais de ménage',cl.base+' €']
+         ].map(function(t){
+          return '<div style="background:var(--bg);border-radius:var(--r-sm);padding:10px 12px;">'
+            +'<div style="font-size:10px;color:var(--text-3);margin-bottom:3px;">'+t[0]+'</div>'
+            +'<div style="font-size:16px;font-weight:600;'+NUM+'">'+t[1]+'</div>'
+          +'</div>';
+        }).join('')
+      +'</div>'
+
+      +'<div style="display:flex;gap:8px;flex-wrap:wrap;">'
+        +'<div style="flex:1;min-width:190px;background:'+(air?AIR_BG:'var(--bg)')+';border:1px solid '+(air?'#E8B5A8':'var(--border)')+';border-radius:var(--r-sm);padding:9px 12px;">'
+          +'<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">'
+            +'<span style="width:8px;height:8px;border-radius:2px;background:'+(air?AIR:'var(--text-3)')+';"></span>'
+            +'<span style="font-size:11.5px;font-weight:600;color:'+(air?'#8C3521':'var(--text-3)')+';">Airbnb</span>'
+            +'<span style="margin-left:auto;font-size:10.5px;color:'+(air?'#A8382A':'var(--text-3)')+';">'+(air?'connecté':'non connecté')+'</span>'
+          +'</div>'
+          +'<div style="font-size:10.5px;color:var(--text-3);'+NUM+'">'+(air?air.listing_id:'—')+'</div>'
+        +'</div>'
+        +'<div style="flex:1;min-width:190px;background:'+(bk?BK_BG:'var(--bg)')+';border:1px solid '+(bk?'#B3C8E0':'var(--border)')+';border-radius:var(--r-sm);padding:9px 12px;">'
+          +'<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">'
+            +'<span style="width:8px;height:8px;border-radius:2px;background:'+(bk?BK:'var(--text-3)')+';"></span>'
+            +'<span style="font-size:11.5px;font-weight:600;color:'+(bk?'#1E5490':'var(--text-3)')+';">Booking.com</span>'
+            +'<span style="margin-left:auto;font-size:10.5px;color:'+(bk?'#1E5490':'var(--text-3)')+';">'+(bk?'connecté':'non connecté')+'</span>'
+          +'</div>'
+          +'<div style="font-size:10.5px;color:var(--text-3);'+NUM+'">'+(bk?bk.listing_id:'—')+'</div>'
+        +'</div>'
+      +'</div>'
+    +'</div>';
   });
-  document.getElementById('main-content').innerHTML=h+'</div>';
+
+  h+='<div style="font-size:11px;color:var(--text-3);line-height:1.6;margin-top:6px;">'
+    +'La configuration des logements est enregistrée dans ce navigateur. Les identifiants d’annonce servent à envoyer les tarifs et les blocages vers Airbnb et Booking via Hostex — un identifiant erroné empêche la synchronisation de ce canal.'
+  +'</div>';
+
+  document.getElementById('main-content').innerHTML=h;
+}
+
+function _editerBien(id){
+  var p=id?S.props.find(function(x){return x.id===id;}):null;
+  var creation=!p;
+  if(!p)p=_propVide();
+  window._bienEdit=id||null;
+  var air=_chOf(p,'airbnb'),bk=_chOf(p,'booking');
+  var cl=(S.cleaning&&S.cleaning[p.id])||{base:20,extra:5};
+
+  function champ(lbl,id2,val,ph,type){
+    return '<div style="margin-bottom:11px;">'
+      +'<label style="display:block;font-size:11px;color:var(--text-2);margin-bottom:4px;">'+lbl+'</label>'
+      +'<input id="'+id2+'" type="'+(type||'text')+'" value="'+(val==null?'':String(val).replace(/"/g,'&quot;'))+'" placeholder="'+(ph||'')+'">'
+    +'</div>';
+  }
+
+  showModal('<h3>'+(creation?'Ajouter un logement':'Modifier — '+(p.name||''))+'</h3>'
+    +champ('Nom du logement','bp-name',p.name,'Suite Illiberis')
+    +champ('Adresse (facultatif)','bp-adresse',p.adresse,'12 rue des Remparts, Elne')
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">'
+      +champ('Heure d’arrivée','bp-checkin',p.checkin||'15:00','15:00')
+      +champ('Heure de départ','bp-checkout',p.checkout||'12:00','12:00')
+    +'</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">'
+      +champ('Identifiant Hostex','bp-id',p.id,'12619011')
+      +champ('Frais de ménage (€)','bp-menage',cl.base,'20','number')
+    +'</div>'
+    +'<div style="height:1px;background:var(--border);margin:14px 0;"></div>'
+    +'<div style="font-size:10.5px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--text-3);margin-bottom:9px;">Annonces connectées</div>'
+    +champ('Identifiant d’annonce Airbnb','bp-air',air?air.listing_id:'','laisser vide si non connecté')
+    +champ('Identifiant d’annonce Booking.com','bp-bk',bk?bk.listing_id:'','laisser vide si non connecté')
+    +'<div style="font-size:10.5px;color:var(--text-3);line-height:1.5;margin-top:-4px;">Ces identifiants proviennent de Hostex (onglet Listings). Sans eux, les tarifs et blocages ne peuvent pas être envoyés vers la plateforme.</div>'
+    +'<div class="modal-actions">'
+      +'<button class="btn" onclick="closeModal()">Annuler</button>'
+      +'<button class="btn btn-green" onclick="_enregistrerBien()">'+(creation?'Ajouter':'Enregistrer')+'</button>'
+    +'</div>');
+}
+
+function _enregistrerBien(){
+  function v(id){var e=document.getElementById(id);return e?e.value.trim():'';}
+  var nom=v('bp-name');
+  var id=v('bp-id');
+  if(!nom){showToast('Erreur : le nom est obligatoire');return;}
+  if(!id){showToast('Erreur : l’identifiant Hostex est obligatoire');return;}
+
+  var ancienId=window._bienEdit;
+  var doublon=S.props.find(function(p){return p.id===id&&p.id!==ancienId;});
+  if(doublon){showToast('Erreur : un logement utilise déjà cet identifiant');return;}
+
+  var canaux=[];
+  var air=v('bp-air'),bk=v('bp-bk');
+  if(air)canaux.push({channel_type:'airbnb',listing_id:air,currency:'EUR'});
+  if(bk)canaux.push({channel_type:'booking.com',listing_id:bk,currency:'EUR'});
+
+  var bien={
+    id:id,
+    name:nom,
+    adresse:v('bp-adresse'),
+    checkin:v('bp-checkin')||'15:00',
+    checkout:v('bp-checkout')||'12:00',
+    channels:canaux
+  };
+
+  if(ancienId){
+    var idx=S.props.findIndex(function(p){return p.id===ancienId;});
+    if(idx>=0)S.props[idx]=bien;
+    if(ancienId!==id&&S.cleaning&&S.cleaning[ancienId]){
+      S.cleaning[id]=S.cleaning[ancienId];
+      delete S.cleaning[ancienId];
+    }
+  } else {
+    S.props.push(bien);
+  }
+
+  if(!S.cleaning)S.cleaning={};
+  var m=parseInt(v('bp-menage'));
+  var prev=S.cleaning[id]||{base:20,extra:5};
+  S.cleaning[id]={base:isNaN(m)?prev.base:m,extra:prev.extra||0};
+  try{localStorage.setItem('cleaning_'+id,JSON.stringify(S.cleaning[id]));}catch(e){}
+
+  if(!S.selectedProp)S.selectedProp=S.props[0].id;
+  if(!S.ratesProp)S.ratesProp=S.props[0].id;
+  _propsSauver();
+  closeModal();
+  showToast(ancienId?'✓ Logement mis à jour':'✓ Logement ajouté');
+  renderProps();
+}
+
+function _supprimerBien(id){
+  var p=S.props.find(function(x){return x.id===id;});
+  if(!p)return;
+  showModal('<h3>Retirer ce logement ?</h3>'
+    +'<div style="font-size:13px;color:var(--text-2);line-height:1.6;margin-bottom:6px;">'
+      +'<b>'+(p.name||'Ce logement')+'</b> ne sera plus suivi dans l’application : il disparaîtra du tableau de bord, du calendrier, des tarifs et du bilan.'
+    +'</div>'
+    +'<div style="font-size:12px;color:var(--text-3);line-height:1.6;">'
+      +'Ses réservations restent enregistrées et l’annonce n’est pas touchée sur Airbnb, Booking ou Hostex. Vous pouvez le rajouter à tout moment avec le même identifiant.'
+    +'</div>'
+    +'<div class="modal-actions">'
+      +'<button class="btn" onclick="closeModal()">Annuler</button>'
+      +'<button class="btn btn-red" onclick="_confirmerSuppressionBien(\''+id+'\')">Retirer le logement</button>'
+    +'</div>');
+}
+
+function _confirmerSuppressionBien(id){
+  S.props=S.props.filter(function(p){return p.id!==id;});
+  if(S.selectedProp===id)S.selectedProp=S.props[0]?S.props[0].id:null;
+  if(S.ratesProp===id)S.ratesProp=S.props[0]?S.props[0].id:null;
+  if(S.bilanProp===id)S.bilanProp='all';
+  _propsSauver();
+  closeModal();
+  showToast('✓ Logement retiré');
+  renderProps();
+}
+
+async function _importerHostex(){
+  showToast('Recherche des logements sur Hostex…');
+  try{
+    var d=await api('/properties');
+    var liste=(d&&d.data&&(d.data.properties||d.data))||[];
+    if(!Array.isArray(liste))liste=[];
+    if(!liste.length){showToast('Aucun logement retourné par Hostex');return;}
+
+    var connus={};
+    S.props.forEach(function(p){connus[String(p.id)]=true;});
+    var nouveaux=liste.filter(function(x){return !connus[String(x.id)];});
+
+    if(!nouveaux.length){
+      showModal('<h3>Import Hostex</h3>'
+        +'<div style="font-size:13px;color:var(--text-2);line-height:1.6;">Les '+liste.length+' logement(s) de votre compte Hostex sont déjà configurés ici.</div>'
+        +'<div class="modal-actions"><button class="btn" onclick="closeModal()">Fermer</button></div>');
+      return;
+    }
+
+    window._hostexNouveaux=nouveaux;
+    showModal('<h3>'+nouveaux.length+' logement(s) à importer</h3>'
+      +'<div style="font-size:12.5px;color:var(--text-2);margin-bottom:12px;line-height:1.5;">Ces logements existent sur votre compte Hostex mais ne sont pas encore suivis ici.</div>'
+      +nouveaux.map(function(x,i){
+        return '<label style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--r-sm);margin-bottom:7px;cursor:pointer;">'
+          +'<input type="checkbox" id="imp-'+i+'" checked>'
+          +'<div style="flex:1;min-width:0;">'
+            +'<div style="font-size:13px;font-weight:500;">'+(x.title||x.name||('Logement '+x.id))+'</div>'
+            +'<div style="font-size:10.5px;color:var(--text-3);">Identifiant '+x.id+((x.channels&&x.channels.length)?' · '+x.channels.length+' canal/canaux':'')+'</div>'
+          +'</div>'
+        +'</label>';
+      }).join('')
+      +'<div class="modal-actions">'
+        +'<button class="btn" onclick="closeModal()">Annuler</button>'
+        +'<button class="btn btn-green" onclick="_confirmerImport()">Importer la sélection</button>'
+      +'</div>');
+  }catch(e){
+    showModal('<h3>Import impossible</h3>'
+      +'<div style="font-size:13px;color:var(--text-2);line-height:1.6;">Hostex n’a pas répondu : '+(e.message||'erreur inconnue')+'.</div>'
+      +'<div style="font-size:12px;color:var(--text-3);line-height:1.6;margin-top:8px;">Vous pouvez ajouter le logement manuellement — il suffit de son identifiant Hostex et des identifiants d’annonce Airbnb / Booking.</div>'
+      +'<div class="modal-actions">'
+        +'<button class="btn" onclick="closeModal()">Fermer</button>'
+        +'<button class="btn btn-green" onclick="closeModal();_editerBien(null)">Ajouter manuellement</button>'
+      +'</div>');
+  }
+}
+
+function _confirmerImport(){
+  var nouveaux=window._hostexNouveaux||[];
+  var ajoutes=0;
+  nouveaux.forEach(function(x,i){
+    var cb=document.getElementById('imp-'+i);
+    if(!cb||!cb.checked)return;
+    var canaux=(x.channels||[]).map(function(c){
+      return {channel_type:c.channel_type||c.channel||'airbnb',listing_id:String(c.listing_id||c.id||''),currency:c.currency||'EUR'};
+    }).filter(function(c){return c.listing_id;});
+    S.props.push({
+      id:String(x.id),
+      name:x.title||x.name||('Logement '+x.id),
+      adresse:x.address||'',
+      checkin:x.check_in_time||'15:00',
+      checkout:x.check_out_time||'12:00',
+      channels:canaux
+    });
+    if(!S.cleaning)S.cleaning={};
+    if(!S.cleaning[String(x.id)])S.cleaning[String(x.id)]={base:20,extra:5};
+    ajoutes++;
+  });
+  if(!S.selectedProp&&S.props[0])S.selectedProp=S.props[0].id;
+  if(!S.ratesProp&&S.props[0])S.ratesProp=S.props[0].id;
+  _propsSauver();
+  closeModal();
+  showToast(ajoutes?('✓ '+ajoutes+' logement(s) importé(s)'):'Aucun logement sélectionné');
+  renderProps();
 }
 
 function renderCal(){
   var now=new Date();
+  var today=new Date(now.getFullYear(),now.getMonth(),now.getDate());
   var prop=S.props.find(function(p){return p.id===S.selectedProp;})||S.props[0];
-  if(!prop){document.getElementById('main-content').innerHTML='<div style="color:#888;padding:20px">Aucun bien.</div>';return;}
-  var MONTHS=['Janvier','F\u00e9vrier','Mars','Avril','Mai','Juin','Juillet','Ao\u00fbt','Septembre','Octobre','Novembre','D\u00e9cembre'];
-  var DAYS=['L','M','M','J','V','S','D'];
-  var CELL=72,GAP=5;
+  if(!prop){document.getElementById('main-content').innerHTML='<div style="color:var(--text-3);padding:20px">Aucun bien.</div>';return;}
+  if(!S.calMonth)S.calMonth=new Date(now.getFullYear(),now.getMonth(),1);
+  if(!S.calSpan)S.calSpan=3;
+
+  var MOIS=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+  var JOURS=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
+  var AIR='#D8544E',AIR_BG='#FBEEEA',BK='#1E5490',BK_BG='#E8EFF7';
+  var CELL=80,GAP=5;
+  var NUM='font-variant-numeric:tabular-nums;font-feature-settings:"tnum";';
   function pad(n){return String(n).padStart(2,'0');}
   function ds2(y,m,d){return y+'-'+pad(m+1)+'-'+pad(d);}
   function bookedOn(date){return S.reservations.find(function(r){return r.prop_id===prop.id&&r.check_in<=date&&r.check_out>date&&r.status!=='cancelled';});}
   function blockedOn(date){return S.blockedDates&&S.blockedDates.indexOf(date)>=0;}
-  function getNights(r){return Math.round((new Date(r.check_out)-new Date(r.check_in))/86400000);}
+  function arriveeLe(date){return S.reservations.find(function(r){return r.prop_id===prop.id&&r.status!=='cancelled'&&r.check_in===date;});}
+  function departLe(date){return S.reservations.find(function(r){return r.prop_id===prop.id&&r.status!=='cancelled'&&r.check_out===date;});}
 
-  var propTabs=S.props.map(function(p){
-    return '<div onclick="S.selectedProp=\''+p.id+'\';renderCal()" style="font-size:12px;padding:6px 16px;border-radius:20px;border:1px solid '+(p.id===prop.id?'#1D9E75':'var(--color-border-secondary)')+';background:'+(p.id===prop.id?'#0F6E56':'var(--color-background-secondary)')+';color:'+(p.id===prop.id?'#fff':'var(--color-text-secondary)')+';cursor:pointer;white-space:nowrap;">'+p.name+'</div>';
+  var mRef=S.calMonth,span=S.calSpan;
+
+  var propBtns=S.props.map(function(p){
+    var on=p.id===prop.id;
+    return '<button onclick="S.selectedProp=\''+p.id+'\';renderCal()" class="btn" style="'+(on?'background:var(--accent);color:#fff;border-color:var(--accent);':'')+'">'+p.name+'</button>';
+  }).join('');
+  var spanBtns=[[1,'1 mois'],[3,'3 mois'],[12,'12 mois']].map(function(s){
+    var on=span===s[0];
+    return '<button onclick="S.calSpan='+s[0]+';renderCal()" class="btn" style="'+(on?'background:var(--accent-light);color:var(--accent);border-color:var(--accent);font-weight:500;':'')+'">'+s[1]+'</button>';
   }).join('');
 
-  var legend='<div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:16px;">'
-    +'<div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--color-text-secondary);"><div style="width:28px;height:8px;border-radius:4px;background:linear-gradient(90deg,#ef4444,#f87171);"></div>Airbnb</div>'
-    +'<div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--color-text-secondary);"><div style="width:28px;height:8px;border-radius:4px;background:linear-gradient(90deg,#3b82f6,#60a5fa);"></div>Booking</div>'
-    +'<div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--color-text-secondary);"><div style="width:10px;height:10px;border-radius:50%;background:#1D9E75;"></div>Aujourd\u2019hui</div>'
-    +'</div>';
+  var finP=new Date(mRef.getFullYear(),mRef.getMonth()+span-1,1);
+  var titre=span===1?(MOIS[mRef.getMonth()]+' '+mRef.getFullYear())
+    :(MOIS[mRef.getMonth()].slice(0,3)+' '+mRef.getFullYear()+' → '+MOIS[finP.getMonth()].slice(0,3)+' '+finP.getFullYear());
+
+  var toolbar='<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px;">'
+    +'<div style="display:flex;gap:6px;flex-wrap:wrap;">'+propBtns+'</div>'
+    +'<div style="display:flex;gap:6px;flex-wrap:wrap;">'+spanBtns+'</div>'
+  +'</div>'
+  +'<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px;">'
+    +'<div style="display:flex;align-items:center;gap:8px;">'
+      +'<button onclick="chgCalMonth(-1)" class="btn" title="Mois précédent" style="width:32px;padding:6px 0;">‹</button>'
+      +'<div style="font-size:15px;font-weight:600;min-width:190px;text-align:center;">'+titre+'</div>'
+      +'<button onclick="chgCalMonth(1)" class="btn" title="Mois suivant" style="width:32px;padding:6px 0;">›</button>'
+      +'<button onclick="goCalToday()" class="btn">Aujourd’hui</button>'
+    +'</div>'
+    +'<div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center;">'
+      +'<span style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-2);"><span style="width:16px;height:8px;border-radius:3px;background:'+AIR+';"></span>Airbnb</span>'
+      +'<span style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-2);"><span style="width:16px;height:8px;border-radius:3px;background:'+BK+';"></span>Booking</span>'
+      +'<span style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-2);"><span style="width:9px;height:9px;border-radius:2px;background:var(--accent);"></span>Aujourd’hui</span>'
+      +'<span style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-2);"><span style="width:9px;height:9px;border-radius:2px;background:#E5B84B;"></span>Bloqué</span>'
+    +'</div>'
+  +'</div>';
+
+  // Synthèse sur la période affichée
+  var pStart=new Date(mRef.getFullYear(),mRef.getMonth(),1);
+  var pEnd=new Date(mRef.getFullYear(),mRef.getMonth()+span,1);
+  var nuits=0,arr=0,dep=0,ca=0;
+  S.reservations.forEach(function(r){
+    if(r.prop_id!==prop.id||r.status==='cancelled'||!r.check_in||!r.check_out)return;
+    var ci=new Date(r.check_in+'T00:00:00'),co=new Date(r.check_out+'T00:00:00');
+    var a=Math.max(ci,pStart),b=Math.min(co,pEnd);
+    var n=Math.round((b-a)/86400000);
+    if(n>0){
+      nuits+=n;
+      var nt=Math.round((co-ci)/86400000);
+      ca+=nt>0?(r.amount||0)*n/nt:(r.amount||0);
+    }
+    if(ci>=pStart&&ci<pEnd)arr++;
+    if(co>=pStart&&co<pEnd)dep++;
+  });
+  var dispo=Math.round((pEnd-pStart)/86400000);
+  var occ=dispo>0?Math.round(nuits/dispo*100):0;
+
+  var synthese='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px;">'
+    +[['Nuits réservées',nuits+' / '+dispo,occ+' % d’occupation','var(--accent-light)','#A8CFC0','#0B4A3A','var(--accent)'],
+      ['Arrivées',String(arr),'sur la période','#EAF4F0','#A8CFC0','#0B4A3A','var(--accent)'],
+      ['Départs',String(dep),'ménages à prévoir','#FDF6E3','#E5B84B','#6B4E0B','#8A6A12'],
+      ['Revenus bruts',Math.round(ca).toLocaleString('fr-FR')+' €','au prorata des nuits','var(--bg)','var(--border)','var(--text)','var(--text-2)']
+     ].map(function(t){
+      return '<div style="background:'+t[3]+';border:1px solid '+t[4]+';border-radius:var(--r-md);padding:12px 14px;">'
+        +'<div style="font-size:10.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:'+t[6]+';margin-bottom:5px;">'+t[0]+'</div>'
+        +'<div style="font-size:22px;font-weight:600;color:'+t[5]+';'+NUM+'">'+t[1]+'</div>'
+        +'<div style="font-size:10.5px;color:'+t[6]+';margin-top:2px;">'+t[2]+'</div>'
+      +'</div>';
+    }).join('')
+  +'</div>';
 
   function renderMonth(yr,mn){
     var firstDow=(new Date(yr,mn,1).getDay()+6)%7;
     var lastD=new Date(yr,mn+1,0).getDate();
     var rows=Math.ceil((firstDow+lastD)/7);
-    var dowRow=DAYS.map(function(d){return'<div style="font-size:10px;color:var(--color-text-tertiary);text-align:center;padding:2px 0;">'+d+'</div>';}).join('');
+    var dowRow=JOURS.map(function(d,i){return '<div style="font-size:10.5px;font-weight:500;color:'+(i>=5?'var(--text-2)':'var(--text-3)')+';text-align:center;padding:3px 0;">'+d+'</div>';}).join('');
     var dayCells='';
     for(var i=0;i<firstDow;i++) dayCells+='<div></div>';
     for(var d=1;d<=lastD;d++){
       var date=ds2(yr,mn,d);
-      var dateObj=new Date(yr,mn,d);
-      var isToday=dateObj.toDateString()===now.toDateString();
-      var isPast=dateObj<new Date(now.getFullYear(),now.getMonth(),now.getDate());
+      var dObj=new Date(yr,mn,d);
+      var isToday=dObj.getTime()===today.getTime();
+      var isPast=dObj<today;
+      var isWE=dObj.getDay()===0||dObj.getDay()===6;
       var res=bookedOn(date);
       var isAir=res&&platClass(res.platform)==='airbnb';
-      var isBlocked=S.blockedDates&&S.blockedDates.indexOf(date)>=0;var bg=isToday?'#f0fdf8':isBlocked?'#fef2f2':res&&!isPast?(isAir?'#fff1f1':'#eff6ff'):'var(--color-background-primary)';
-      var border=isToday?'#1D9E75':isBlocked?'#f87171':res&&!isPast?(isAir?'#fecaca':'#bfdbfe'):'#d1d0c8';
-      var numColor=isToday?'#0F6E56':isPast?'var(--color-text-tertiary)':res?(isAir?'#dc2626':'#1d4ed8'):'var(--color-text-primary)';
-      var opacity=isPast&&!isToday?'0.55':'1';
-      dayCells+='<div style="border-radius:10px;height:'+CELL+'px;padding:7px 6px;border:1.5px solid '+border+';background:'+bg+';position:relative;z-index:1;opacity:'+opacity+';cursor:pointer;" onclick="openResDetail(\''+date+'\')">'
-        +'<div style="font-size:12px;font-weight:500;color:'+numColor+';line-height:1;">'+d+'</div>'
-        +(isBlocked?'<div style="font-size:14px;text-align:center;margin-top:6px;">⛔</div>':'')
-        +'</div>';
+      var isBlk=blockedOn(date);
+      var a=arriveeLe(date),dp=departLe(date);
+
+      var bg='var(--surface)',bd='1px solid var(--border)';
+      if(isPast)bg='#F4F3EE';
+      else if(isWE)bg='#FCFBF7';
+      if(res){bg=isAir?AIR_BG:BK_BG;bd='1px solid '+(isAir?'#E8B5A8':'#B3C8E0');}
+      if(isBlk){bg='#FDF6E3';bd='1px solid #E5B84B';}
+      if(isToday)bd='2px solid var(--accent)';
+
+      var numCol=isToday?'var(--accent)':isPast?'var(--text-3)':'var(--text)';
+      var marques='';
+      if(isBlk){
+        marques='<div style="font-size:10px;color:#8A6A12;font-weight:500;">Bloqué</div>';
+      } else if(a&&dp){
+        marques='<div style="display:inline-flex;align-items:center;gap:4px;background:#FDF6E3;border:1px solid #E5B84B;border-radius:20px;padding:1px 7px;">'
+          +'<span style="font-size:9px;color:#8A6A12;font-weight:600;">⇄</span>'
+          +'<span style="font-size:9.5px;color:#6B4E0B;font-weight:500;">Rotation</span></div>'
+          +'<div style="font-size:9px;color:var(--text-3);margin-top:2px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">'+(dp.guest||'').split(' ')[0]+' → '+(a.guest||'').split(' ')[0]+'</div>';
+      } else if(dp){
+        marques='<div style="font-size:9.5px;color:#8A6A12;display:flex;align-items:center;gap:3px;"><span style="font-weight:600;">↤</span>Départ</div>';
+      } else if(a){
+        marques='<div style="font-size:9.5px;color:var(--accent);display:flex;align-items:center;gap:3px;"><span style="font-weight:600;">↦</span>Arrivée</div>';
+      }
+
+      dayCells+='<div title="'+date.split('-').reverse().join('/')+(res?' · '+(res.guest||''):'')+'" style="border-radius:var(--r-sm);height:'+CELL+'px;padding:6px 7px;border:'+bd+';background:'+bg+';position:relative;z-index:1;'+(isPast?'opacity:.6;':'')+'cursor:pointer;" onclick="openResDetail(\''+date+'\')">'
+        +'<div style="display:flex;align-items:center;justify-content:space-between;">'
+          +'<span style="font-size:12px;font-weight:'+(isToday?'600':'500')+';color:'+numCol+';'+NUM+'">'+d+'</span>'
+          +(isWE&&!res&&!isBlk?'<span style="font-size:8.5px;color:var(--text-3);">WE</span>':'')
+        +'</div>'
+        +'<div style="margin-top:4px;display:flex;flex-direction:column;gap:2px;">'+marques+'</div>'
+      +'</div>';
     }
-    var gridW=(document.getElementById('main-content').getBoundingClientRect().width||390)-2;
+
+    var gridW=(document.getElementById('main-content').getBoundingClientRect().width||900)-2;
     var cellW=(gridW-(GAP*6))/7;
     var bars='';
     S.reservations.filter(function(r){return r.prop_id===prop.id&&r.status!=='cancelled';}).forEach(function(res){
-      var platCls=platClass(res.platform)==='airbnb'?'air':'bk';
-      var barColor=platCls==='air'?'linear-gradient(90deg,#ef4444,#f87171)':'linear-gradient(90deg,#3b82f6,#60a5fa)';
+      var pl=platClass(res.platform)==='airbnb'?'air':'bk';
       var startD=new Date(res.check_in+'T00:00:00');
       var endD=new Date(res.check_out+'T00:00:00');
-      var monthStart=new Date(yr,mn,1);
-      var monthEndD=new Date(yr,mn+1,0);
-      if(endD<=monthStart||startD>monthEndD) return;
-      var clampStart=startD<monthStart?monthStart:startD;
-      var endDplus1=new Date(endD.getFullYear(),endD.getMonth(),endD.getDate()+1);var clampEnd=endDplus1>new Date(yr,mn+1,0)?new Date(yr,mn+1,1):endDplus1;
-      var cur=new Date(clampStart);
-      while(cur<clampEnd){
+      var mStart=new Date(yr,mn,1),mEnd=new Date(yr,mn+1,0);
+      if(endD<=mStart||startD>mEnd)return;
+      var cs=startD<mStart?mStart:startD;
+      var endPlus=new Date(endD.getFullYear(),endD.getMonth(),endD.getDate()+1);
+      var ce=endPlus>new Date(yr,mn+1,1)?new Date(yr,mn+1,1):endPlus;
+      var cur=new Date(cs);
+      while(cur<ce){
         var idx=firstDow+cur.getDate()-1;
         var rowEndIdx=Math.floor(idx/7)*7+7;
-        var rowEndDate=new Date(yr,mn,cur.getDate()+(rowEndIdx-idx));
-        if(rowEndDate>clampEnd) rowEndDate=new Date(clampEnd);
-        var cellCount=Math.round((rowEndDate-cur)/86400000);
-        var col=idx%7;
-        var row=Math.floor(idx/7);
-        var isResStart=cur.toDateString()===startD.toDateString();
-        var isResEnd=rowEndDate>=endDplus1&&!isResStart||rowEndDate>=endDplus1&&isResStart&&cellCount>1;
-        var leftBase=col*(cellW+GAP);
-        var left=isResStart?leftBase+cellW/2:leftBase;
-        var rawW=cellCount*(cellW+GAP)-GAP;
-        var width=rawW-(isResStart?cellW/2:0)-(isResEnd?cellW/2:0);
+        var rowEnd=new Date(yr,mn,cur.getDate()+(rowEndIdx-idx));
+        if(rowEnd>ce)rowEnd=new Date(ce);
+        var nb=Math.round((rowEnd-cur)/86400000);
+        var col=idx%7,row=Math.floor(idx/7);
+        var isS=cur.toDateString()===startD.toDateString();
+        var isE=rowEnd>=endPlus;
+        var left=col*(cellW+GAP)+(isS?cellW/2:0);
+        var w=nb*(cellW+GAP)-GAP-(isS?cellW/2:0)-(isE?cellW/2:0);
         var top=row*(CELL+GAP)+CELL-20;
-        var nights=Math.round((endD-startD)/86400000);
-        var platLbl=platClass(res.platform)==='airbnb'?'AIR':'BK';var label=isResStart?(res.guest.split(' ')[0]+' \u00b7 '+nights+'n \u00b7 '+platLbl):'';
-        var br=isResStart&&isResEnd?'6px':isResStart?'6px 0 0 6px':isResEnd?'0 6px 6px 0':'0';
-        bars+='<div style="position:absolute;height:18px;border-radius:'+br+';z-index:2;display:flex;align-items:center;padding:0 6px;font-size:11px;font-weight:500;color:#fff;white-space:nowrap;overflow:hidden;pointer-events:none;box-shadow:0 2px 6px rgba(0,0,0,.15);background:'+barColor+';left:'+left+'px;top:'+top+'px;width:'+width+'px;">'+label+'</div>';
-        cur=rowEndDate;
+        var br=isS&&isE?'4px':isS?'4px 0 0 4px':isE?'0 4px 4px 0':'0';
+        var nuitsR=Math.round((endD-startD)/86400000);
+        var lbl=isS?((res.guest||'').split(' ')[0]+' · '+nuitsR+'n · '+Math.round(res.amount)+'€'):'';
+        bars+='<div style="position:absolute;height:18px;border-radius:'+br+';z-index:2;display:flex;align-items:center;padding:0 7px;font-size:10px;font-weight:500;color:#fff;white-space:nowrap;overflow:hidden;pointer-events:none;background:'+(pl==='air'?AIR:BK)+';left:'+left+'px;top:'+top+'px;width:'+Math.max(w,6)+'px;">'+lbl+'</div>';
+        cur=rowEnd;
       }
     });
+
     var gridH=rows*(CELL+GAP)-GAP;
-    return '<div style="margin-bottom:28px;">'
-      +'<div style="font-size:11px;font-weight:500;color:var(--color-text-tertiary);letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px;">'+MONTHS[mn]+' '+yr+'</div>'
-      +'<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-bottom:5px;">'+dowRow+'</div>'
-      +'<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:5px;position:relative;height:'+gridH+'px;">'+dayCells+bars+'</div>'
-      +'</div>';
+    return '<div style="margin-bottom:24px;">'
+      +'<div style="font-size:13px;font-weight:600;margin-bottom:7px;">'+MOIS[mn]+' '+yr+'</div>'
+      +'<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:'+GAP+'px;margin-bottom:4px;">'+dowRow+'</div>'
+      +'<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:'+GAP+'px;position:relative;height:'+gridH+'px;">'+dayCells+bars+'</div>'
+    +'</div>';
   }
 
   var months='';
-  for(var mo=0;mo<7;mo++){
-    var mDate=new Date(now.getFullYear(),now.getMonth()+mo,1);
-    months+=renderMonth(mDate.getFullYear(),mDate.getMonth());
+  for(var mo=0;mo<span;mo++){
+    var mD=new Date(mRef.getFullYear(),mRef.getMonth()+mo,1);
+    months+=renderMonth(mD.getFullYear(),mD.getMonth());
   }
 
-  document.getElementById('main-content').innerHTML=
-    '<div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">'+propTabs+'</div>'
-    +legend
-    +months;
+  document.getElementById('main-content').innerHTML=toolbar+synthese+months;
+
+  if(!window._calKeys){
+    window._calKeys=true;
+    document.addEventListener('keydown',function(e){
+      if(S.page!=='calendar')return;
+      var t=e.target.tagName;
+      if(t==='INPUT'||t==='TEXTAREA'||t==='SELECT')return;
+      if(e.key==='ArrowLeft')chgCalMonth(-1);
+      else if(e.key==='ArrowRight')chgCalMonth(1);
+    });
+  }
 }
+function chgCalMonth(d){var m=S.calMonth||new Date();S.calMonth=new Date(m.getFullYear(),m.getMonth()+d,1);renderCal();}
+function goCalToday(){var n=new Date();S.calMonth=new Date(n.getFullYear(),n.getMonth(),1);renderCal();}
 function chgMonth(d){S.currentMonth=new Date(S.currentMonth.getFullYear(),S.currentMonth.getMonth()+d,1);render();}
 
 function _dc(ds,propId){
@@ -2833,7 +3635,7 @@ function _drawDash(m12,pData,tot){
 function _fp(pl){S.resFilter=pl==='airbnb'?'Airbnb':pl==='booking'||pl==='booking.com'?'Booking':'Direct';S.page='reservations';render();}
 
 
-document.addEventListener("DOMContentLoaded",function(){loadAll();});
+document.addEventListener("DOMContentLoaded",function(){loadAll();_demarrerPollMessages();});
 
 // ===== VIREMENTS =====
 function renderVirements(){

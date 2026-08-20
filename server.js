@@ -1515,13 +1515,16 @@ app.all('/api/*', async function(req, res) {
 // Proxy Claude API
 app.post('/api-claude', async function(req, res) {
   try {
+    const headers = {
+      'x-api-key': process.env.ANTHROPIC_API_KEY || '',
+      'anthropic-version': '2023-06-01',
+      'Content-Type': 'application/json'
+    };
+    // Transmet l'en-tete beta si le client en demande une (ex: fallbacks serveur)
+    if (req.headers['anthropic-beta']) headers['anthropic-beta'] = req.headers['anthropic-beta'];
     const r = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
-      headers: {
-        'x-api-key': process.env.ANTHROPIC_API_KEY || '',
-        'anthropic-version': '2023-06-01',
-        'Content-Type': 'application/json'
-      },
+      headers,
       body: JSON.stringify(req.body)
     });
     res.status(r.status).json(await r.json());
