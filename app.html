@@ -265,29 +265,19 @@ async function syncLive(){
     const data=await rd.json();
     const liveRes=data.data?.reservations||[];
     if(!liveRes.length)return;
-    // Supabase contient toutes les réservations - on remplace directement
-    const map={};
-    for(const r of liveRes){
-      const key=r.reservation_code||r.id;
-      map[key]=mapRes(r);
-    }
-    // DB Supabase a priorité absolue sur le live API
-    // On garde TOUTES les réservations DB + les nouvelles du live non présentes en DB
-    const dbIds = new Set(S.reservations.map(r=>r.id));
-    const liveOnly = liveRes.map(r=>mapRes(r)).filter(r=>!dbIds.has(r.id));
-    // Ajouter les réservations live uniquement si pas déjà en DB
-    const seen2={};const final2={};
-    // D'abord les réservations DB (priorité)
-    S.reservations.forEach(r=>{
-      const dk=(r.check_in||'')+'_'+(r.prop_id||'')+'_'+(r.platform||'');
-      if(!seen2[dk]){ seen2[dk]=r.id; final2[r.id]=r; }
-    });
-    // Ensuite les réservations live non présentes (nouvelles)
-    liveOnly.forEach(r=>{
-      const dk=(r.check_in||'')+'_'+(r.prop_id||'')+'_'+(r.platform||'');
-      if(!seen2[dk]){ seen2[dk]=r.id; final2[r.id]=r; }
-      // Si cancelled dans le live, mettre à jour le statut
-      else if(r.status==='cancelled'){ final2[seen2[dk]].status='cancelled'; }
+    // Fusion par CODE DE RESERVATION (identifiant unique).
+    // L'ancienne cle etait date d'arrivee + logement + plateforme : deux voyageurs
+    // differents arrivant le meme jour dans le meme logement via la meme plateforme
+    // etaient fusionnes, et le second disparaissait des revenus (15 resas / 2285 EUR).
+    const cle=r=>r.id||((r.check_in||'')+'_'+(r.prop_id||'')+'_'+(r.guest||''));
+    const final2={};
+    // On repart de l'existant...
+    S.reservations.forEach(r=>{ final2[cle(r)]=r; });
+    // ...puis le live fait autorite pour un meme code (montant, statut, annulation)
+    liveRes.forEach(raw=>{
+      const r=mapRes(raw);
+      if(!r.check_in)return;
+      final2[cle(r)]=r;
     });
     S.reservations=Object.values(final2).sort((a,b)=>(b.check_in||'').localeCompare(a.check_in||''));
     document.getElementById('conn-label').innerHTML='&#10003; '+S.reservations.length+' r\u00e9servations';
