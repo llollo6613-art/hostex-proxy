@@ -1911,21 +1911,18 @@ function renderDash(){
     +"</div></div>";
 
   h+="<div class=\"fade-in-up\" style=\"--i:8;background:var(--color-background-primary);border:1px solid var(--color-border-tertiary);border-radius:16px;padding:14px;\">"
-    +"<div style=\"font-size:13px;font-weight:500;margin-bottom:10px;\">Plateformes "+MONTHS[calMonth]+"</div>"
+    +"<div style=\"display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:10px;\">"
+      +"<div style=\"font-size:13px;font-weight:500;\">Plateformes "+MONTHS[calMonth]+"</div>"
+      +"<div style=\"font-size:10px;color:var(--color-text-tertiary);\">"+(_versMoisPret()?"loyers vers\u00e9s":"estimation")+"</div>"
+    +"</div>"
     +"<div style=\"display:flex;height:8px;border-radius:4px;overflow:hidden;margin-bottom:10px;\">"
-      +"<div style=\"width:"+airPct+"%;background:#FF385C;\"></div><div style=\"flex:1;background:#003580;\"></div>"
+      +"<div style=\"width:"+_partPlat("airbnb",airPct)+"%;background:#FF385C;\"></div><div style=\"flex:1;background:#003580;\"></div>"
     +"</div>"
     +"<div style=\"display:grid;grid-template-columns:1fr 1fr;gap:8px;\">"
-      +"<div style=\"background:#FFF1F2;border:0.5px solid #FECDD3;border-radius:10px;padding:10px;\">"
-        +"<div style=\"font-size:10px;color:#9F1239;font-weight:500;margin-bottom:2px;\">Airbnb "+airPct+"%</div>"
-        +"<div style=\"font-size:20px;font-weight:500;color:#881337;\">"+Math.round(airRevM).toLocaleString("fr-FR")+"\u20ac</div>"
-        +"<div style=\"font-size:10px;color:var(--color-text-tertiary);\">"+monthRes.filter(function(r){return platClass(r.platform)==="airbnb";}).length+" r\u00e9s.</div>"
-      +"</div>"
-      +"<div style=\"background:#EFF6FF;border:0.5px solid #BFDBFE;border-radius:10px;padding:10px;\">"
-        +"<div style=\"font-size:10px;color:#1E3A5F;font-weight:500;margin-bottom:2px;\">Booking "+bkPct+"%</div>"
-        +"<div style=\"font-size:20px;font-weight:500;color:#1E3A5F;\">"+Math.round(bkRevM).toLocaleString("fr-FR")+"\u20ac</div>"
-        +"<div style=\"font-size:10px;color:var(--color-text-tertiary);\">"+monthRes.filter(function(r){return platClass(r.platform)==="booking";}).length+" r\u00e9s.</div>"
-      +"</div>"
+      +_tuilePlateforme("airbnb","Airbnb",airRevM,"#FFF1F2","#FECDD3","#9F1239","#881337",
+          monthRes.filter(function(r){return platClass(r.platform)==="airbnb";}).length)
+      +_tuilePlateforme("booking","Booking",bkRevM,"#EFF6FF","#BFDBFE","#1E3A5F","#1E3A5F",
+          monthRes.filter(function(r){return platClass(r.platform)==="booking";}).length)
     +"</div></div>";
   h+="</div>";
 
@@ -3630,9 +3627,65 @@ function _drawDash(m12,pData,tot){
 function _fp(pl){S.resFilter=pl==='airbnb'?'Airbnb':pl==='booking'||pl==='booking.com'?'Booking':'Direct';S.page='reservations';render();}
 
 
-document.addEventListener("DOMContentLoaded",function(){loadAll();_demarrerPollMessages();});
+document.addEventListener("DOMContentLoaded",function(){loadAll();_demarrerPollMessages();setTimeout(_prechargerVersements,1500);});
 
 // ===== VIREMENTS =====
+// ===== Rapprochement versements <-> reservations =====
+// Les deux sources ne codent pas les reservations pareil :
+//   versement Hostex : 0-HMMF2HTCZZ-igng5wrw5s  /  9-5152208150-igm0g2sixf
+//   reservation      : HMMF2HTCZZ               /  9-5152208150
+// On ramene les deux a un noyau commun. Apparie 200 versements sur 206.
+function _cleResa(c){
+  if(!c)return '';
+  var p=String(c).trim().split('-');
+  if(p[0]==='0'&&p.length>=2)return p[1];                 // Airbnb
+  if(p[0]==='9'&&p.length>=2)return p[0]+'-'+p[1];        // Booking
+  return p[0];
+}
+// Loyers reellement verses pour un mois donne, par plateforme
+function _versementsDuMois(annee,mois){
+  var tx=(S._tx&&S._tx[annee])||null;
+  if(!tx)return null;
+  var out={airbnb:0,booking:0,autre:0,total:0,n:0};
+  tx.forEach(function(t){
+    var d=new Date(t.action_at);
+    if(d.getFullYear()!==annee||d.getMonth()!==mois)return;
+    var v=_montantSigne(t),p=_plateformeDe(t);
+    out[p]+=v; out.total+=v; out.n++;
+  });
+  return out;
+}
+function _versMoisPret(){
+  var n=new Date();
+  return !!_versementsDuMois(n.getFullYear(),n.getMonth());
+}
+function _partPlat(plat,defaut){
+  var n=new Date(),v=_versementsDuMois(n.getFullYear(),n.getMonth());
+  if(!v||v.total<=0)return defaut;
+  return Math.round((plat==='airbnb'?v.airbnb:v.booking)/v.total*100);
+}
+function _tuilePlateforme(plat,nom,estime,bg,bd,lc,vc,nbResas){
+  var n=new Date(),v=_versementsDuMois(n.getFullYear(),n.getMonth());
+  var verse=v?(plat==='airbnb'?v.airbnb:v.booking):null;
+  var pct=v&&v.total>0?Math.round(verse/v.total*100):0;
+  function eur(x){return (Math.round(x*100)/100).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2})+' €';}
+  return "<div style=\"background:"+bg+";border:0.5px solid "+bd+";border-radius:10px;padding:10px;\">"
+    +"<div style=\"font-size:10px;color:"+lc+";font-weight:500;margin-bottom:2px;\">"+nom+(v?" "+pct+"%":"")+"</div>"
+    +"<div style=\"font-size:20px;font-weight:500;color:"+vc+";\">"+(v?eur(verse):Math.round(estime).toLocaleString("fr-FR")+" €")+"</div>"
+    +(v
+      ? "<div style=\"font-size:10px;color:var(--color-text-tertiary);\">reçu · séjours du mois "+Math.round(estime).toLocaleString("fr-FR")+" €</div>"
+      : "<div style=\"font-size:10px;color:var(--color-text-tertiary);\">"+nbResas+" rés.</div>")
+  +"</div>";
+}
+// Chargement en tache de fond pour que le tableau de bord dispose des vrais loyers
+function _prechargerVersements(){
+  var an=new Date().getFullYear();
+  if(S._tx&&S._tx[an])return;
+  _chargerVersements(an).then(function(){
+    if(S.page==='dashboard')render();
+  }).catch(function(){});
+}
+
 // ===== Versements reellement encaisses (journal Hostex) =====
 async function _chargerVersements(annee){
   if(!S._tx)S._tx={};
