@@ -3633,49 +3633,223 @@ function _fp(pl){S.resFilter=pl==='airbnb'?'Airbnb':pl==='booking'||pl==='bookin
 document.addEventListener("DOMContentLoaded",function(){loadAll();_demarrerPollMessages();});
 
 // ===== VIREMENTS =====
+// ===== Versements reellement encaisses (journal Hostex) =====
+async function _chargerVersements(annee){
+  if(!S._tx)S._tx={};
+  if(S._tx[annee])return S._tx[annee];
+  var tout=[],offset=0,total=null,garde=0;
+  while(garde++<40){
+    var d=await api('/transactions?start_date='+annee+'-01-01&end_date='+(annee+1)+'-01-01'
+                    +'&page_size=200&offset='+offset,'GET',null,30000);
+    var part=(d&&d.data&&d.data.transactions)||[];
+    if(total===null)total=(d&&d.data&&d.data.total)||part.length;
+    if(!part.length)break;
+    tout=tout.concat(part);
+    offset+=part.length;
+    if(offset>=total)break;
+  }
+  // dedoublonnage par identifiant de transaction
+  var vus={};
+  tout.forEach(function(t){vus[t.id]=t;});
+  S._tx[annee]=Object.values(vus);
+  return S._tx[annee];
+}
+
+function _plateformeDe(t){
+  var p=(t.payment_method_name||'').toLowerCase();
+  if(p.indexOf('airbnb')>=0)return 'airbnb';
+  if(p.indexOf('booking')>=0)return 'booking';
+  return 'autre';
+}
+function _montantSigne(t){
+  var a=parseFloat(t.amount)||0;
+  return t.direction==='expense'?-a:a;
+}
+
 function renderVirements(){
   var el=document.getElementById('main-content');
   if(!el)return;
-  if(!S.reservations||S.reservations.length===0){
-    el.innerHTML='<div style="padding:40px;text-align:center;color:#888;">Chargement...</div>';
-    setTimeout(renderVirements,2000); return;
-  }
-  var yr=new Date().getFullYear();
-  var moisData=[];
-  for(var m=0;m<12;m++){
-    var dm=new Date(yr,m,1),fm=new Date(yr,m+1,1);
-    var res=S.reservations.filter(function(r){
-      if(!r.check_in||!r.check_out||r.status==='cancelled')return false;
-      return new Date(r.check_in+'T00:00:00')<fm&&new Date(r.check_out+'T00:00:00')>dm;
+  var now=new Date();
+  if(!S.virYear)S.virYear=now.getFullYear();
+  var annee=S.virYear;
+  var NUM='font-variant-numeric:tabular-nums;font-feature-settings:"tnum";';
+  var AIR='#D8544E',BK='#1E5490';
+  var MOIS=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+
+  var annees=[];
+  for(var a=now.getFullYear();a>=now.getFullYear()-2;a--)annees.push(a);
+  var onglets=annees.map(function(y){
+    return '<div onclick="S.virYear='+y+';renderVirements()" class="tab'+(y===annee?' active':'')+'" style="border:1px solid '+(y===annee?'transparent':'var(--border-strong)')+';'+NUM+'">'+y+'</div>';
+  }).join('');
+
+  var entete='<div class="no-print" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px;">'
+    +'<div>'
+      +'<div style="font-size:15px;font-weight:600;">Versements reçus</div>'
+      +'<div style="font-size:12px;color:var(--text-2);margin-top:2px;">Les virements réellement encaissés, tels qu’enregistrés par Hostex</div>'
+    +'</div>'
+    +'<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">'+onglets
+      +'<button class="btn" onclick="_exportVersementsCSV()">Export CSV</button>'
+      +'<button class="btn" onclick="S._tx={};renderVirements()">Actualiser</button>'
+    +'</div>'
+  +'</div>';
+
+  el.innerHTML=entete+'<div id="vir-corps"><div style="padding:40px;text-align:center;color:var(--text-3);font-size:13px;">Chargement du journal des versements…</div></div>';
+
+  _chargerVersements(annee).then(function(tx){
+    var corps=document.getElementById('vir-corps');
+    if(!corps)return;
+    if(!tx.length){
+      corps.innerHTML='<div style="border:1px dashed var(--border-strong);border-radius:var(--r-md);padding:32px;text-align:center;">'
+        +'<div style="font-size:14px;font-weight:600;margin-bottom:5px;">Aucun versement enregistré en '+annee+'</div>'
+        +'<div style="font-size:12.5px;color:var(--text-2);line-height:1.6;">Hostex n’a retourné aucune transaction sur cette période.</div></div>';
+      return;
+    }
+
+    // regroupement par mois
+    var parMois=[];
+    for(var m=0;m<12;m++)parMois.push({m:m,air:0,bk:0,autre:0,total:0,n:0,lignes:[]});
+    tx.forEach(function(t){
+      var d=new Date(t.action_at);
+      if(d.getFullYear()!==annee)return;
+      var b=parMois[d.getMonth()];
+      var v=_montantSigne(t), p=_plateformeDe(t);
+      b[p==='airbnb'?'air':(p==='booking'?'bk':'autre')]+=v;
+      b.total+=v; b.n++; b.lignes.push(t);
     });
-    var total=res.reduce(function(s,r){return s+prorataM(r,yr,m);},0);
-    var air=res.filter(function(r){return r.platform==='airbnb';}).reduce(function(s,r){return s+prorataM(r,yr,m);},0);
-    var bk=res.filter(function(r){return r.platform!=='airbnb';}).reduce(function(s,r){return s+prorataM(r,yr,m);},0);
-    moisData.push({m:m,label:['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'][m],total:Math.round(total),air:Math.round(air),bk:Math.round(bk),count:res.length});
-  }
-  var totalAnnee=moisData.reduce(function(s,d){return s+d.total;},0);
-  var html='<div style="padding:16px;">';
-  html+='<div style="font-size:13px;color:#888;margin-bottom:16px;">Revenus nets '+yr+' (après commissions estimées)</div>';
-  html+='<table style="width:100%;border-collapse:collapse;font-size:13px;">';
-  html+='<tr style="background:#f5f5f3;"><th style="padding:8px;text-align:left;">Mois</th><th style="padding:8px;text-align:right;">Airbnb</th><th style="padding:8px;text-align:right;">Booking</th><th style="padding:8px;text-align:right;font-weight:700;">Total net</th><th style="padding:8px;text-align:right;">Rés.</th></tr>';
-  moisData.forEach(function(d){
-    var isCurrent=d.m===new Date().getMonth();
-    var bg=isCurrent?'#f0fdf4':'#fff';
-    var fw=isCurrent?'700':'400';
-    html+='<tr style="background:'+bg+';border-bottom:1px solid #f0f0ee;">';
-    html+='<td style="padding:8px;font-weight:'+fw+';">'+d.label+(isCurrent?' ◄':'')+'</td>';
-    html+='<td style="padding:8px;text-align:right;color:#e74c3c;">'+(d.air>0?d.air+'€':'-')+'</td>';
-    html+='<td style="padding:8px;text-align:right;color:#3498db;">'+(d.bk>0?d.bk+'€':'-')+'</td>';
-    html+='<td style="padding:8px;text-align:right;font-weight:700;color:#0F6E56;">'+(d.total>0?d.total+'€':'-')+'</td>';
-    html+='<td style="padding:8px;text-align:right;color:#888;">'+d.count+'</td>';
-    html+='</tr>';
+
+    var tAir=parMois.reduce(function(s,b){return s+b.air;},0);
+    var tBk=parMois.reduce(function(s,b){return s+b.bk;},0);
+    var tAutre=parMois.reduce(function(s,b){return s+b.autre;},0);
+    var tTot=tAir+tBk+tAutre;
+    var dernier=tx.slice().sort(function(a,b){return b.action_at.localeCompare(a.action_at);})[0];
+
+    function eur(v){return (Math.round(v*100)/100).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2})+' €';}
+
+    var tuiles=[
+      ['Total encaissé '+annee,eur(tTot),tx.length+' versements','var(--accent-light)','#A8CFC0','#0B4A3A','var(--accent)'],
+      ['Airbnb',eur(tAir),(tTot?Math.round(tAir/tTot*100):0)+' % du total','#FBEEEA','#E8B5A8','#8C3521','#A8382A'],
+      ['Booking.com',eur(tBk),(tTot?Math.round(tBk/tTot*100):0)+' % du total','#E8EFF7','#B3C8E0','#12395F','#1E5490'],
+      ['Dernier versement',dernier?eur(_montantSigne(dernier)):'—',dernier?new Date(dernier.action_at).toLocaleDateString('fr-FR'):'','var(--bg)','var(--border)','var(--text)','var(--text-2)']
+    ];
+    var h='<div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:16px;">'
+      +tuiles.map(function(t){
+        return '<div style="background:'+t[3]+';border:1px solid '+t[4]+';border-radius:var(--r-md);padding:13px 15px;">'
+          +'<div style="font-size:10.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:'+t[6]+';margin-bottom:5px;">'+t[0]+'</div>'
+          +'<div style="font-size:19px;font-weight:600;color:'+t[5]+';'+NUM+'">'+t[1]+'</div>'
+          +'<div style="font-size:10.5px;color:'+t[6]+';margin-top:2px;">'+t[2]+'</div>'
+        +'</div>';
+      }).join('')
+    +'</div>';
+
+    // tableau mensuel
+    h+='<div style="border:1px solid var(--border);border-radius:var(--r-md);overflow:hidden;margin-bottom:16px;">'
+      +'<div style="padding:10px 14px;background:var(--bg);border-bottom:1px solid var(--border);font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--text-2);">Encaissements mois par mois</div>'
+      +'<table style="width:100%;border-collapse:collapse;">'
+      +'<tr style="border-bottom:1px solid var(--border);">'
+        +['Mois','Airbnb','Booking.com','Total encaissé','Versements'].map(function(c,i){
+          return '<th style="padding:7px 14px;text-align:'+(i?'right':'left')+';font-size:10px;font-weight:500;letter-spacing:.04em;text-transform:uppercase;color:var(--text-3);">'+c+'</th>';
+        }).join('')
+      +'</tr>';
+    parMois.forEach(function(b){
+      var cur=b.m===now.getMonth()&&annee===now.getFullYear();
+      var vide=b.n===0;
+      h+='<tr class="vir-mois" data-m="'+b.m+'" onclick="_toggleMoisVersements('+b.m+')" style="border-bottom:1px solid var(--border);cursor:'+(vide?'default':'pointer')+';'+(cur?'background:var(--accent-light);':'')+'">'
+        +'<td style="padding:7px 14px;font-size:12px;'+(cur?'font-weight:600;color:var(--accent);':'color:var(--text-2);')+'">'+(vide?'':'▸ ')+MOIS[b.m]+'</td>'
+        +'<td style="padding:7px 14px;text-align:right;font-size:12px;color:'+(b.air?AIR:'var(--text-3)')+';'+NUM+'">'+(b.air?eur(b.air):'—')+'</td>'
+        +'<td style="padding:7px 14px;text-align:right;font-size:12px;color:'+(b.bk?BK:'var(--text-3)')+';'+NUM+'">'+(b.bk?eur(b.bk):'—')+'</td>'
+        +'<td style="padding:7px 14px;text-align:right;font-size:12px;font-weight:600;color:'+(vide?'var(--text-3)':'var(--accent)')+';'+NUM+'">'+(vide?'—':eur(b.total))+'</td>'
+        +'<td style="padding:7px 14px;text-align:right;font-size:12px;color:var(--text-3);'+NUM+'">'+(b.n||'—')+'</td>'
+      +'</tr>'
+      +'<tr id="vir-detail-'+b.m+'" style="display:none;"><td colspan="5" style="padding:0;background:var(--bg);">'
+        +'<table style="width:100%;border-collapse:collapse;">'
+        +b.lignes.sort(function(x,y){return x.action_at.localeCompare(y.action_at);}).map(function(t){
+          var p=_plateformeDe(t);
+          return '<tr style="border-bottom:1px solid var(--border);">'
+            +'<td style="padding:6px 14px 6px 30px;font-size:11.5px;color:var(--text-2);'+NUM+'">'+new Date(t.action_at).toLocaleDateString('fr-FR')+'</td>'
+            +'<td style="padding:6px 10px;font-size:11.5px;"><span style="display:inline-block;width:7px;height:7px;border-radius:2px;background:'+(p==='airbnb'?AIR:(p==='booking'?BK:'#8A8880'))+';margin-right:6px;"></span>'+(t.payment_method_name||'')+'</td>'
+            +'<td style="padding:6px 10px;font-size:11.5px;color:var(--text-2);">'+(t.property_title||'')+'</td>'
+            +'<td style="padding:6px 10px;font-size:10.5px;color:var(--text-3);">'+(t.reservation_code||'')+'</td>'
+            +'<td style="padding:6px 14px;text-align:right;font-size:11.5px;font-weight:500;'+NUM+'">'+eur(_montantSigne(t))+'</td>'
+          +'</tr>';
+        }).join('')
+        +'</table>'
+      +'</td></tr>';
+    });
+    h+='<tr style="background:var(--bg);border-top:1.5px solid var(--border-strong);">'
+      +'<td style="padding:9px 14px;font-size:12px;font-weight:600;">Total '+annee+'</td>'
+      +'<td style="padding:9px 14px;text-align:right;font-size:12px;font-weight:600;'+NUM+'">'+eur(tAir)+'</td>'
+      +'<td style="padding:9px 14px;text-align:right;font-size:12px;font-weight:600;'+NUM+'">'+eur(tBk)+'</td>'
+      +'<td style="padding:9px 14px;text-align:right;font-size:12.5px;font-weight:600;color:var(--accent);'+NUM+'">'+eur(tTot)+'</td>'
+      +'<td style="padding:9px 14px;text-align:right;font-size:12px;font-weight:600;color:var(--text-3);'+NUM+'">'+tx.length+'</td>'
+    +'</tr></table></div>';
+
+    // rapprochement avec les revenus des sejours
+    var mc=now.getMonth();
+    var encaisseMois=parMois[mc].total;
+    var sejoursMois=S.reservations.filter(function(r){
+      if(!r.check_in||r.status==='cancelled')return false;
+      var ci=new Date(r.check_in+'T00:00:00');
+      return ci.getFullYear()===annee&&ci.getMonth()===mc;
+    }).reduce(function(s,r){
+      var b=r.amount||0; if(!b)return s;
+      var c=parseFloat(r.commission);
+      return s+(!isNaN(c)&&c>0?b-c:b);
+    },0);
+    if(annee===now.getFullYear()){
+      h+='<div style="border:1px solid #E5B84B;background:#FDF6E3;border-radius:var(--r-md);padding:13px 16px;">'
+        +'<div style="font-size:10.5px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#6B4E0B;margin-bottom:8px;">Pourquoi ce chiffre diffère du tableau de bord</div>'
+        +'<div style="display:flex;gap:24px;flex-wrap:wrap;margin-bottom:9px;">'
+          +'<div><div style="font-size:11px;color:#8A6A12;">Encaissé en '+MOIS[mc].toLowerCase()+'</div><div style="font-size:17px;font-weight:600;color:#6B4E0B;'+NUM+'">'+eur(encaisseMois)+'</div></div>'
+          +'<div><div style="font-size:11px;color:#8A6A12;">Séjours démarrant en '+MOIS[mc].toLowerCase()+'</div><div style="font-size:17px;font-weight:600;color:#6B4E0B;'+NUM+'">'+eur(sejoursMois)+'</div></div>'
+        +'</div>'
+        +'<div style="font-size:11.5px;color:#6B4E0B;line-height:1.6;">'
+          +'Ces deux montants ne peuvent pas coïncider : le tableau de bord compte les <b>séjours qui commencent</b> dans le mois, cette page compte l’<b>argent réellement reçu</b>. '
+          +'Airbnb verse environ 24 h après l’arrivée, Booking.com selon son propre calendrier — un séjour de fin de mois est donc encaissé le mois suivant, et un versement de ce mois-ci peut couvrir un séjour du mois précédent. '
+          +'Pour ta comptabilité, c’est <b>cette page</b> qui fait foi.'
+        +'</div>'
+      +'</div>';
+    }
+
+    corps.innerHTML=h;
+  }).catch(function(e){
+    var corps=document.getElementById('vir-corps');
+    if(corps)corps.innerHTML='<div style="border:1px solid #E8B5A8;background:#FBEEEA;border-radius:var(--r-md);padding:18px;">'
+      +'<div style="font-size:13px;font-weight:600;color:#8C3521;margin-bottom:5px;">Journal des versements indisponible</div>'
+      +'<div style="font-size:12.5px;color:#A8382A;line-height:1.6;">Hostex n’a pas répondu : '+(e.message||'erreur inconnue')+'</div></div>';
   });
-  html+='<tr style="background:#f0fdf4;font-weight:700;border-top:2px solid #0F6E56;"><td style="padding:8px;">Total '+yr+'</td><td></td><td></td><td style="padding:8px;text-align:right;color:#0F6E56;">'+totalAnnee+'€</td><td></td></tr>';
-  html+='</table>';
-  html+='<div style="margin-top:20px;padding:14px;background:#fff9e6;border:1px solid #fcd34d;border-radius:10px;font-size:12px;color:#92400e;">Pour des chiffres exacts : <a href="https://www.airbnb.fr/hosting/earnings" target="_blank" style="color:#0F6E56;font-weight:600;">Airbnb → Revenus</a> · <a href="https://account.booking.com/finance/invoices" target="_blank" style="color:#0F6E56;font-weight:600;">Booking → Factures</a></div>';
-  html+='</div>';
-  el.innerHTML=html;
 }
+
+function _toggleMoisVersements(m){
+  var el=document.getElementById('vir-detail-'+m);
+  if(!el)return;
+  el.style.display=el.style.display==='none'?'table-row':'none';
+}
+
+function _exportVersementsCSV(){
+  var annee=S.virYear||new Date().getFullYear();
+  var tx=(S._tx&&S._tx[annee])||[];
+  if(!tx.length){showToast('Aucun versement à exporter');return;}
+  var lignes=[['Date','Plateforme','Logement','Code reservation','Montant EUR','Sens','Statut']];
+  tx.slice().sort(function(a,b){return a.action_at.localeCompare(b.action_at);}).forEach(function(t){
+    lignes.push([
+      new Date(t.action_at).toLocaleDateString('fr-FR'),
+      t.payment_method_name||'',
+      (t.property_title||'').replace(/;/g,' '),
+      t.reservation_code||'',
+      String(_montantSigne(t)).replace('.',','),
+      t.direction==='expense'?'depense':'recette',
+      t.status||''
+    ]);
+  });
+  var csv='﻿'+lignes.map(function(l){return l.join(';');}).join('\n');
+  var url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'}));
+  var a=document.createElement('a');
+  a.href=url; a.download='versements_'+annee+'.csv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(function(){URL.revokeObjectURL(url);},1000);
+  showToast('✓ '+tx.length+' versements exportés');
+}
+
 
 </script>
 <style>
