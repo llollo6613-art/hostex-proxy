@@ -1286,7 +1286,7 @@ function _barClick(i){
   box.dataset.idx=String(i);
   var past=window._dashPast||[];
   function nR(r){var brut=r.amount||0;if(!brut)return 0;var com=parseFloat(r.commission);if(!isNaN(com)&&com>0)return brut-com;if(r.net_amount&&r.net_amount>0)return r.net_amount;if(r.platform==="airbnb")com=brut*0.064;else if(r.platform==="booking.com"||r.platform==="booking")com=brut*0.163;else com=0;return brut-com;}
-  var mr=past.filter(function(r){if(!r.check_in||r.status==="cancelled")return false;var ci=new Date(r.check_in+"T00:00:00");return ci.getFullYear()===m.year&&ci.getMonth()===m.month;});
+  var mr=past.filter(function(r){if(!r.check_in||r.status==="cancelled")return false;var d=_dateVersement(r);return d&&d.getFullYear()===m.year&&d.getMonth()===m.month;});
   var airR=mr.filter(function(r){return platClass(r.platform)==="airbnb";}).reduce(function(s,r){return s+nR(r);},0);
   var bkR=mr.filter(function(r){return platClass(r.platform)==="booking";}).reduce(function(s,r){return s+nR(r);},0);
   box.style.display="block";
@@ -1314,7 +1314,7 @@ function _barOut(){
   var now=new Date();
   function nR(r){var brut=r.amount||0;if(!brut)return 0;var com=parseFloat(r.commission);if(!isNaN(com)&&com>0)return brut-com;if(r.net_amount&&r.net_amount>0)return r.net_amount;if(r.platform==="airbnb")com=brut*0.064;else if(r.platform==="booking.com"||r.platform==="booking")com=brut*0.163;else com=0;return brut-com;}
   function prorataY(r){var ci=new Date(r.check_in+'T00:00:00'),co=new Date(r.check_out+'T00:00:00'),dm=new Date(now.getFullYear(),0,1),fm=new Date(now),debut=Math.max(ci,dm),fin=Math.min(co,fm),nt=Math.round((co-ci)/86400000),nm=Math.round((fin-debut)/86400000);return nt>0?nm/nt:1;}
-  var yr=past.filter(function(r){var d=new Date(r.check_in+"T00:00:00");return d.getFullYear()===now.getFullYear()&&d<=now;}).reduce(function(s,r){return s+nR(r)*prorataY(r);},0);
+  var yr=past.filter(function(r){var d=_dateVersement(r);return d&&d.getFullYear()===now.getFullYear()&&d<=now;}).reduce(function(s,r){return s+nR(r)*prorataY(r);},0);
   var tt=document.getElementById("btt");
   if(tt)tt.innerHTML=Math.round(yr).toLocaleString("fr-FR")+" \u20ac encaiss\u00e9";
   for(var j=0;j<12;j++){var b=document.getElementById("bf"+j);if(b)b.style.opacity="";}
@@ -1333,10 +1333,10 @@ function _showMonthDetail(type){
 
   if(type==="month"||type==="year"){
     var maxV=1;
-    for(var mx=0;mx<12;mx++){var v=past.filter(function(r){var d=new Date(r.check_in+"T00:00:00");return d.getMonth()===mx&&d.getFullYear()===now.getFullYear();}).reduce(function(s,r){return s+nR(r);},0);if(v>maxV)maxV=v;}
+    for(var mx=0;mx<12;mx++){var v=past.filter(function(r){var d=_dateVersement(r);return d&&d.getMonth()===mx&&d.getFullYear()===now.getFullYear();}).reduce(function(s,r){return s+nR(r);},0);if(v>maxV)maxV=v;}
     var rows="";
     for(var m=0;m<12;m++){
-      var mr=past.filter(function(r){if(!r.check_in||r.status==="cancelled")return false;var ci=new Date(r.check_in+"T00:00:00");return ci.getFullYear()===now.getFullYear()&&ci.getMonth()===m;});
+      var mr=past.filter(function(r){if(!r.check_in||r.status==="cancelled")return false;var d=_dateVersement(r);return d&&d.getFullYear()===now.getFullYear()&&d.getMonth()===m;});
       var rev=mr.reduce(function(s,r){return s+nR(r);},0);
       var isCur=m===now.getMonth();
       var pct=Math.round(rev/maxV*100);
@@ -1680,7 +1680,7 @@ function checkConflicts(){
 function _showRevPct(rev,m,past2,now2,netRev4fn){
   var mx=1;
   for(var mm3=0;mm3<12;mm3++){
-    var v=past2.filter(function(r){var d=new Date(r.check_in+"T00:00:00");return d.getMonth()===mm3&&d.getFullYear()===now2.getFullYear();}).reduce(function(s,r){return s+netRev4fn(r);},0);
+    var v=past2.filter(function(r){var d=_dateVersement(r);return d&&d.getMonth()===mm3&&d.getFullYear()===now2.getFullYear();}).reduce(function(s,r){return s+netRev4fn(r);},0);
     if(v>mx)mx=v;
   }
   return Math.round(rev/mx*100);
@@ -1689,7 +1689,7 @@ function _showRevPct(rev,m,past2,now2,netRev4fn){
 function _showRevPct(rev,m,past2,now2,netRev4fn){
   var mx=1;
   for(var mm3=0;mm3<12;mm3++){
-    var v=past2.filter(function(r){var d=new Date(r.check_in+"T00:00:00");return d.getMonth()===mm3&&d.getFullYear()===now2.getFullYear();}).reduce(function(s,r){return s+netRev4fn(r);},0);
+    var v=past2.filter(function(r){var d=_dateVersement(r);return d&&d.getMonth()===mm3&&d.getFullYear()===now2.getFullYear();}).reduce(function(s,r){return s+netRev4fn(r);},0);
     if(v>mx)mx=v;
   }
   return Math.round(rev/mx*100);
@@ -1698,7 +1698,7 @@ function _showRevPct(rev,m,past2,now2,netRev4fn){
 function _showRevPct(rev,m,past2,now2,netRev4fn){
   var mx=1;
   for(var mm3=0;mm3<12;mm3++){
-    var v=past2.filter(function(r){var d=new Date(r.check_in+"T00:00:00");return d.getMonth()===mm3&&d.getFullYear()===now2.getFullYear();}).reduce(function(s,r){return s+netRev4fn(r);},0);
+    var v=past2.filter(function(r){var d=_dateVersement(r);return d&&d.getMonth()===mm3&&d.getFullYear()===now2.getFullYear();}).reduce(function(s,r){return s+netRev4fn(r);},0);
     if(v>mx)mx=v;
   }
   return Math.round(rev/mx*100);
@@ -1707,7 +1707,7 @@ function _showRevPct(rev,m,past2,now2,netRev4fn){
 function _showRevPct(rev,m,past2,now2,netRev4fn){
   var mx=1;
   for(var mm3=0;mm3<12;mm3++){
-    var v=past2.filter(function(r){var d=new Date(r.check_in+"T00:00:00");return d.getMonth()===mm3&&d.getFullYear()===now2.getFullYear();}).reduce(function(s,r){return s+netRev4fn(r);},0);
+    var v=past2.filter(function(r){var d=_dateVersement(r);return d&&d.getMonth()===mm3&&d.getFullYear()===now2.getFullYear();}).reduce(function(s,r){return s+netRev4fn(r);},0);
     if(v>mx)mx=v;
   }
   return Math.round(rev/mx*100);
@@ -1736,7 +1736,7 @@ function renderDash(){
   var monthRes=past.filter(function(r){if(!r.check_in||r.status==="cancelled")return false;var d=_dateVersement(r);return d&&d.getFullYear()===now.getFullYear()&&d.getMonth()===now.getMonth();});
   var monthOverlap=past.filter(function(r){if(!r.check_in||!r.check_out||r.status==="cancelled")return false;var dm=new Date(now.getFullYear(),now.getMonth(),1),fm=new Date(now.getFullYear(),now.getMonth()+1,1);return new Date(r.check_in+"T00:00:00")<fm&&new Date(r.check_out+"T00:00:00")>dm;});
   var monthRev=monthRes.reduce(function(s,r){return s+netRev(r);},0);
-  var yearRes=past.filter(function(r){var d=new Date(r.check_in+"T00:00:00");return d.getFullYear()===now.getFullYear()&&d<=now;});
+  var yearRes=past.filter(function(r){var d=_dateVersement(r);return d&&d.getFullYear()===now.getFullYear()&&d<=now;});
   var yearRev=yearRes.reduce(function(s,r){return s+netRev(r);},0);
   var unread=_nbNonLus();
   var upcoming=past.filter(function(r){return r.check_in>=todayStr;}).sort(function(a,b){return a.check_in.localeCompare(b.check_in);});
@@ -1765,7 +1765,7 @@ function renderDash(){
   var monthData=[];
   for(var mi=11;mi>=0;mi--){
     var md=new Date(now.getFullYear(),now.getMonth()-mi,1);
-    var mr=past.filter(function(r){if(!r.check_in||r.status==="cancelled")return false;var ci=new Date(r.check_in+"T00:00:00");return ci.getFullYear()===md.getFullYear()&&ci.getMonth()===md.getMonth();});
+    var mr=past.filter(function(r){if(!r.check_in||r.status==="cancelled")return false;var d=_dateVersement(r);return d&&d.getFullYear()===md.getFullYear()&&d.getMonth()===md.getMonth();});
     var rev=mr.reduce(function(s,r){return s+netRev(r);},0);
     monthData.push({lbl:MONTHS[md.getMonth()],full:MFULL[md.getMonth()]+" "+md.getFullYear(),rev:Math.round(rev),count:mr.length,isCur:mi===0,isFut:md>now,month:md.getMonth(),year:md.getFullYear()});
   }
