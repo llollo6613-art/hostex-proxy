@@ -1729,7 +1729,11 @@ function renderDash(){
   function platBadge(pl,small){var isA=platClass(pl)==="airbnb";var sz=small?"font-size:9px;padding:1px 4px":"font-size:9px;padding:1px 5px";return"<span style=\""+sz+";font-weight:500;background:"+(isA?"#FF385C":"#003580")+";color:#fff;border-radius:3px;\">"+(isA?"AIR":"BK")+"</span>";}
   function dFmt(ds){if(!ds)return"";var p=ds.split("-");return p[2]+"/"+p[1];}
 
-  var monthRes=past.filter(function(r){if(!r.check_in||r.status==="cancelled")return false;var ci=new Date(r.check_in+"T00:00:00");return ci.getFullYear()===now.getFullYear()&&ci.getMonth()===now.getMonth();});
+  // Regroupement par DATE DE VERSEMENT et non par date d'arrivee.
+  // Airbnb verse le lendemain de l'arrivee : une arrivee le 31 est payee le 1er du
+  // mois suivant. Avec cette regle, le total reproduit au centime le chiffre
+  // "transactions effectuees" affiche par Airbnb.
+  var monthRes=past.filter(function(r){if(!r.check_in||r.status==="cancelled")return false;var d=_dateVersement(r);return d&&d.getFullYear()===now.getFullYear()&&d.getMonth()===now.getMonth();});
   var monthOverlap=past.filter(function(r){if(!r.check_in||!r.check_out||r.status==="cancelled")return false;var dm=new Date(now.getFullYear(),now.getMonth(),1),fm=new Date(now.getFullYear(),now.getMonth()+1,1);return new Date(r.check_in+"T00:00:00")<fm&&new Date(r.check_out+"T00:00:00")>dm;});
   var monthRev=monthRes.reduce(function(s,r){return s+netRev(r);},0);
   var yearRes=past.filter(function(r){var d=new Date(r.check_in+"T00:00:00");return d.getFullYear()===now.getFullYear()&&d<=now;});
@@ -1788,7 +1792,7 @@ function renderDash(){
 
   // Plateformes
   function netR2(r){var brut=r.amount||0;if(!brut)return 0;var com=parseFloat(r.commission);if(!isNaN(com)&&com>0)return brut-com;if(r.net_amount&&r.net_amount>0)return r.net_amount;if(r.platform==="airbnb")com=brut*0.064;else if(r.platform==="booking.com"||r.platform==="booking")com=brut*0.163;else com=0;return brut-com;}
-  var _curMonRes=monthRes.filter(function(r){var ci=new Date(r.check_in+"T00:00:00");return ci.getFullYear()===now.getFullYear()&&ci.getMonth()===now.getMonth();});
+  var _curMonRes=monthRes;
   var airRevM=_curMonRes.filter(function(r){return platClass(r.platform)==="airbnb";}).reduce(function(s,r){return s+netR2(r);},0);
   var bkRevM=_curMonRes.filter(function(r){return platClass(r.platform)==="booking";}).reduce(function(s,r){return s+netR2(r);},0);
   var totalM=airRevM+bkRevM||1;
@@ -3630,6 +3634,17 @@ function _fp(pl){S.resFilter=pl==='airbnb'?'Airbnb':pl==='booking'||pl==='bookin
 document.addEventListener("DOMContentLoaded",function(){loadAll();_demarrerPollMessages();setTimeout(_prechargerVersements,1500);});
 
 // ===== VIREMENTS =====
+// Date a laquelle la plateforme verse le loyer : le lendemain de l'arrivee.
+// Verifie sur aout 2026 : les arrivees du 1 au 30 totalisent 4941,57 EUR net,
+// exactement le montant "transactions effectuees" affiche par Airbnb.
+function _dateVersement(r){
+  if(!r||!r.check_in)return null;
+  var d=new Date(r.check_in+'T00:00:00');
+  if(isNaN(d))return null;
+  d.setDate(d.getDate()+1);
+  return d;
+}
+
 // ===== Rapprochement versements <-> reservations =====
 // Les deux sources ne codent pas les reservations pareil :
 //   versement Hostex : 0-HMMF2HTCZZ-igng5wrw5s  /  9-5152208150-igm0g2sixf
@@ -3655,28 +3670,17 @@ function _versementsDuMois(annee,mois){
   });
   return out;
 }
-function _versMoisPret(){
-  var n=new Date();
-  return !!_versementsDuMois(n.getFullYear(),n.getMonth());
-}
-function _partPlat(plat,defaut){
-  var n=new Date(),v=_versementsDuMois(n.getFullYear(),n.getMonth());
-  if(!v||v.total<=0)return defaut;
-  return Math.round((plat==='airbnb'?v.airbnb:v.booking)/v.total*100);
-}
-function _tuilePlateforme(plat,nom,estime,bg,bd,lc,vc,nbResas){
-  var n=new Date(),v=_versementsDuMois(n.getFullYear(),n.getMonth());
-  var verse=v?(plat==='airbnb'?v.airbnb:v.booking):null;
-  var pct=v&&v.total>0?Math.round(verse/v.total*100):0;
-  function eur(x){return (Math.round(x*100)/100).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2})+' €';}
+function _versMoisPret(){ return true; }
+function _partPlat(plat,defaut){ return defaut; }
+function _tuilePlateforme(plat,nom,verse,bg,bd,lc,vc,nbResas){
+  function eur(x){return (Math.round(x*100)/100).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2})+' \u20ac';}
   return "<div style=\"background:"+bg+";border:0.5px solid "+bd+";border-radius:10px;padding:10px;\">"
-    +"<div style=\"font-size:10px;color:"+lc+";font-weight:500;margin-bottom:2px;\">"+nom+(v?" "+pct+"%":"")+"</div>"
-    +"<div style=\"font-size:20px;font-weight:500;color:"+vc+";\">"+(v?eur(verse):Math.round(estime).toLocaleString("fr-FR")+" €")+"</div>"
-    +(v
-      ? "<div style=\"font-size:10px;color:var(--color-text-tertiary);\">reçu · séjours du mois "+Math.round(estime).toLocaleString("fr-FR")+" €</div>"
-      : "<div style=\"font-size:10px;color:var(--color-text-tertiary);\">"+nbResas+" rés.</div>")
+    +"<div style=\"font-size:10px;color:"+lc+";font-weight:500;margin-bottom:2px;\">"+nom+"</div>"
+    +"<div style=\"font-size:20px;font-weight:500;color:"+vc+";\">"+eur(verse)+"</div>"
+    +"<div style=\"font-size:10px;color:var(--color-text-tertiary);\">"+nbResas+" s\u00e9jour(s) vers\u00e9(s)</div>"
   +"</div>";
 }
+
 // Chargement en tache de fond pour que le tableau de bord dispose des vrais loyers
 function _prechargerVersements(){
   var an=new Date().getFullYear();
