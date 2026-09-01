@@ -3634,14 +3634,20 @@ function _fp(pl){S.resFilter=pl==='airbnb'?'Airbnb':pl==='booking'||pl==='bookin
 document.addEventListener("DOMContentLoaded",function(){loadAll();_demarrerPollMessages();setTimeout(_prechargerVersements,1500);});
 
 // ===== VIREMENTS =====
-// Date a laquelle la plateforme verse le loyer : le lendemain de l'arrivee.
-// Verifie sur aout 2026 : les arrivees du 1 au 30 totalisent 4941,57 EUR net,
-// exactement le montant "transactions effectuees" affiche par Airbnb.
+// Date a laquelle la plateforme verse le loyer. Elle differe selon la plateforme,
+// c'est pourquoi un regroupement unique ne pouvait coller aux deux a la fois.
+//   Airbnb  : lendemain de l'ARRIVEE. Verifie sur aout 2026 -> 4941,57 EUR, soit
+//             exactement le "transactions effectuees" affiche par Airbnb.
+//   Booking : 4 jours apres le DEPART. Cale sur les releves Booking 2026 :
+//             avril 1126,01 vs 1126,04 ; mars 1023,23 vs 1021,85 ; mai 360,36 vs 356,05.
 function _dateVersement(r){
   if(!r||!r.check_in)return null;
-  var d=new Date(r.check_in+'T00:00:00');
+  var p=(r.platform||'').toLowerCase(),base,dec;
+  if(p.indexOf('booking')>=0){ base=r.check_out||r.check_in; dec=4; }
+  else { base=r.check_in; dec=1; }
+  var d=new Date(base+'T00:00:00');
   if(isNaN(d))return null;
-  d.setDate(d.getDate()+1);
+  d.setDate(d.getDate()+dec);
   return d;
 }
 
