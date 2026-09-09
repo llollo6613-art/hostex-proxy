@@ -2535,7 +2535,10 @@ async function _applyBaseRules(propId){
     if(r.minStay>0)await api('/listings/restrictions','POST',{property_id:propId,min_nights:r.minStay});
     showToast('✓ '+airPrices.length+' jours synchronisés sur Airbnb + Booking');
   }catch(e){showToast('Partiel : '+e.message);}
-  S.ratesLoaded={};renderRates();
+  // Ne PAS vider ratesLoaded : cela rechargerait depuis l'API et écraserait les prix
+  // qu'on vient d'appliquer (Hostex peut mettre du temps à les refléter). On garde
+  // S.ratesPrices déjà à jour et on re-render simplement.
+  renderRates();
 }
 
 async function _saveBookingOptions(propId){
