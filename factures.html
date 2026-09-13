@@ -51,9 +51,9 @@ tr:hover td{background:#fafafa;}
   <div class="drop" id="drop" onclick="document.getElementById('fileInput').click()">
     <div style="font-size:32px;">📷</div>
     <div style="font-weight:600;margin-top:6px;">Ajouter une facture</div>
-    <div class="mini" style="margin-top:3px;">Prenez une photo ou choisissez un fichier — l'IA lira le montant, la date et le fournisseur</div>
+    <div class="mini" style="margin-top:3px;">Photo ou PDF — l'IA lira le montant, la date et le fournisseur</div>
   </div>
-  <input type="file" id="fileInput" accept="image/*" capture="environment" style="display:none" onchange="handleFile(event)">
+  <input type="file" id="fileInput" accept="image/*,application/pdf" style="display:none" onchange="handleFile(event)">
 </div>
 
 <div class="card" id="editCard" style="display:none;">
@@ -122,6 +122,7 @@ var CAT_COLORS = {'Travaux':'#DC2626','Mobilier':'#7C3AED','Consommables':'#F59E
 var factures = [];
 var currentBien = (new URLSearchParams(location.search).get('bien')) || 'elne';
 var pendingImg = null;
+var pendingPdfName = '';
 
 function toast(m){var t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(function(){t.classList.remove('show');},2600);}
 function catColor(cat){var k=Object.keys(CAT_COLORS).find(function(x){return (cat||'').indexOf(x)===0;});return CAT_COLORS[k]||'#6B7280';}
@@ -147,14 +148,23 @@ function handleFile(ev){
   var drop=document.getElementById('drop');
   drop.classList.add('busy');
   drop.querySelector('div:nth-child(2)').textContent='Lecture en cours…';
+  var isPdf = file.type==='application/pdf' || /\.pdf$/i.test(file.name);
   var reader=new FileReader();
   reader.onload=function(e){
     var dataUrl=e.target.result;
-    // Compresser l'image avant stockage
-    compressImage(dataUrl, function(compressed){
-      pendingImg=compressed;
-      runOCR(dataUrl.split(',')[1], file.type);
-    });
+    var base64=dataUrl.split(',')[1];
+    if(isPdf){
+      // PDF : pas de vignette image, on garde un marqueur ; OCR via type document
+      pendingImg='';           // pas de miniature pour les PDF (trop lourd à stocker)
+      pendingPdfName=file.name;
+      runOCR(base64, 'application/pdf', true);
+    } else {
+      compressImage(dataUrl, function(compressed){
+        pendingImg=compressed;
+        pendingPdfName='';
+        runOCR(base64, file.type, false);
+      });
+    }
   };
   reader.readAsDataURL(file);
 }
@@ -172,14 +182,16 @@ function compressImage(dataUrl, cb){
   img.src=dataUrl;
 }
 
-async function runOCR(base64, mediaType){
+async function runOCR(base64, mediaType, isPdf){
   document.getElementById('ocrStatus').textContent='';
   try{
     var body={
       model:'claude-sonnet-4-6',
       max_tokens:400,
       messages:[{role:'user',content:[
-        {type:'image',source:{type:'base64',media_type:mediaType||'image/jpeg',data:base64}},
+        isPdf
+          ? {type:'document',source:{type:'base64',media_type:'application/pdf',data:base64}}
+          : {type:'image',source:{type:'base64',media_type:mediaType||'image/jpeg',data:base64}},
         {type:'text',text:'Analyse cette facture. Réponds UNIQUEMENT en JSON strict sans texte autour, avec ces champs : {"date":"YYYY-MM-DD","montant":nombre,"tva":nombre,"fournisseur":"nom","categorie":"une parmi: Travaux - Toiture, Travaux - Plomberie, Travaux - Électricité, Travaux - Peinture, Travaux - Général, Mobilier / Équipement, Consommables, Ménage / Blanchisserie, Assurance, Taxe / Impôt, Énergie (eau, élec, gaz), Honoraires (comptable, notaire), Autre"}. Si une info est absente, mets null. Le montant est le TTC.'}
       ]}]
     };
@@ -222,7 +234,8 @@ async function saveFacture(){
     categorie:document.getElementById('f-categorie').value,
     bien:document.getElementById('f-bien').value,
     note:document.getElementById('f-note').value||'',
-    img:pendingImg||''
+    img:pendingImg||'',
+    pdf:pendingPdfName||''
   };
   if(!f.montant){toast('Montant manquant');return;}
   factures.push(f);
@@ -281,7 +294,7 @@ function render(){
   else{
     tb.innerHTML=list.map(function(f){
       var bienName=(BIENS.find(function(b){return b.id===f.bien;})||{}).name||f.bien;
-      var thumb=f.img?'<img src="'+f.img+'" class="thumb" onclick="showImg(\''+f.id+'\')">':'';
+      var thumb=f.img?'<img src="'+f.img+'" class="thumb" onclick="showImg(\''+f.id+'\')">':(f.pdf?'<span style="font-size:20px;">📄</span>':'');
       return '<tr><td>'+thumb+'</td><td>'+(f.date||'')+'</td><td>'+f.fournisseur+'</td>'
         +'<td><span class="cat" style="background:'+catColor(f.categorie)+'">'+f.categorie+'</span></td>'
         +'<td>'+bienName+'</td>'
