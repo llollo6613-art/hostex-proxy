@@ -65,21 +65,7 @@ tr:hover td{background:#fafafa;}
   <div class="row" style="margin-bottom:10px;">
     <div style="flex:1;min-width:130px;"><label>Fournisseur</label><input type="text" id="f-fournisseur" placeholder="Nom de l'entreprise"></div>
     <div style="flex:1;min-width:130px;"><label>Catégorie</label>
-      <select id="f-categorie">
-        <option>Travaux - Toiture</option>
-        <option>Travaux - Plomberie</option>
-        <option>Travaux - Électricité</option>
-        <option>Travaux - Peinture</option>
-        <option>Travaux - Général</option>
-        <option>Mobilier / Équipement</option>
-        <option>Consommables</option>
-        <option>Ménage / Blanchisserie</option>
-        <option>Assurance</option>
-        <option>Taxe / Impôt</option>
-        <option>Énergie (eau, élec, gaz)</option>
-        <option>Honoraires (comptable, notaire)</option>
-        <option>Autre</option>
-      </select>
+      <select id="f-categorie"></select>
     </div>
   </div>
   <div class="row" style="margin-bottom:12px;">
@@ -118,15 +104,47 @@ var BIENS = [
   {id:'elne', name:'Elne (immeuble)'},
   {id:'soler', name:'Le Soler'},
 ];
-var CAT_COLORS = {'Travaux':'#DC2626','Mobilier':'#7C3AED','Consommables':'#F59E0B','Ménage':'#0891B2','Assurance':'#059669','Taxe':'#4B5563','Énergie':'#2563EB','Honoraires':'#DB2777','Autre':'#6B7280'};
-var CATEGORIES = ['Travaux - Toiture','Travaux - Plomberie','Travaux - Électricité','Travaux - Peinture','Travaux - Général','Mobilier / Équipement','Consommables','Ménage / Blanchisserie','Assurance','Taxe / Impôt','Énergie (eau, élec, gaz)','Honoraires (comptable, notaire)','Autre'];
+var CAT_DEF = {
+  'Entretien & réparations':{c:'#DC2626',f:'Déductible',d:0},
+  'Ménage / Blanchisserie':{c:'#0891B2',f:'Déductible',d:0},
+  'Consommables & petit équipement':{c:'#F59E0B',f:'Déductible',d:0},
+  'Eau':{c:'#0EA5E9',f:'Déductible',d:0},
+  'Électricité':{c:'#EAB308',f:'Déductible',d:0},
+  'Gaz / Chauffage':{c:'#F97316',f:'Déductible',d:0},
+  'Internet / Télécom':{c:'#0D9488',f:'Déductible',d:0},
+  'Assurance (PNO, GLI...)':{c:'#059669',f:'Déductible',d:0},
+  'Taxe foncière':{c:'#4B5563',f:'Déductible',d:0},
+  'CFE / Cotisations':{c:'#6B7280',f:'Déductible',d:0},
+  'Charges de copropriété':{c:'#78716C',f:'Déductible',d:0},
+  'Honoraires (comptable, notaire, avocat)':{c:'#DB2777',f:'Déductible',d:0},
+  'Frais de gestion / conciergerie':{c:'#9333EA',f:'Déductible',d:0},
+  'Commissions plateformes (Airbnb, Booking)':{c:'#EC4899',f:'Déductible',d:0},
+  'Frais bancaires':{c:'#64748B',f:'Déductible',d:0},
+  "Intérêts d'emprunt":{c:'#475569',f:'Déductible',d:0},
+  'Publicité / Annonces':{c:'#D946EF',f:'Déductible',d:0},
+  'Travaux - Toiture':{c:'#B91C1C',f:'Amortissable',d:25},
+  'Travaux - Gros œuvre / Structure':{c:'#991B1B',f:'Amortissable',d:40},
+  'Travaux - Plomberie':{c:'#DC2626',f:'Amortissable',d:15},
+  'Travaux - Électricité':{c:'#EF4444',f:'Amortissable',d:15},
+  'Travaux - Chauffage / Clim':{c:'#F87171',f:'Amortissable',d:15},
+  'Travaux - Peinture / Revêtements':{c:'#FB923C',f:'Amortissable',d:10},
+  'Travaux - Agencement / Aménagement':{c:'#EA580C',f:'Amortissable',d:10},
+  'Travaux - Salle de bain / Cuisine':{c:'#C2410C',f:'Amortissable',d:15},
+  'Mobilier & Literie':{c:'#7C3AED',f:'Amortissable',d:7},
+  'Électroménager':{c:'#6D28D9',f:'Amortissable',d:7},
+  'Matériel & Équipement (>600€)':{c:'#5B21B6',f:'Amortissable',d:5},
+  'Décoration / Équipement thématique':{c:'#8B5CF6',f:'Amortissable',d:7},
+  'Autre':{c:'#6B7280',f:'À qualifier',d:0}
+};
+var CATEGORIES = Object.keys(CAT_DEF);
+function catColor(cat){var d=CAT_DEF[cat];if(d)return d.c;var k=Object.keys(CAT_DEF).find(function(x){return x.split(' ')[0]===(cat||'').split(' ')[0];});return k?CAT_DEF[k].c:'#6B7280';}
+function catFiscal(cat){var d=CAT_DEF[cat];if(!d)return {label:'À qualifier',years:0};return {label:d.d>0?('Amortissable '+d.d+' ans'):d.f,years:d.d};}
 var factures = [];
 var currentBien = (new URLSearchParams(location.search).get('bien')) || 'elne';
 var pendingImg = null;
 var pendingPdfName = '';
 
 function toast(m){var t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(function(){t.classList.remove('show');},2600);}
-function catColor(cat){var k=Object.keys(CAT_COLORS).find(function(x){return (cat||'').indexOf(x)===0;});return CAT_COLORS[k]||'#6B7280';}
 
 // Charger la liste des biens custom depuis localStorage (créés dans revenue)
 function loadBiens(){
@@ -140,6 +158,9 @@ function loadBiens(){
   // Selects
   var opts=BIENS.map(function(b){return '<option value="'+b.id+'">'+b.name+'</option>';}).join('');
   document.getElementById('f-bien').innerHTML=opts;
+  // Remplir le select catégories
+  var catSel=document.getElementById('f-categorie');
+  if(catSel && !catSel.innerHTML){catSel.innerHTML=CATEGORIES.map(function(cat){return '<option>'+cat+'</option>';}).join('');}
 }
 function selectBien(id){currentBien=id;loadBiens();render();}
 
@@ -193,7 +214,7 @@ async function runOCR(base64, mediaType, isPdf){
     +'Identifie CHAQUE facture distincte et extrais ses informations. '
     +'Réponds UNIQUEMENT avec un tableau JSON (commençant par [ et finissant par ]), sans texte ni balises autour. '
     +'Format : [{"date":"YYYY-MM-DD","montant":nombre_TTC,"tva":nombre_ou_null,"fournisseur":"nom entreprise","categorie":"...","note":"n° facture ou détail"}]. '
-    +'Pour la catégorie, choisis STRICTEMENT parmi : Travaux - Toiture, Travaux - Plomberie, Travaux - Électricité, Travaux - Peinture, Travaux - Général, Mobilier / Équipement, Consommables, Ménage / Blanchisserie, Assurance, Taxe / Impôt, Énergie (eau, élec, gaz), Honoraires (comptable, notaire), Autre. '
+    +'Pour la catégorie, choisis STRICTEMENT parmi : '+CATEGORIES.join(', ')+'. '
     +'Le montant est le TOTAL TTC en euros (nombre sans symbole). La date est la date de la facture. '
     +'Si une seule facture, renvoie un tableau d\'un seul élément. Si une info est absente, mets null. Ne mets JAMAIS de texte hors du tableau JSON.';
   try{
@@ -414,21 +435,29 @@ function exportExcel(){
 
   var wb=XLSX.utils.book_new();
   // Feuille 1 : détail
-  var rows=list.map(function(f){return {
+  var rows=list.map(function(f){var fisc=catFiscal(f.categorie);return {
     'Date':f.date,'Fournisseur':f.fournisseur,'Catégorie':f.categorie,
+    'Traitement fiscal':fisc.label,'Durée amort. (ans)':fisc.years||'',
     'Montant TTC (€)':f.montant,'dont TVA (€)':f.tva||0,'HT (€)':Math.round((f.montant-(f.tva||0))*100)/100,
+    'Amort. annuel (€)':fisc.years>0?Math.round((f.montant/fisc.years)*100)/100:'',
     'Bien':bienName,'Note':f.note||''
   };});
   var ws=XLSX.utils.json_to_sheet(rows);
-  ws['!cols']=[{wch:12},{wch:24},{wch:22},{wch:15},{wch:12},{wch:12},{wch:18},{wch:24}];
+  ws['!cols']=[{wch:12},{wch:24},{wch:30},{wch:18},{wch:14},{wch:15},{wch:12},{wch:12},{wch:15},{wch:18},{wch:24}];
   XLSX.utils.book_append_sheet(wb,ws,'Factures');
   // Feuille 2 : récap par catégorie
   var byCat={};
   list.forEach(function(f){if(!byCat[f.categorie])byCat[f.categorie]={ttc:0,tva:0,n:0};byCat[f.categorie].ttc+=f.montant;byCat[f.categorie].tva+=(f.tva||0);byCat[f.categorie].n++;});
-  var recap=Object.keys(byCat).sort().map(function(c){return {'Catégorie':c,'Nb factures':byCat[c].n,'Total TTC (€)':Math.round(byCat[c].ttc*100)/100,'Total TVA (€)':Math.round(byCat[c].tva*100)/100};});
-  recap.push({'Catégorie':'TOTAL','Nb factures':list.length,'Total TTC (€)':Math.round(list.reduce(function(s,f){return s+f.montant;},0)*100)/100,'Total TVA (€)':Math.round(list.reduce(function(s,f){return s+(f.tva||0);},0)*100)/100});
+  var recap=Object.keys(byCat).sort().map(function(cat){var fisc=catFiscal(cat);return {'Catégorie':cat,'Traitement fiscal':fisc.label,'Nb factures':byCat[cat].n,'Total TTC (€)':Math.round(byCat[cat].ttc*100)/100,'Total TVA (€)':Math.round(byCat[cat].tva*100)/100};});
+  // Sous-totaux par traitement fiscal
+  var totalDeduc=0,totalAmort=0;
+  list.forEach(function(f){var fisc=catFiscal(f.categorie);if(fisc.years>0)totalAmort+=f.montant;else totalDeduc+=f.montant;});
+  recap.push({'Catégorie':'','Traitement fiscal':'','Nb factures':'','Total TTC (€)':'','Total TVA (€)':''});
+  recap.push({'Catégorie':'— TOTAL DÉDUCTIBLE','Traitement fiscal':'Charges déductibles','Nb factures':'','Total TTC (€)':Math.round(totalDeduc*100)/100,'Total TVA (€)':''});
+  recap.push({'Catégorie':'— TOTAL AMORTISSABLE','Traitement fiscal':'Immobilisations','Nb factures':'','Total TTC (€)':Math.round(totalAmort*100)/100,'Total TVA (€)':''});
+  recap.push({'Catégorie':'TOTAL GÉNÉRAL','Traitement fiscal':'','Nb factures':list.length,'Total TTC (€)':Math.round((totalDeduc+totalAmort)*100)/100,'Total TVA (€)':Math.round(list.reduce(function(s,f){return s+(f.tva||0);},0)*100)/100});
   var ws2=XLSX.utils.json_to_sheet(recap);
-  ws2['!cols']=[{wch:26},{wch:12},{wch:15},{wch:15}];
+  ws2['!cols']=[{wch:30},{wch:20},{wch:12},{wch:15},{wch:15}];
   XLSX.utils.book_append_sheet(wb,ws2,'Récap catégories');
 
   var fname='Factures_'+bienName.replace(/[^a-zA-Z0-9]/g,'_')+'_'+(document.getElementById('filterYear').value||'toutes')+'.xlsx';
