@@ -144,6 +144,9 @@ function selectBien(id){currentBien=id;loadBiens();render();}
 
 function handleFile(ev){
   var file=ev.target.files[0];
+  processFile(file);
+}
+function processFile(file){
   if(!file)return;
   var drop=document.getElementById('drop');
   drop.classList.add('busy');
@@ -338,6 +341,23 @@ function exportExcel(){
   XLSX.writeFile(wb,fname);
   toast('✓ Excel exporté');
 }
+
+// Drag & drop sur toute la zone
+(function(){
+  var drop=document.getElementById('drop');
+  if(!drop)return;
+  ['dragenter','dragover','dragleave','drop'].forEach(function(evt){
+    drop.addEventListener(evt,function(e){e.preventDefault();e.stopPropagation();},false);
+    document.body.addEventListener(evt,function(e){e.preventDefault();},false);
+  });
+  drop.addEventListener('dragover',function(){drop.style.borderColor='#1F4E5F';drop.style.background='#eef4f7';});
+  drop.addEventListener('dragleave',function(){drop.style.borderColor='';drop.style.background='';});
+  drop.addEventListener('drop',function(e){
+    drop.style.borderColor='';drop.style.background='';
+    var files=e.dataTransfer.files;
+    if(files && files.length) processFile(files[0]);
+  });
+})();
 
 // Init
 (async function(){
