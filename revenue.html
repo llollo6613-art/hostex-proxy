@@ -373,6 +373,48 @@ function editCharge(idx){
   try{localStorage.setItem('elne_charges',JSON.stringify(ELNE_CHARGES));}catch(e){}
   renderElne();
 }
+// ===== CHARGES PERSONNALISÉES (ajoutées manuellement) =====
+function getCustomCharges(){
+  try{var s=localStorage.getItem('elne_custom_charges');if(s)return JSON.parse(s);}catch(e){}
+  return [];
+}
+function saveCustomCharges(arr){
+  try{localStorage.setItem('elne_custom_charges',JSON.stringify(arr));}catch(e){}
+}
+function addCustomCharge(){
+  var label=prompt('Nom de la charge (ex: Entretien chaudière, Travaux, Copropriété...) :');
+  if(!label)return;
+  var val=parseFloat(prompt('Montant (€) :'));
+  if(isNaN(val)||val<0)return;
+  var type=confirm('Cette charge est-elle MENSUELLE (récurrente chaque mois) ?\n\nOK = mensuelle fixe\nAnnuler = ponctuelle (un seul mois)');
+  var charge={label:label,val:val,monthly:type};
+  if(!type){
+    var mo=parseInt(prompt('Sur quel mois ? (1=Janvier ... 12=Décembre) :'));
+    if(isNaN(mo)||mo<1||mo>12)return;
+    charge.month=mo;
+  }
+  var arr=getCustomCharges();
+  arr.push(charge);
+  saveCustomCharges(arr);
+  renderElne();
+}
+function editCustomCharge(idx){
+  var arr=getCustomCharges();
+  if(!arr[idx])return;
+  var val=parseFloat(prompt('Nouveau montant pour "'+arr[idx].label+'" (€):',arr[idx].val));
+  if(isNaN(val)||val<0)return;
+  arr[idx].val=val;
+  saveCustomCharges(arr);
+  renderElne();
+}
+function deleteCustomCharge(idx){
+  var arr=getCustomCharges();
+  if(!arr[idx])return;
+  if(!confirm('Supprimer la charge "'+arr[idx].label+'" ?'))return;
+  arr.splice(idx,1);
+  saveCustomCharges(arr);
+  renderElne();
+}
 function loadCustomData(){
   // Charger locataires personnalisés
   ELNE_APTS.forEach(function(apt){
@@ -420,6 +462,11 @@ function renderElne(){
   var curMonth=now.getMonth()+1;
   var isCurrentYear=(ELNE_YEAR===now.getFullYear());
   var totalCharges=ELNE_CHARGES.reduce(function(s,c){return s+(c.monthly?c.val:0);},0);
+  // Ajouter les charges personnalisées MENSUELLES au total mensuel
+  var _customCh=getCustomCharges();
+  totalCharges+=_customCh.reduce(function(s,c){return s+(c.monthly?(c.val||0):0);},0);
+  // Total des charges PONCTUELLES sur l'année (un seul mois chacune)
+  var totalCustomPonctuel=_customCh.reduce(function(s,c){return s+(!c.monthly?(c.val||0):0);},0);
 
   var range=getDateRange();
   var nbMois={"month":1,"3m":3,"6m":6,"year":12,"lastyear":12,"all":12}[state.period]||12;
@@ -476,6 +523,9 @@ function renderElne(){
     nbMois=Math.min(Math.max(allMonths,1),12);
   }
   var totalChargesPeriode=totalCharges*nbMois;
+  // Ajouter les charges ponctuelles dont le mois tombe dans la période (jan..curMonth si année courante)
+  var _finMois=isCurrentYear?curMonth:12;
+  totalChargesPeriode+=_customCh.reduce(function(s,c){return s+((!c.monthly&&c.month>=1&&c.month<=_finMois)?(c.val||0):0);},0);
   var totalMenagePeriode=0;
   var rangeStartM=range.from.getMonth()+1;
   var rangeEndM=range.to.getMonth()+1;
@@ -625,6 +675,15 @@ function renderElne(){
     html+='<div class="charge-item"><div class="charge-label">'+c.label+' <button onclick="editCharge('+ci+')" style="border:none;background:none;cursor:pointer;font-size:12px;">✏️</button></div>';
     html+='<div class="charge-val">'+c.val.toLocaleString('fr-FR',{minimumFractionDigits:0,maximumFractionDigits:2})+'€</div></div>';
   });
+  // Charges personnalisées ajoutées manuellement
+  var customCharges=getCustomCharges();
+  customCharges.forEach(function(c,ci){
+    var badge=c.monthly?'<span style="font-size:8px;background:#DC2626;color:#fff;padding:1px 5px;border-radius:6px;">/mois</span>':'<span style="font-size:8px;background:#F59E0B;color:#fff;padding:1px 5px;border-radius:6px;">'+MONTHS_FULL[(c.month||1)-1].slice(0,4)+'</span>';
+    html+='<div class="charge-item"><div class="charge-label">'+c.label+' '+badge+' <button onclick="editCustomCharge('+ci+')" style="border:none;background:none;cursor:pointer;font-size:11px;">✏️</button> <button onclick="deleteCustomCharge('+ci+')" style="border:none;background:none;cursor:pointer;font-size:11px;">🗑️</button></div>';
+    html+='<div class="charge-val">'+c.val.toLocaleString('fr-FR',{minimumFractionDigits:0,maximumFractionDigits:2})+'€</div></div>';
+  });
+  // Bouton ajouter
+  html+='<div class="charge-item" style="display:flex;align-items:center;justify-content:center;border-style:dashed;cursor:pointer;" onclick="addCustomCharge()"><div style="text-align:center;color:var(--accent);font-weight:600;font-size:13px;">+ Ajouter<br>une charge</div></div>';
   // Charges ménage variables par mois
   var totalMenage=getTotalMenageYear();
   html+='</div>';
@@ -649,7 +708,7 @@ function renderElne(){
   html+='</div>';
   html+='<div style="padding:0 14px 14px;display:flex;gap:10px;flex-wrap:wrap;">';
   html+='<div class="charge-item" style="flex:1;"><div class="charge-label">Total ménage</div><div class="charge-val">'+Math.round(totalMenage).toLocaleString('fr-FR')+'€</div></div>';
-  html+='<div class="charge-item" style="flex:1;background:#FEF2F2;"><div class="charge-label">TOTAL CHARGES ANNUEL</div><div class="charge-val" style="font-size:20px;">'+Math.round(totalCharges*12+totalMenage).toLocaleString('fr-FR')+'€</div></div>';
+  html+='<div class="charge-item" style="flex:1;background:#FEF2F2;"><div class="charge-label">TOTAL CHARGES ANNUEL</div><div class="charge-val" style="font-size:20px;">'+Math.round(totalCharges*12+totalMenage+totalCustomPonctuel).toLocaleString('fr-FR')+'€</div></div>';
   html+='</div>';
 
   // Cash flow mensuel
