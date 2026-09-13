@@ -1374,6 +1374,32 @@ app.get('/revenue', function(req, res) {
   res.sendFile(__dirname+'/revenue.html');
 });
 
+app.get('/factures', function(req, res) {
+  res.sendFile(__dirname+'/factures.html');
+});
+
+// Sauvegarde des factures dans Supabase (table key-value simple)
+app.post('/factures-save', async function(req, res) {
+  try {
+    const { factures } = req.body;
+    if (!Array.isArray(factures)) return res.status(400).json({ error: 'Invalid data' });
+    // Stockage dans une table 'app_data' clé/valeur (une seule ligne key='factures')
+    await supaFetch('app_data?on_conflict=key', 'POST', [{ key: 'factures', value: JSON.stringify(factures) }]);
+    res.json({ ok: true, count: factures.length });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/factures-load', async function(req, res) {
+  try {
+    const rows = await supaFetch('app_data?key=eq.factures&select=value');
+    if (rows && rows.length && rows[0].value) {
+      res.json({ factures: JSON.parse(rows[0].value) });
+    } else {
+      res.json({ factures: [] });
+    }
+  } catch(e) { res.json({ factures: [], error: e.message }); }
+});
+
 app.get('/messagerie', function(req, res) {
   res.sendFile(__dirname+'/messagerie.html');
 });
