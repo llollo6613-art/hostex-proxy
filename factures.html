@@ -185,33 +185,101 @@ function compressImage(dataUrl, cb){
   img.src=dataUrl;
 }
 
+var pendingMultiple=[];
 async function runOCR(base64, mediaType, isPdf){
-  document.getElementById('ocrStatus').textContent='';
+  document.getElementById('ocrStatus').textContent='Analyse IA en cours…';
+  var prompt='Tu es un assistant comptable. Ce document peut contenir UNE ou PLUSIEURS factures. '
+    +'Identifie CHAQUE facture distincte et extrais ses informations. '
+    +'Réponds UNIQUEMENT avec un tableau JSON (commençant par [ et finissant par ]), sans texte ni balises autour. '
+    +'Format : [{"date":"YYYY-MM-DD","montant":nombre_TTC,"tva":nombre_ou_null,"fournisseur":"nom entreprise","categorie":"...","note":"n° facture ou détail"}]. '
+    +'Pour la catégorie, choisis STRICTEMENT parmi : Travaux - Toiture, Travaux - Plomberie, Travaux - Électricité, Travaux - Peinture, Travaux - Général, Mobilier / Équipement, Consommables, Ménage / Blanchisserie, Assurance, Taxe / Impôt, Énergie (eau, élec, gaz), Honoraires (comptable, notaire), Autre. '
+    +'Le montant est le TOTAL TTC en euros (nombre sans symbole). La date est la date de la facture. '
+    +'Si une seule facture, renvoie un tableau d\'un seul élément. Si une info est absente, mets null. Ne mets JAMAIS de texte hors du tableau JSON.';
   try{
     var body={
       model:'claude-sonnet-4-6',
-      max_tokens:400,
+      max_tokens:2000,
       messages:[{role:'user',content:[
         isPdf
           ? {type:'document',source:{type:'base64',media_type:'application/pdf',data:base64}}
           : {type:'image',source:{type:'base64',media_type:mediaType||'image/jpeg',data:base64}},
-        {type:'text',text:'Analyse cette facture. Réponds UNIQUEMENT en JSON strict sans texte autour, avec ces champs : {"date":"YYYY-MM-DD","montant":nombre,"tva":nombre,"fournisseur":"nom","categorie":"une parmi: Travaux - Toiture, Travaux - Plomberie, Travaux - Électricité, Travaux - Peinture, Travaux - Général, Mobilier / Équipement, Consommables, Ménage / Blanchisserie, Assurance, Taxe / Impôt, Énergie (eau, élec, gaz), Honoraires (comptable, notaire), Autre"}. Si une info est absente, mets null. Le montant est le TTC.'}
+        {type:'text',text:prompt}
       ]}]
     };
     var r=await fetch('/api-claude',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
     var data=await r.json();
+    // Diagnostic : si l'API renvoie une erreur, l'afficher
+    if(data.error||data.type==='error'){
+      var em=(data.error&&(data.error.message||data.error.type))||JSON.stringify(data).slice(0,120);
+      document.getElementById('ocrStatus').textContent='Erreur IA : '+em;
+      fillEdit({});
+      resetDrop();return;
+    }
     var txt=(data.content&&data.content[0]&&data.content[0].text)||'';
     var clean=txt.replace(/```json|```/g,'').trim();
+    // Extraire le tableau JSON même s'il y a du texte autour
+    var mArr=clean.match(/\[[\s\S]*\]/);
+    if(mArr)clean=mArr[0];
     var parsed=JSON.parse(clean);
-    fillEdit(parsed);
-    document.getElementById('ocrStatus').textContent='✓ Lu par IA — vérifiez';
+    if(!Array.isArray(parsed))parsed=[parsed];
+    parsed=parsed.filter(function(x){return x&&(x.montant||x.fournisseur);});
+    if(parsed.length===0){
+      document.getElementById('ocrStatus').textContent='Aucune facture détectée — saisie manuelle';
+      fillEdit({});
+    }else if(parsed.length===1){
+      fillEdit(parsed[0]);
+      document.getElementById('ocrStatus').textContent='✓ Lu par IA — vérifiez';
+    }else{
+      // Plusieurs factures : les enregistrer d'un coup après confirmation
+      pendingMultiple=parsed;
+      showMultiple(parsed);
+    }
   }catch(e){
     fillEdit({});
-    document.getElementById('ocrStatus').textContent='IA indisponible — saisie manuelle';
+    document.getElementById('ocrStatus').textContent='Lecture impossible ('+e.message+') — saisie manuelle';
   }
+  resetDrop();
+}
+function resetDrop(){
   var drop=document.getElementById('drop');
   drop.classList.remove('busy');
   drop.querySelector('div:nth-child(2)').textContent='Ajouter une facture';
+}
+function showMultiple(list){
+  var html='<div style="font-weight:600;margin-bottom:10px;">'+list.length+' factures détectées dans ce document</div>';
+  html+='<div style="max-height:300px;overflow-y:auto;">';
+  list.forEach(function(f,i){
+    html+='<div style="border:1px solid var(--border);border-radius:8px;padding:8px;margin-bottom:6px;font-size:13px;">'
+      +'<b>'+(f.fournisseur||'?')+'</b> · '+(f.date||'?')+' · <b>'+(f.montant||'?')+'€</b><br>'
+      +'<span class="mini">'+(f.categorie||'Autre')+'</span></div>';
+  });
+  html+='</div>';
+  html+='<div class="row" style="margin-top:12px;"><button class="btn btn-green" onclick="saveMultiple()">✓ Tout enregistrer ('+list.length+')</button><button class="btn btn-ghost" onclick="cancelEdit()">Annuler</button></div>';
+  var ec=document.getElementById('editCard');
+  ec.style.display='block';
+  ec.innerHTML=html;
+  ec.scrollIntoView({behavior:'smooth'});
+}
+async function saveMultiple(){
+  var bien=currentBien;
+  pendingMultiple.forEach(function(f){
+    factures.push({
+      id:'fac_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),
+      date:f.date||new Date().toISOString().slice(0,10),
+      montant:parseFloat(f.montant)||0,
+      tva:parseFloat(f.tva)||0,
+      fournisseur:f.fournisseur||'',
+      categorie:f.categorie||'Autre',
+      bien:bien,
+      note:f.note||'',
+      img:'',
+      pdf:pendingPdfName||''
+    });
+  });
+  await persist();
+  pendingMultiple=[];
+  // Restaurer le formulaire original
+  location.reload();
 }
 
 function fillEdit(d){
