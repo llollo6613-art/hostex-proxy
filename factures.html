@@ -119,6 +119,7 @@ var BIENS = [
   {id:'soler', name:'Le Soler'},
 ];
 var CAT_COLORS = {'Travaux':'#DC2626','Mobilier':'#7C3AED','Consommables':'#F59E0B','Ménage':'#0891B2','Assurance':'#059669','Taxe':'#4B5563','Énergie':'#2563EB','Honoraires':'#DB2777','Autre':'#6B7280'};
+var CATEGORIES = ['Travaux - Toiture','Travaux - Plomberie','Travaux - Électricité','Travaux - Peinture','Travaux - Général','Mobilier / Équipement','Consommables','Ménage / Blanchisserie','Assurance','Taxe / Impôt','Énergie (eau, élec, gaz)','Honoraires (comptable, notaire)','Autre'];
 var factures = [];
 var currentBien = (new URLSearchParams(location.search).get('bien')) || 'elne';
 var pendingImg = null;
@@ -345,6 +346,29 @@ function showImg(id){
   w.document.write('<img src="'+f.img+'" style="max-width:100%">');
 }
 
+async function changeCat(id, cat){
+  var f=factures.find(function(x){return x.id===id;});
+  if(!f)return;
+  f.categorie=cat;
+  await persist();
+  render();
+  toast('✓ Catégorie modifiée');
+}
+async function editFacture(id){
+  var f=factures.find(function(x){return x.id===id;});
+  if(!f)return;
+  var nd=prompt('Date (YYYY-MM-DD) :',f.date);if(nd===null)return;
+  var nm=prompt('Montant TTC (€) :',f.montant);if(nm===null)return;
+  var nf=prompt('Fournisseur :',f.fournisseur);if(nf===null)return;
+  var nt=prompt('TVA (€) :',f.tva||0);if(nt===null)return;
+  f.date=nd||f.date;
+  f.montant=parseFloat(nm)||f.montant;
+  f.fournisseur=nf||f.fournisseur;
+  f.tva=parseFloat(nt)||0;
+  await persist();
+  render();
+  toast('✓ Facture modifiée');
+}
 function render(){
   // Remplir filtres catégories
   var cats=Array.from(new Set(factures.map(function(f){return f.categorie;}))).sort();
@@ -366,11 +390,13 @@ function render(){
     tb.innerHTML=list.map(function(f){
       var bienName=(BIENS.find(function(b){return b.id===f.bien;})||{}).name||f.bien;
       var thumb=f.img?'<img src="'+f.img+'" class="thumb" onclick="showImg(\''+f.id+'\')">':(f.pdf?'<span style="font-size:20px;">📄</span>':'');
+      var catSelect='<select onchange="changeCat(\''+f.id+'\',this.value)" style="border:none;background:'+catColor(f.categorie)+';color:#fff;font-size:10px;font-weight:700;border-radius:20px;padding:3px 8px;cursor:pointer;">'
+        +CATEGORIES.map(function(cat){return '<option value="'+cat+'"'+(cat===f.categorie?' selected':'')+' style="background:#fff;color:#000;">'+cat+'</option>';}).join('')+'</select>';
       return '<tr><td>'+thumb+'</td><td>'+(f.date||'')+'</td><td>'+f.fournisseur+'</td>'
-        +'<td><span class="cat" style="background:'+catColor(f.categorie)+'">'+f.categorie+'</span></td>'
+        +'<td>'+catSelect+'</td>'
         +'<td>'+bienName+'</td>'
         +'<td style="text-align:right;font-weight:700;">'+f.montant.toLocaleString('fr-FR',{minimumFractionDigits:2})+'€</td>'
-        +'<td><button class="del" onclick="delFacture(\''+f.id+'\')">🗑️</button></td></tr>';
+        +'<td style="white-space:nowrap;"><button class="del" onclick="editFacture(\''+f.id+'\')" style="color:#1F4E5F;">✏️</button> <button class="del" onclick="delFacture(\''+f.id+'\')">🗑️</button></td></tr>';
     }).join('');
   }
   var total=list.reduce(function(s,f){return s+f.montant;},0);
