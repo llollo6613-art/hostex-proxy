@@ -120,7 +120,7 @@ var BIENS = [
 ];
 var CAT_COLORS = {'Travaux':'#DC2626','Mobilier':'#7C3AED','Consommables':'#F59E0B','Ménage':'#0891B2','Assurance':'#059669','Taxe':'#4B5563','Énergie':'#2563EB','Honoraires':'#DB2777','Autre':'#6B7280'};
 var factures = [];
-var currentBien = 'elne';
+var currentBien = (new URLSearchParams(location.search).get('bien')) || 'elne';
 var pendingImg = null;
 
 function toast(m){var t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(function(){t.classList.remove('show');},2600);}

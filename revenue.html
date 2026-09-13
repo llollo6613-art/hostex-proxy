@@ -563,6 +563,7 @@ function renderElne(){
   html+='<div style="display:flex;align-items:center;gap:8px;">';
   html+='<div class="year-sel"><button class="year-btn" onclick="changeElneYear(-1)">‹</button><span class="year-lbl">'+ELNE_YEAR+'</span><button class="year-btn" onclick="changeElneYear(1)">›</button></div>';
   html+='<button onclick="generateBilan()" style="padding:6px 12px;background:#0F6E56;color:#fff;border:none;border-radius:8px;font-size:11px;cursor:pointer;font-weight:600;">Bilan PDF</button>';
+  html+='<button onclick="window.open(\'/factures?bien=elne\',\'_blank\')" style="padding:6px 12px;background:#1F4E5F;color:#fff;border:none;border-radius:8px;font-size:11px;cursor:pointer;font-weight:600;">📁 Factures</button>';
   html+='<button onclick="resetElne()" style="padding:6px 10px;border:1.5px solid #FCA5A5;background:#FEF2F2;color:#DC2626;border-radius:8px;font-size:11px;cursor:pointer;">🗑 Réinit</button>';
   html+='</div></div>';
   html+='<div style="overflow-x:auto"><table class="elne-table">';
@@ -1827,7 +1828,7 @@ function renderSoler(){
   html+='<div style="grid-column:span 2;"><div style="font-size:10px;opacity:.7;">CASH FLOW NET</div><div style="font-size:26px;font-weight:700;border-top:1px solid rgba(255,255,255,.3);padding-top:8px;color:'+(cashFlow>=0?'#A7F3D0':'#FCA5A5')+';">'+(cashFlow>=0?'+':'')+Math.round(cashFlow).toLocaleString('fr-FR')+'€</div></div>';
   html+='</div></div>';
   // Bouton bilan LMNP
-  html+='<div style="display:flex;justify-content:flex-end;margin-bottom:12px;"><button onclick="generateSolerBilan()" style="padding:10px 20px;background:#7C3AED;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;">Générer bilan fiscal LMNP (PDF)</button></div>';
+  html+='<div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:12px;"><button onclick="window.open(\'/factures?bien=soler\',\'_blank\')" style="padding:10px 20px;background:#1F4E5F;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;">📁 Factures</button><button onclick="generateSolerBilan()" style="padding:10px 20px;background:#7C3AED;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;">Générer bilan fiscal LMNP (PDF)</button></div>';
   // KPIs
   html+='<div class="kpi-grid" style="margin-bottom:16px;">';
   html+='<div class="kpi"><div class="kpi-label">Loyers attendus</div><div class="kpi-value" style="color:var(--bk)">'+Math.round(totalExpected).toLocaleString('fr-FR')+'€</div></div>';
@@ -2310,7 +2311,7 @@ function renderBien(id){
   html+='<div style="grid-column:span 2;"><div style="font-size:10px;opacity:.7;">CASH FLOW NET</div><div style="font-size:26px;font-weight:700;border-top:1px solid rgba(255,255,255,.3);padding-top:8px;color:'+(cashFlow>=0?'#A7F3D0':'#FCA5A5')+';">'+(cashFlow>=0?'+':'')+Math.round(cashFlow).toLocaleString('fr-FR')+'€</div></div>';
   html+='</div></div>';
   // Bouton bilan
-  html+='<div style="display:flex;justify-content:flex-end;margin-bottom:12px;"><button onclick="generateBienBilan(\''+id+'\')" style="padding:10px 20px;background:#0F6E56;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;">Générer bilan fiscal '+regimeLbl+' (PDF)</button></div>';
+  html+='<div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:12px;"><button onclick="window.open(\'/factures?bien='+id+'\',\'_blank\')" style="padding:10px 20px;background:#1F4E5F;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;">📁 Factures</button><button onclick="generateBienBilan(\''+id+'\')" style="padding:10px 20px;background:#0F6E56;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;">Générer bilan fiscal '+regimeLbl+' (PDF)</button></div>';
   // KPIs
   html+='<div class="kpi-grid" style="margin-bottom:16px;">';
   html+='<div class="kpi"><div class="kpi-label">Loyers attendus</div><div class="kpi-value" style="color:var(--bk)">'+Math.round(totalExpected).toLocaleString('fr-FR')+'€</div></div>';
