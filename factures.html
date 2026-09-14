@@ -434,16 +434,36 @@ function exportExcel(){
   var bienName=(BIENS.find(function(b){return b.id===currentBien;})||{}).name||currentBien;
 
   var wb=XLSX.utils.book_new();
-  // Feuille 1 : détail
-  var rows=list.map(function(f){var fisc=catFiscal(f.categorie);return {
-    'Date':f.date,'Fournisseur':f.fournisseur,'Catégorie':f.categorie,
-    'Traitement fiscal':fisc.label,'Durée amort. (ans)':fisc.years||'',
-    'Montant TTC (€)':f.montant,'dont TVA (€)':f.tva||0,'HT (€)':Math.round((f.montant-(f.tva||0))*100)/100,
-    'Amort. annuel (€)':fisc.years>0?Math.round((f.montant/fisc.years)*100)/100:'',
-    'Bien':bienName,'Note':f.note||''
-  };});
-  var ws=XLSX.utils.json_to_sheet(rows);
-  ws['!cols']=[{wch:12},{wch:24},{wch:30},{wch:18},{wch:14},{wch:15},{wch:12},{wch:12},{wch:15},{wch:18},{wch:24}];
+  var annee=document.getElementById('filterYear').value||'Toutes années';
+  // ===== Feuille 1 : détail avec titre =====
+  var headers=['Date','Fournisseur','Catégorie','Traitement fiscal','Durée amort. (ans)','Montant TTC (€)','dont TVA (€)','HT (€)','Amort. annuel (€)','Bien','Note'];
+  var aoa=[];
+  aoa.push(['REGISTRE DES FACTURES — '+bienName+' — '+annee]);   // ligne titre
+  aoa.push([]);                                                    // ligne vide
+  aoa.push(headers);                                               // en-têtes
+  var totTTC=0,totTVA=0,totHT=0;
+  list.forEach(function(f){var fisc=catFiscal(f.categorie);
+    var ht=Math.round((f.montant-(f.tva||0))*100)/100;
+    totTTC+=f.montant;totTVA+=(f.tva||0);totHT+=ht;
+    aoa.push([f.date,f.fournisseur,f.categorie,fisc.label,fisc.years||'',f.montant,f.tva||0,ht,fisc.years>0?Math.round((f.montant/fisc.years)*100)/100:'',bienName,f.note||'']);
+  });
+  aoa.push([]);
+  aoa.push(['','','','','TOTAUX',Math.round(totTTC*100)/100,Math.round(totTVA*100)/100,Math.round(totHT*100)/100,'','','']);
+  var ws=XLSX.utils.aoa_to_sheet(aoa);
+  ws['!cols']=[{wch:12},{wch:26},{wch:32},{wch:18},{wch:16},{wch:15},{wch:13},{wch:13},{wch:16},{wch:18},{wch:26}];
+  // Fusion du titre sur toute la largeur
+  ws['!merges']=[{s:{r:0,c:0},e:{r:0,c:10}}];
+  // Figer les 3 premières lignes (titre + en-têtes)
+  ws['!freeze']={xSplit:0,ySplit:3};
+  ws['!autofilter']={ref:'A3:K'+(3+list.length)};
+  // Format monétaire € sur colonnes F,G,H,I (montants) — index 5,6,7,8
+  var moneyFmt='#,##0.00\\ "€"';
+  for(var R=3;R<aoa.length;R++){
+    ['F','G','H','I'].forEach(function(col){
+      var cell=ws[col+(R+1)];
+      if(cell && typeof cell.v==='number')cell.z=moneyFmt;
+    });
+  }
   XLSX.utils.book_append_sheet(wb,ws,'Factures');
   // Feuille 2 : récap par catégorie
   var byCat={};
@@ -456,8 +476,19 @@ function exportExcel(){
   recap.push({'Catégorie':'— TOTAL DÉDUCTIBLE','Traitement fiscal':'Charges déductibles','Nb factures':'','Total TTC (€)':Math.round(totalDeduc*100)/100,'Total TVA (€)':''});
   recap.push({'Catégorie':'— TOTAL AMORTISSABLE','Traitement fiscal':'Immobilisations','Nb factures':'','Total TTC (€)':Math.round(totalAmort*100)/100,'Total TVA (€)':''});
   recap.push({'Catégorie':'TOTAL GÉNÉRAL','Traitement fiscal':'','Nb factures':list.length,'Total TTC (€)':Math.round((totalDeduc+totalAmort)*100)/100,'Total TVA (€)':Math.round(list.reduce(function(s,f){return s+(f.tva||0);},0)*100)/100});
-  var ws2=XLSX.utils.json_to_sheet(recap);
-  ws2['!cols']=[{wch:30},{wch:20},{wch:12},{wch:15},{wch:15}];
+  // Feuille récap avec titre + format monétaire
+  var aoa2=[];
+  aoa2.push(['RÉCAPITULATIF PAR CATÉGORIE — '+bienName+' — '+annee]);
+  aoa2.push([]);
+  aoa2.push(['Catégorie','Traitement fiscal','Nb factures','Total TTC (€)','Total TVA (€)']);
+  recap.forEach(function(r){aoa2.push([r['Catégorie'],r['Traitement fiscal'],r['Nb factures'],r['Total TTC (€)'],r['Total TVA (€)']]);});
+  var ws2=XLSX.utils.aoa_to_sheet(aoa2);
+  ws2['!cols']=[{wch:34},{wch:22},{wch:12},{wch:16},{wch:16}];
+  ws2['!merges']=[{s:{r:0,c:0},e:{r:0,c:4}}];
+  ws2['!freeze']={xSplit:0,ySplit:3};
+  for(var R2=3;R2<aoa2.length;R2++){
+    ['D','E'].forEach(function(col){var cell=ws2[col+(R2+1)];if(cell&&typeof cell.v==='number')cell.z='#,##0.00\\ "€"';});
+  }
   XLSX.utils.book_append_sheet(wb,ws2,'Récap catégories');
 
   var fname='Factures_'+bienName.replace(/[^a-zA-Z0-9]/g,'_')+'_'+(document.getElementById('filterYear').value||'toutes')+'.xlsx';
