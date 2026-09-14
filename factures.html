@@ -53,7 +53,7 @@ tr:hover td{background:#fafafa;}
     <div style="font-weight:600;margin-top:6px;">Ajouter une facture</div>
     <div class="mini" style="margin-top:3px;">Photo ou PDF — l'IA lira le montant, la date et le fournisseur</div>
   </div>
-  <input type="file" id="fileInput" accept="image/*,application/pdf" style="display:none" onchange="handleFile(event)">
+  <input type="file" id="fileInput" accept="image/*,application/pdf,.xlsx,.xls,.csv" style="display:none" onchange="handleFile(event)">
 </div>
 
 <div class="card" id="editCard" style="display:none;">
@@ -86,7 +86,7 @@ tr:hover td{background:#fafafa;}
   <div class="filters">
     <select id="filterCat" onchange="render()"><option value="">Toutes catégories</option></select>
     <select id="filterYear" onchange="render()"><option value="">Toutes années</option></select>
-    <button class="btn btn-primary" onclick="exportExcel()" style="margin-left:auto;">⬇ Export Excel</button>
+    <button class="btn btn-primary" onclick="exportExcel()" style="margin-left:auto;">⬇ Export (année filtrée)</button><button class="btn btn-ghost" onclick="exportAllYears()">⬇ Toutes années (1 feuille/an)</button>
   </div>
   <div class="total-box" id="totalBox" style="margin-bottom:12px;"></div>
   <div style="overflow-x:auto;">
@@ -174,6 +174,8 @@ function processFile(file){
   drop.classList.add('busy');
   drop.querySelector('div:nth-child(2)').textContent='Lecture en cours…';
   var isPdf = file.type==='application/pdf' || /\.pdf$/i.test(file.name);
+  var isExcel = /\.(xlsx|xls|csv)$/i.test(file.name);
+  if(isExcel){ importExcel(file); return; }
   var reader=new FileReader();
   reader.onload=function(e){
     var dataUrl=e.target.result;
@@ -192,6 +194,66 @@ function processFile(file){
     }
   };
   reader.readAsDataURL(file);
+}
+
+async function importExcel(file){
+  var drop=document.getElementById('drop');
+  try{
+    var buf=await file.arrayBuffer();
+    var wb=XLSX.read(buf,{type:'array',cellDates:true});
+    var ws=wb.Sheets[wb.SheetNames[0]];
+    var rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:false,dateNF:'yyyy-mm-dd'});
+    // Détecter la ligne d'en-tête et les colonnes date/libellé/montant
+    var imported=[];
+    rows.forEach(function(r){
+      if(!r||!r.length)return;
+      // Chercher une date, un montant, un libellé dans la ligne
+      var dateVal=null,montantVal=null,libelle='';
+      r.forEach(function(cell){
+        var s=String(cell||'').trim();
+        // Date : format YYYY-MM-DD ou DD/MM/YYYY
+        if(!dateVal){
+          var m1=s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+          var m2=s.match(/^(\d{1,2})[\/.](\d{1,2})[\/.](\d{2,4})/);
+          if(m1)dateVal=s.slice(0,10);
+          else if(m2){var y=m2[3].length===2?'20'+m2[3]:m2[3];dateVal=y+'-'+('0'+m2[2]).slice(-2)+'-'+('0'+m2[1]).slice(-2);}
+        }
+        // Montant : nombre (avec , ou .)
+        var num=parseFloat(s.replace(/\s/g,'').replace(',','.').replace(/[^0-9.\-]/g,''));
+        if(!isNaN(num)&&num>0&&s.match(/[0-9]/)&&!s.match(/^\d{4}-\d{2}-\d{2}$/)&&!s.match(/^\d{1,2}[\/.]\d/)){
+          if(montantVal===null||num>montantVal)montantVal=num;
+        }
+        // Libellé : texte non numérique et non date
+        if(s.length>2 && isNaN(parseFloat(s.replace(',','.'))) && !s.match(/^\d/)){
+          if(s.length>libelle.length)libelle=s;
+        }
+      });
+      if(dateVal && montantVal){
+        imported.push({date:dateVal,montant:montantVal,fournisseur:libelle||'(importé)',categorie:'Autre',tva:0,note:'Import Excel'});
+      }
+    });
+    if(!imported.length){toast('Aucune facture détectée dans l\'Excel');drop.classList.remove('busy');drop.querySelector('div:nth-child(2)').textContent='Ajouter une facture';return;}
+    // Prévisualiser l'import
+    showImportPreview(imported);
+  }catch(e){
+    toast('Erreur lecture Excel : '+e.message);
+  }
+  drop.classList.remove('busy');
+  drop.querySelector('div:nth-child(2)').textContent='Ajouter une facture';
+}
+function showImportPreview(list){
+  pendingMultiple=list;
+  var html='<div style="font-weight:600;margin-bottom:6px;">📊 '+list.length+' factures trouvées dans l\'Excel</div>';
+  html+='<div class="mini" style="margin-bottom:10px;">Catégorie "Autre" par défaut — vous pourrez les corriger ensuite dans le tableau. Vérifiez avant d\'importer.</div>';
+  html+='<div style="max-height:280px;overflow-y:auto;">';
+  list.slice(0,50).forEach(function(f){
+    html+='<div style="border-bottom:1px solid #f0efec;padding:5px 0;font-size:12px;">'+(f.date||'?')+' · <b>'+(f.fournisseur||'?')+'</b> · <b>'+f.montant+'€</b></div>';
+  });
+  if(list.length>50)html+='<div class="mini" style="padding:6px 0;">… et '+(list.length-50)+' autres</div>';
+  html+='</div>';
+  html+='<div class="row" style="margin-top:12px;"><button class="btn btn-green" onclick="saveMultiple()">✓ Importer '+list.length+' factures</button><button class="btn btn-ghost" onclick="cancelEdit()">Annuler</button></div>';
+  var ec=document.getElementById('editCard');
+  ec.style.display='block';ec.innerHTML=html;ec.scrollIntoView({behavior:'smooth'});
 }
 
 function compressImage(dataUrl, cb){
@@ -494,6 +556,42 @@ function exportExcel(){
   var fname='Factures_'+bienName.replace(/[^a-zA-Z0-9]/g,'_')+'_'+(document.getElementById('filterYear').value||'toutes')+'.xlsx';
   XLSX.writeFile(wb,fname);
   toast('✓ Excel exporté');
+}
+
+function exportAllYears(){
+  var list=factures.filter(function(f){return f.bien===currentBien;});
+  if(!list.length){toast('Aucune facture');return;}
+  var bienName=(BIENS.find(function(b){return b.id===currentBien;})||{}).name||currentBien;
+  var years=Array.from(new Set(list.map(function(f){return (f.date||'').slice(0,4);}).filter(Boolean))).sort();
+  var wb=XLSX.utils.book_new();
+  years.forEach(function(y){
+    var yl=list.filter(function(f){return (f.date||'').slice(0,4)===y;}).sort(function(a,b){return (a.date||'').localeCompare(b.date||'');});
+    var aoa=[['FACTURES '+y+' — '+bienName],[],['Date','Fournisseur','Catégorie','Traitement fiscal','Durée (ans)','Montant TTC (€)','TVA (€)','HT (€)','Amort. annuel (€)','Note']];
+    var tT=0,tV=0,tH=0;
+    yl.forEach(function(f){var fisc=catFiscal(f.categorie);var ht=Math.round((f.montant-(f.tva||0))*100)/100;tT+=f.montant;tV+=(f.tva||0);tH+=ht;
+      aoa.push([f.date,f.fournisseur,f.categorie,fisc.label,fisc.years||'',f.montant,f.tva||0,ht,fisc.years>0?Math.round((f.montant/fisc.years)*100)/100:'',f.note||'']);});
+    aoa.push([]);aoa.push(['','','','','TOTAUX',Math.round(tT*100)/100,Math.round(tV*100)/100,Math.round(tH*100)/100,'','']);
+    var ws=XLSX.utils.aoa_to_sheet(aoa);
+    ws['!cols']=[{wch:12},{wch:26},{wch:32},{wch:18},{wch:12},{wch:15},{wch:12},{wch:12},{wch:16},{wch:22}];
+    ws['!merges']=[{s:{r:0,c:0},e:{r:0,c:9}}];
+    ws['!freeze']={xSplit:0,ySplit:3};
+    for(var R=3;R<aoa.length;R++){['F','G','H','I'].forEach(function(col){var cell=ws[col+(R+1)];if(cell&&typeof cell.v==='number')cell.z='#,##0.00\\ "€"';});}
+    XLSX.utils.book_append_sheet(wb,ws,y);
+  });
+  // Feuille synthèse toutes années
+  var synth=[['SYNTHÈSE PAR ANNÉE — '+bienName],[],['Année','Nb factures','Total TTC (€)','dont Déductible (€)','dont Amortissable (€)']];
+  years.forEach(function(y){
+    var yl=list.filter(function(f){return (f.date||'').slice(0,4)===y;});
+    var ded=0,amo=0;yl.forEach(function(f){var fisc=catFiscal(f.categorie);if(fisc.years>0)amo+=f.montant;else ded+=f.montant;});
+    synth.push([y,yl.length,Math.round((ded+amo)*100)/100,Math.round(ded*100)/100,Math.round(amo*100)/100]);
+  });
+  var wsS=XLSX.utils.aoa_to_sheet(synth);
+  wsS['!cols']=[{wch:12},{wch:14},{wch:16},{wch:20},{wch:20}];
+  wsS['!merges']=[{s:{r:0,c:0},e:{r:0,c:4}}];
+  for(var RS=3;RS<synth.length;RS++){['C','D','E'].forEach(function(col){var cell=wsS[col+(RS+1)];if(cell&&typeof cell.v==='number')cell.z='#,##0.00\\ "€"';});}
+  XLSX.utils.book_append_sheet(wb,wsS,'Synthèse');
+  XLSX.writeFile(wb,'Factures_'+bienName.replace(/[^a-zA-Z0-9]/g,'_')+'_toutes_annees.xlsx');
+  toast('✓ Export toutes années');
 }
 
 // Drag & drop sur toute la zone
