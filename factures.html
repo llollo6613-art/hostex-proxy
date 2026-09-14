@@ -356,18 +356,22 @@ function compressImage(dataUrl, cb){
 
 var pendingMultiple=[];
 async function runOCR(base64, mediaType, isPdf){
-  document.getElementById('ocrStatus').textContent='Analyse IA en cours…';
-  var prompt='Tu es un assistant comptable. Ce document peut contenir UNE ou PLUSIEURS factures. '
+  var st=document.getElementById('ocrStatus');
+  st.textContent='Analyse IA en cours… (gros document = patience, jusqu\'à 2 min)';
+  var prompt='Tu es un assistant comptable. Ce document peut contenir UNE ou PLUSIEURS factures (parfois beaucoup). '
     +'Identifie CHAQUE facture distincte et extrais ses informations. '
     +'Réponds UNIQUEMENT avec un tableau JSON (commençant par [ et finissant par ]), sans texte ni balises autour. '
     +'Format : [{"date":"YYYY-MM-DD","montant":nombre_TTC,"tva":nombre_ou_null,"fournisseur":"nom entreprise","categorie":"...","note":"n° facture ou détail"}]. '
     +'Pour la catégorie, choisis STRICTEMENT parmi : '+CATEGORIES.join(', ')+'. '
     +'Le montant est le TOTAL TTC en euros (nombre sans symbole). La date est la date de la facture. '
-    +'Si une seule facture, renvoie un tableau d\'un seul élément. Si une info est absente, mets null. Ne mets JAMAIS de texte hors du tableau JSON.';
+    +'Si une seule facture, renvoie un tableau d\'un seul élément. Si une info est absente, mets null. Sois CONCIS : pas de texte hors du tableau JSON.';
+  // Timeout de sécurité : si l'API ne répond pas en 120s, on abandonne proprement
+  var controller=new AbortController();
+  var timeoutId=setTimeout(function(){controller.abort();},120000);
   try{
     var body={
       model:'claude-sonnet-4-6',
-      max_tokens:2000,
+      max_tokens:8000,
       messages:[{role:'user',content:[
         isPdf
           ? {type:'document',source:{type:'base64',media_type:'application/pdf',data:base64}}
@@ -375,37 +379,57 @@ async function runOCR(base64, mediaType, isPdf){
         {type:'text',text:prompt}
       ]}]
     };
-    var r=await fetch('/api-claude',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    var r=await fetch('/api-claude',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:controller.signal});
+    clearTimeout(timeoutId);
+    if(!r.ok){
+      st.textContent='Erreur serveur ('+r.status+') — réessayez ou saisie manuelle';
+      fillEdit({});resetDrop();return;
+    }
     var data=await r.json();
-    // Diagnostic : si l'API renvoie une erreur, l'afficher
     if(data.error||data.type==='error'){
-      var em=(data.error&&(data.error.message||data.error.type))||JSON.stringify(data).slice(0,120);
-      document.getElementById('ocrStatus').textContent='Erreur IA : '+em;
-      fillEdit({});
-      resetDrop();return;
+      var em=(data.error&&(data.error.message||data.error.type))||JSON.stringify(data).slice(0,150);
+      st.textContent='Erreur IA : '+em;
+      fillEdit({});resetDrop();return;
     }
     var txt=(data.content&&data.content[0]&&data.content[0].text)||'';
+    // Vérifier si la réponse a été coupée (max_tokens atteint)
+    var truncated=(data.stop_reason==='max_tokens');
     var clean=txt.replace(/```json|```/g,'').trim();
-    // Extraire le tableau JSON même s'il y a du texte autour
     var mArr=clean.match(/\[[\s\S]*\]/);
     if(mArr)clean=mArr[0];
-    var parsed=JSON.parse(clean);
+    // Si tronqué, tenter de récupérer les objets complets (fermer le tableau au dernier } valide)
+    var parsed;
+    try{
+      parsed=JSON.parse(clean);
+    }catch(parseErr){
+      // Réparation : garder jusqu'au dernier objet complet
+      var lastObj=clean.lastIndexOf('}');
+      if(lastObj>0){
+        try{parsed=JSON.parse(clean.slice(0,lastObj+1)+']');}catch(e2){parsed=null;}
+      }
+      if(!parsed)throw parseErr;
+    }
     if(!Array.isArray(parsed))parsed=[parsed];
     parsed=parsed.filter(function(x){return x&&(x.montant||x.fournisseur);});
     if(parsed.length===0){
-      document.getElementById('ocrStatus').textContent='Aucune facture détectée — saisie manuelle';
+      st.textContent='Aucune facture détectée — saisie manuelle';
       fillEdit({});
     }else if(parsed.length===1){
       fillEdit(parsed[0]);
-      document.getElementById('ocrStatus').textContent='✓ Lu par IA — vérifiez';
+      st.textContent='✓ Lu par IA — vérifiez';
     }else{
-      // Plusieurs factures : les enregistrer d'un coup après confirmation
       pendingMultiple=parsed;
       showMultiple(parsed);
+      if(truncated)st.textContent='⚠️ '+parsed.length+' factures lues (document très long, vérifiez qu\'il n\'en manque pas)';
     }
   }catch(e){
+    clearTimeout(timeoutId);
+    if(e.name==='AbortError'){
+      st.textContent='⏱️ Document trop long/lent — essayez de le découper en 2 PDF plus petits';
+    }else{
+      st.textContent='Lecture impossible ('+e.message+') — saisie manuelle';
+    }
     fillEdit({});
-    document.getElementById('ocrStatus').textContent='Lecture impossible ('+e.message+') — saisie manuelle';
   }
   resetDrop();
 }

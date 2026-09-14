@@ -193,7 +193,7 @@ const HOSTEX_BASE  = 'https://api.hostex.io/v3';
 const DB_FILE = path.join('/tmp', 'reservations.json');
 
 app.use(cors());
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({ limit: '50mb' }));
 
 function loadDB() {
   try { return JSON.parse(fs.readFileSync(DB_FILE, 'utf8')); }
