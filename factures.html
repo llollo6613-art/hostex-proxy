@@ -304,17 +304,39 @@ async function importExcel(file){
   resetDropUI();
 }
 function resetDropUI(){var drop=document.getElementById('drop');drop.classList.remove('busy');drop.querySelector('div:nth-child(2)').textContent='Ajouter une facture';}
+function _dupKey(f){return (f.date||'')+'|'+(parseFloat(f.montant)||0)+'|'+(f.categorie||'Autre');}
 function showImportPreview(list){
   pendingMultiple=list;
-  var html='<div style="font-weight:600;margin-bottom:6px;">📊 '+list.length+' factures trouvées dans l\'Excel</div>';
-  html+='<div class="mini" style="margin-bottom:10px;">Catégorie "Autre" par défaut — vous pourrez les corriger ensuite dans le tableau. Vérifiez avant d\'importer.</div>';
-  html+='<div style="max-height:280px;overflow-y:auto;">';
-  list.slice(0,50).forEach(function(f){
-    html+='<div style="border-bottom:1px solid #f0efec;padding:5px 0;font-size:12px;">'+(f.date||'?')+' · <b>'+(f.fournisseur||'?')+'</b> · <b>'+f.montant+'€</b></div>';
+  // Détecter les doublons par rapport aux factures déjà présentes dans ce bien
+  var existing={};
+  factures.filter(function(f){return f.bien===currentBien;}).forEach(function(f){existing[_dupKey(f)]=true;});
+  var nouvelles=[],doublons=[];
+  list.forEach(function(f){ if(existing[_dupKey(f)])doublons.push(f); else nouvelles.push(f); });
+  // Marquer chaque facture pending comme doublon ou non
+  pendingMultiple.forEach(function(f){f._dup=!!existing[_dupKey(f)];});
+
+  var html='<div style="font-weight:600;margin-bottom:6px;">📊 '+list.length+' factures trouvées</div>';
+  if(doublons.length>0){
+    html+='<div style="background:#FEF3C7;border-radius:8px;padding:8px 10px;margin-bottom:10px;font-size:13px;color:#92400E;">⚠️ <b>'+doublons.length+' doublon(s)</b> déjà présent(s) dans ce bien · <b>'+nouvelles.length+' nouvelle(s)</b></div>';
+  }else{
+    html+='<div class="mini" style="margin-bottom:10px;">Aucun doublon détecté. Vérifiez avant d\'importer.</div>';
+  }
+  html+='<div style="max-height:260px;overflow-y:auto;">';
+  list.slice(0,60).forEach(function(f){
+    var dup=existing[_dupKey(f)];
+    var badge=dup?'<span style="font-size:9px;background:#F59E0B;color:#fff;padding:1px 6px;border-radius:8px;margin-left:6px;">doublon</span>':'';
+    html+='<div style="border-bottom:1px solid #f0efec;padding:5px 0;font-size:12px;'+(dup?'opacity:.6;':'')+'">'+(f.date||'?')+' · <b>'+(f.fournisseur||'?')+'</b> · <b>'+f.montant+'€</b>'+badge+'</div>';
   });
-  if(list.length>50)html+='<div class="mini" style="padding:6px 0;">… et '+(list.length-50)+' autres</div>';
+  if(list.length>60)html+='<div class="mini" style="padding:6px 0;">… et '+(list.length-60)+' autres</div>';
   html+='</div>';
-  html+='<div class="row" style="margin-top:12px;"><button class="btn btn-green" onclick="saveMultiple()">✓ Importer '+list.length+' factures</button><button class="btn btn-ghost" onclick="cancelEdit()">Annuler</button></div>';
+  html+='<div class="row" style="margin-top:12px;gap:8px;flex-wrap:wrap;">';
+  if(doublons.length>0){
+    html+='<button class="btn btn-green" onclick="saveMultiple(false)">✓ Importer '+nouvelles.length+' nouvelles seulement</button>';
+    html+='<button class="btn btn-ghost" onclick="saveMultiple(true)">Tout importer ('+list.length+', doublons inclus)</button>';
+  }else{
+    html+='<button class="btn btn-green" onclick="saveMultiple(true)">✓ Importer '+list.length+' factures</button>';
+  }
+  html+='<button class="btn btn-ghost" onclick="cancelEdit()">Annuler</button></div>';
   var ec=document.getElementById('editCard');
   ec.style.display='block';ec.innerHTML=html;ec.scrollIntoView({behavior:'smooth'});
 }
@@ -401,24 +423,24 @@ function showMultiple(list){
       +'<span class="mini">'+(f.categorie||'Autre')+'</span></div>';
   });
   html+='</div>';
-  html+='<div class="row" style="margin-top:12px;"><button class="btn btn-green" onclick="saveMultiple()">✓ Tout enregistrer ('+list.length+')</button><button class="btn btn-ghost" onclick="cancelEdit()">Annuler</button></div>';
+  html+='<div class="row" style="margin-top:12px;"><button class="btn btn-green" onclick="saveMultiple(true)">✓ Tout enregistrer ('+list.length+')</button><button class="btn btn-ghost" onclick="cancelEdit()">Annuler</button></div>';
   var ec=document.getElementById('editCard');
   ec.style.display='block';
   ec.innerHTML=html;
   ec.scrollIntoView({behavior:'smooth'});
 }
-async function saveMultiple(){
+async function saveMultiple(includeDup){
   var bien=currentBien;
-  // Set des factures existantes de ce bien (clé = date|montant|catégorie) pour éviter les doublons
   var existing={};
-  factures.filter(function(f){return f.bien===bien;}).forEach(function(f){existing[(f.date||'')+'|'+f.montant+'|'+f.categorie]=true;});
+  factures.filter(function(f){return f.bien===bien;}).forEach(function(f){existing[_dupKey(f)]=true;});
   var ajoutees=0,ignorees=0;
   pendingMultiple.forEach(function(f){
     var montant=parseFloat(f.montant)||0;
     var cat=f.categorie||'Autre';
     var date=f.date||new Date().toISOString().slice(0,10);
     var key=date+'|'+montant+'|'+cat;
-    if(existing[key]){ignorees++;return;}   // doublon : on saute
+    // Si doublon et qu'on n'inclut pas les doublons : on saute
+    if(existing[key] && !includeDup){ignorees++;return;}
     existing[key]=true;
     factures.push({
       id:'fac_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),
