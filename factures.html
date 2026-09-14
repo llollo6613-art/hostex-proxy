@@ -202,38 +202,67 @@ async function importExcel(file){
     var buf=await file.arrayBuffer();
     var wb=XLSX.read(buf,{type:'array',cellDates:true});
     var ws=wb.Sheets[wb.SheetNames[0]];
-    var rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:false,dateNF:'yyyy-mm-dd'});
-    // Détecter la ligne d'en-tête et les colonnes date/libellé/montant
+    var rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:null});
+    // Mapping des libellés de colonnes Excel -> catégories de l'app
+    var CATMAP={
+      'electricite/vmc':'Travaux - Électricité','electricité/vmc':'Travaux - Électricité',
+      'placo/isolation':'Travaux - Agencement / Aménagement',
+      'demolition':'Travaux - Gros œuvre / Structure','démolition':'Travaux - Gros œuvre / Structure',
+      'plomberie':'Travaux - Plomberie',
+      'menuiserie':'Travaux - Agencement / Aménagement',
+      'toit':'Travaux - Toiture',
+      'gros oeuvre':'Travaux - Gros œuvre / Structure','gros œuvre':'Travaux - Gros œuvre / Structure',
+      'clim':'Travaux - Chauffage / Clim',
+      'electromenager':'Électroménager','electroménager':'Électroménager',
+      'cuisine':'Travaux - Salle de bain / Cuisine',
+      'ammeublement':'Mobilier & Literie','ameublement':'Mobilier & Literie',
+      'radiateurs/chauffe eau':'Travaux - Chauffage / Clim',
+      'sanitaire':'Travaux - Salle de bain / Cuisine',
+      'peinture':'Travaux - Peinture / Revêtements',
+      'facade':'Travaux - Façade','façade':'Travaux - Façade',
+      'plancher/sol':'Travaux - Agencement / Aménagement',
+      'assurance':'Assurance (PNO, GLI...)',
+      'taxe fonciere':'Taxe foncière','taxe foncière':'Taxe foncière',
+      'diagnostics':'Honoraires (comptable, notaire, avocat)',
+      'menage':'Ménage / Blanchisserie','ménage':'Ménage / Blanchisserie',
+      'eau':'Eau',
+      'internet':'Internet / Télécom'
+    };
+    function normHdr(s){return String(s||'').trim().toLowerCase().replace(/\s+/g,' ').trim();}
+    // Trouver la ligne d'en-tête (celle contenant "DATES" ou "date")
+    var hdrRow=-1,dateCol=-1,headers=null;
+    for(var i=0;i<Math.min(rows.length,10);i++){
+      var r=rows[i];if(!r)continue;
+      for(var j=0;j<r.length;j++){
+        if(normHdr(r[j])==='dates'||normHdr(r[j])==='date'){hdrRow=i;dateCol=j;headers=r;break;}
+      }
+      if(hdrRow>=0)break;
+    }
+    if(hdrRow<0){toast('En-tête introuvable (colonne DATE manquante)');drop.classList.remove('busy');drop.querySelector('div:nth-child(2)').textContent='Ajouter une facture';return;}
+    // Colonnes de catégories = après la colonne date
+    var catCols=[];
+    for(var col=dateCol+1;col<headers.length;col++){
+      if(headers[col]){catCols.push({idx:col,label:headers[col],cat:CATMAP[normHdr(headers[col])]||'Autre'});}
+    }
+    // Parcourir les lignes de données
     var imported=[];
-    rows.forEach(function(r){
-      if(!r||!r.length)return;
-      // Chercher une date, un montant, un libellé dans la ligne
-      var dateVal=null,montantVal=null,libelle='';
-      r.forEach(function(cell){
-        var s=String(cell||'').trim();
-        // Date : format YYYY-MM-DD ou DD/MM/YYYY
-        if(!dateVal){
-          var m1=s.match(/^(\d{4})-(\d{2})-(\d{2})/);
-          var m2=s.match(/^(\d{1,2})[\/.](\d{1,2})[\/.](\d{2,4})/);
-          if(m1)dateVal=s.slice(0,10);
-          else if(m2){var y=m2[3].length===2?'20'+m2[3]:m2[3];dateVal=y+'-'+('0'+m2[2]).slice(-2)+'-'+('0'+m2[1]).slice(-2);}
-        }
-        // Montant : nombre (avec , ou .)
-        var num=parseFloat(s.replace(/\s/g,'').replace(',','.').replace(/[^0-9.\-]/g,''));
-        if(!isNaN(num)&&num>0&&s.match(/[0-9]/)&&!s.match(/^\d{4}-\d{2}-\d{2}$/)&&!s.match(/^\d{1,2}[\/.]\d/)){
-          if(montantVal===null||num>montantVal)montantVal=num;
-        }
-        // Libellé : texte non numérique et non date
-        if(s.length>2 && isNaN(parseFloat(s.replace(',','.'))) && !s.match(/^\d/)){
-          if(s.length>libelle.length)libelle=s;
+    for(var ri=hdrRow+1;ri<rows.length;ri++){
+      var row=rows[ri];if(!row)continue;
+      var dv=row[dateCol];
+      var dateStr='';
+      if(dv instanceof Date){dateStr=dv.toISOString().slice(0,10);}
+      else if(typeof dv==='number'){var d=XLSX.SSF?XLSX.SSF.parse_date_code(dv):null;if(d)dateStr=d.y+'-'+('0'+d.m).slice(-2)+'-'+('0'+d.d).slice(-2);}
+      else if(typeof dv==='string'){var m=dv.match(/(\d{4})-(\d{2})-(\d{2})/)||dv.match(/(\d{1,2})[\/.](\d{1,2})[\/.](\d{2,4})/);if(m){if(m[0].indexOf('-')===4)dateStr=m[0].slice(0,10);else{var y=m[3].length===2?'20'+m[3]:m[3];dateStr=y+'-'+('0'+m[2]).slice(-2)+'-'+('0'+m[1]).slice(-2);}}}
+      // Pour chaque colonne catégorie remplie, créer une facture
+      catCols.forEach(function(cc){
+        var val=row[cc.idx];
+        var num=(typeof val==='number')?val:parseFloat(String(val||'').replace(/\s/g,'').replace(',','.'));
+        if(!isNaN(num)&&num>0){
+          imported.push({date:dateStr||'',montant:Math.round(num*100)/100,fournisseur:cc.label,categorie:cc.cat,tva:0,note:'Import Excel'});
         }
       });
-      if(dateVal && montantVal){
-        imported.push({date:dateVal,montant:montantVal,fournisseur:libelle||'(importé)',categorie:'Autre',tva:0,note:'Import Excel'});
-      }
-    });
-    if(!imported.length){toast('Aucune facture détectée dans l\'Excel');drop.classList.remove('busy');drop.querySelector('div:nth-child(2)').textContent='Ajouter une facture';return;}
-    // Prévisualiser l'import
+    }
+    if(!imported.length){toast('Aucune facture détectée');drop.classList.remove('busy');drop.querySelector('div:nth-child(2)').textContent='Ajouter une facture';return;}
     showImportPreview(imported);
   }catch(e){
     toast('Erreur lecture Excel : '+e.message);
