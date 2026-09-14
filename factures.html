@@ -86,7 +86,7 @@ tr:hover td{background:#fafafa;}
   <div class="filters">
     <select id="filterCat" onchange="render()"><option value="">Toutes catégories</option></select>
     <select id="filterYear" onchange="render()"><option value="">Toutes années</option></select>
-    <button class="btn btn-primary" onclick="exportExcel()" style="margin-left:auto;">⬇ Export (année filtrée)</button><button class="btn btn-ghost" onclick="exportAllYears()">⬇ Toutes années (1 feuille/an)</button>
+    <button class="btn btn-primary" onclick="exportExcel()" style="margin-left:auto;">⬇ Export (année filtrée)</button><button class="btn btn-ghost" onclick="exportAllYears()">⬇ Toutes années (1 feuille/an)</button><button class="btn btn-ghost" onclick="clearBien()" style="color:#DC2626;border-color:#DC2626;">🗑️ Vider ce bien</button>
   </div>
   <div class="total-box" id="totalBox" style="margin-bottom:12px;"></div>
   <div style="overflow-x:auto;">
@@ -375,24 +375,29 @@ function showMultiple(list){
 }
 async function saveMultiple(){
   var bien=currentBien;
+  // Set des factures existantes de ce bien (clé = date|montant|catégorie) pour éviter les doublons
+  var existing={};
+  factures.filter(function(f){return f.bien===bien;}).forEach(function(f){existing[(f.date||'')+'|'+f.montant+'|'+f.categorie]=true;});
+  var ajoutees=0,ignorees=0;
   pendingMultiple.forEach(function(f){
+    var montant=parseFloat(f.montant)||0;
+    var cat=f.categorie||'Autre';
+    var date=f.date||new Date().toISOString().slice(0,10);
+    var key=date+'|'+montant+'|'+cat;
+    if(existing[key]){ignorees++;return;}   // doublon : on saute
+    existing[key]=true;
     factures.push({
       id:'fac_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),
-      date:f.date||new Date().toISOString().slice(0,10),
-      montant:parseFloat(f.montant)||0,
-      tva:parseFloat(f.tva)||0,
-      fournisseur:f.fournisseur||'',
-      categorie:f.categorie||'Autre',
-      bien:bien,
-      note:f.note||'',
-      img:'',
-      pdf:pendingPdfName||''
+      date:date,montant:montant,tva:parseFloat(f.tva)||0,
+      fournisseur:f.fournisseur||'',categorie:cat,bien:bien,
+      note:f.note||'',img:'',pdf:pendingPdfName||''
     });
+    ajoutees++;
   });
   await persist();
   pendingMultiple=[];
-  // Restaurer le formulaire original
-  location.reload();
+  toast('✓ '+ajoutees+' ajoutées'+(ignorees>0?' · '+ignorees+' doublons ignorés':''));
+  setTimeout(function(){location.reload();},1500);
 }
 
 function fillEdit(d){
@@ -516,6 +521,17 @@ function render(){
   document.getElementById('totalBox').innerHTML='Total affiché : <b>'+total.toLocaleString('fr-FR',{minimumFractionDigits:2})+'€</b> &nbsp;·&nbsp; <span class="mini">TVA : '+totalTva.toLocaleString('fr-FR',{minimumFractionDigits:2})+'€ · '+list.length+' facture(s)</span>';
 }
 
+async function clearBien(){
+  var bienName=(BIENS.find(function(b){return b.id===currentBien;})||{}).name||currentBien;
+  var n=factures.filter(function(f){return f.bien===currentBien;}).length;
+  if(!n){toast('Aucune facture pour ce bien');return;}
+  if(!confirm('Supprimer TOUTES les '+n+' factures de "'+bienName+'" ?\n\nCette action est irréversible. Utile pour réimporter proprement.'))return;
+  if(!confirm('Confirmer la suppression de '+n+' factures ?'))return;
+  factures=factures.filter(function(f){return f.bien!==currentBien;});
+  await persist();
+  render();
+  toast('✓ '+n+' factures supprimées');
+}
 function exportExcel(){
   var list=factures.filter(function(f){return f.bien===currentBien;});
   if(document.getElementById('filterCat').value)list=list.filter(function(f){return f.categorie===document.getElementById('filterCat').value;});
