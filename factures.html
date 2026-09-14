@@ -248,17 +248,22 @@ async function importExcel(file){
     var imported=[];
     for(var ri=hdrRow+1;ri<rows.length;ri++){
       var row=rows[ri];if(!row)continue;
+      // Ignorer les lignes de TOTAL/sous-total (mot-clé dans n'importe quelle cellule texte)
+      var isTotalRow=row.some(function(cell){var s=String(cell||'').toLowerCase().trim();return s==='total'||s==='totaux'||s.indexOf('total ')===0||s.indexOf('sous-total')>=0;});
+      if(isTotalRow)continue;
       var dv=row[dateCol];
       var dateStr='';
       if(dv instanceof Date){dateStr=dv.toISOString().slice(0,10);}
-      else if(typeof dv==='number'){var d=XLSX.SSF?XLSX.SSF.parse_date_code(dv):null;if(d)dateStr=d.y+'-'+('0'+d.m).slice(-2)+'-'+('0'+d.d).slice(-2);}
+      else if(typeof dv==='number' && dv>10000){var d=XLSX.SSF?XLSX.SSF.parse_date_code(dv):null;if(d)dateStr=d.y+'-'+('0'+d.m).slice(-2)+'-'+('0'+d.d).slice(-2);}
       else if(typeof dv==='string'){var m=dv.match(/(\d{4})-(\d{2})-(\d{2})/)||dv.match(/(\d{1,2})[\/.](\d{1,2})[\/.](\d{2,4})/);if(m){if(m[0].indexOf('-')===4)dateStr=m[0].slice(0,10);else{var y=m[3].length===2?'20'+m[3]:m[3];dateStr=y+'-'+('0'+m[2]).slice(-2)+'-'+('0'+m[1]).slice(-2);}}}
+      // CRUCIAL : ignorer les lignes SANS date valide (les lignes de totaux n'ont pas de date)
+      if(!dateStr)continue;
       // Pour chaque colonne catégorie remplie, créer une facture
       catCols.forEach(function(cc){
         var val=row[cc.idx];
         var num=(typeof val==='number')?val:parseFloat(String(val||'').replace(/\s/g,'').replace(',','.'));
         if(!isNaN(num)&&num>0){
-          imported.push({date:dateStr||'',montant:Math.round(num*100)/100,fournisseur:cc.label,categorie:cc.cat,tva:0,note:'Import Excel'});
+          imported.push({date:dateStr,montant:Math.round(num*100)/100,fournisseur:cc.label,categorie:cc.cat,tva:0,note:'Import Excel'});
         }
       });
     }
