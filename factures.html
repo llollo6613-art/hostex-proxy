@@ -483,11 +483,19 @@ async function saveFacture(){
     pdf:pendingPdfName||''
   };
   if(!f.montant){toast('Montant manquant');return;}
+  // Détection de doublon : même bien + date + montant + catégorie
+  var dup=factures.find(function(x){return x.bien===f.bien && _dupKey(x)===_dupKey(f);});
+  if(dup){
+    var msg='⚠️ DOUBLON détecté !\n\nUne facture identique existe déjà :\n'
+      +(dup.fournisseur||'?')+' · '+(dup.date||'?')+' · '+dup.montant+'€ · '+dup.categorie
+      +'\n\nVoulez-vous quand même l\'ajouter ?';
+    if(!confirm(msg))return;   // l'utilisateur refuse : on n'ajoute pas
+  }
   factures.push(f);
   await persist();
   cancelEdit();
   render();
-  toast('✓ Facture enregistrée');
+  toast('✓ Facture enregistrée'+(dup?' (doublon ajouté)':''));
 }
 
 async function delFacture(id){
