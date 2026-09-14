@@ -86,7 +86,7 @@ tr:hover td{background:#fafafa;}
   <div class="filters">
     <select id="filterCat" onchange="render()"><option value="">Toutes catégories</option></select>
     <select id="filterYear" onchange="render()"><option value="">Toutes années</option></select>
-    <button class="btn btn-primary" onclick="exportExcel()" style="margin-left:auto;">⬇ Export (année filtrée)</button><button class="btn btn-ghost" onclick="exportAllYears()">⬇ Toutes années (1 feuille/an)</button><button class="btn btn-ghost" onclick="clearBien()" style="color:#DC2626;border-color:#DC2626;">🗑️ Vider ce bien</button>
+    <button class="btn btn-primary" onclick="exportExcel()" style="margin-left:auto;">⬇ Export (année filtrée)</button><button class="btn btn-ghost" onclick="exportAllYears()">⬇ Toutes années (1 feuille/an)</button><button class="btn btn-ghost" onclick="checkDuplicates()" style="color:#D97706;border-color:#D97706;">🔍 Vérifier doublons</button><button class="btn btn-ghost" onclick="clearBien()" style="color:#DC2626;border-color:#DC2626;">🗑️ Vider ce bien</button>
   </div>
   <div class="total-box" id="totalBox" style="margin-bottom:12px;"></div>
   <div style="overflow-x:auto;">
@@ -585,6 +585,48 @@ function render(){
   document.getElementById('totalBox').innerHTML='Total affiché : <b>'+total.toLocaleString('fr-FR',{minimumFractionDigits:2})+'€</b> &nbsp;·&nbsp; <span class="mini">TVA : '+totalTva.toLocaleString('fr-FR',{minimumFractionDigits:2})+'€ · '+list.length+' facture(s)</span>';
 }
 
+async function checkDuplicates(){
+  var list=factures.filter(function(f){return f.bien===currentBien;});
+  if(!list.length){toast('Aucune facture');return;}
+  // Grouper par clé date|montant|catégorie
+  var groups={};
+  list.forEach(function(f){var k=_dupKey(f);(groups[k]=groups[k]||[]).push(f);});
+  // Ne garder que les groupes avec >1 facture (doublons)
+  var dupGroups=Object.keys(groups).filter(function(k){return groups[k].length>1;}).map(function(k){return groups[k];});
+  if(!dupGroups.length){toast('✓ Aucun doublon détecté');return;}
+  var totalDup=dupGroups.reduce(function(s,g){return s+(g.length-1);},0);
+  // Aperçu dans le panneau
+  var html='<div style="font-weight:600;margin-bottom:6px;color:#D97706;">🔍 '+dupGroups.length+' facture(s) en double détectée(s)</div>';
+  html+='<div class="mini" style="margin-bottom:10px;">'+totalDup+' exemplaire(s) en trop. Un exemplaire de chaque sera conservé.</div>';
+  html+='<div style="max-height:280px;overflow-y:auto;">';
+  dupGroups.forEach(function(g){
+    var f=g[0];
+    html+='<div style="border:1px solid #FDE68A;background:#FFFBEB;border-radius:8px;padding:8px;margin-bottom:6px;font-size:12px;">'
+      +'<b>'+(f.fournisseur||'?')+'</b> · '+(f.date||'?')+' · <b>'+f.montant+'€</b> · '+f.categorie
+      +'<br><span style="color:#D97706;font-weight:600;">'+g.length+' exemplaires → on en garde 1, on supprime '+(g.length-1)+'</span></div>';
+  });
+  html+='</div>';
+  html+='<div class="row" style="margin-top:12px;"><button class="btn btn-green" onclick="cleanDuplicates()">✓ Supprimer les '+totalDup+' doublons</button><button class="btn btn-ghost" onclick="cancelEdit()">Annuler</button></div>';
+  window._dupGroups=dupGroups;
+  var ec=document.getElementById('editCard');
+  ec.style.display='block';ec.innerHTML=html;ec.scrollIntoView({behavior:'smooth'});
+}
+async function cleanDuplicates(){
+  var dupGroups=window._dupGroups||[];
+  var toDelete=[];
+  dupGroups.forEach(function(g){
+    // Garder le plus complet (avec image/pdf/note), supprimer les autres
+    g.sort(function(a,b){var sa=(a.img?2:0)+(a.pdf?1:0)+(a.note?1:0);var sb=(b.img?2:0)+(b.pdf?1:0)+(b.note?1:0);return sb-sa;});
+    for(var i=1;i<g.length;i++)toDelete.push(g[i].id);
+  });
+  var delSet={};toDelete.forEach(function(id){delSet[id]=true;});
+  factures=factures.filter(function(f){return !delSet[f.id];});
+  await persist();
+  window._dupGroups=null;
+  cancelEdit();
+  render();
+  toast('✓ '+toDelete.length+' doublons supprimés');
+}
 async function clearBien(){
   var bienName=(BIENS.find(function(b){return b.id===currentBien;})||{}).name||currentBien;
   var n=factures.filter(function(f){return f.bien===currentBien;}).length;
