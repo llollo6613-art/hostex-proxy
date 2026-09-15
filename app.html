@@ -2320,6 +2320,7 @@ function renderRates(){
 
     +'<div style="height:1px;background:var(--border);margin:15px 0;"></div>'
     +'<a href="https://app.hostex.io/calendar" target="_blank" class="btn" style="display:block;text-align:center;text-decoration:none;">Ouvrir le calendrier Hostex</a>'
+    +'<a href="/tarifs-pro#suivi" target="_blank" class="btn" style="display:block;text-align:center;text-decoration:none;margin-top:6px;">📊 Suivi des modifications</a>'
   +'</div>';
 
   document.getElementById('main-content').innerHTML=
@@ -2555,7 +2556,7 @@ async function _applyBaseRules(propId){
   var m=S.ratesMonth||new Date();
   var year=m.getFullYear(),month=m.getMonth();
   var dim=new Date(year,month+1,0).getDate();
-  var airPrices=[],bkPrices=[];
+  var airPrices=[],bkPrices=[],journalRegles=[];
 
   for(var d=1;d<=dim;d++){
     var date=new Date(year,month,d);
@@ -2565,6 +2566,9 @@ async function _applyBaseRules(propId){
     var isWE=dow===0||dow===5||dow===6;
     var ap=isWE?r.airWE:r.airWeek;
     var bp=isWE?r.bkWE:r.bkWeek;
+    var avA=S.ratesPrices[propId+'_'+ds+'_air'],avB=S.ratesPrices[propId+'_'+ds+'_bk'];
+    if(avA!==ap)journalRegles.push({prop_id:propId,date:ds,canal:'air',avant:avA==null?null:avA,apres:ap,source:'tarifs',mode:'mois'});
+    if(avB!==bp)journalRegles.push({prop_id:propId,date:ds,canal:'bk',avant:avB==null?null:avB,apres:bp,source:'tarifs',mode:'mois'});
     S.ratesPrices[propId+'_'+ds+'_air']=ap;
     S.ratesPrices[propId+'_'+ds+'_bk']=bp;
     airPrices.push({date:ds,price:ap,start_date:ds,end_date:ds});
@@ -2579,6 +2583,7 @@ async function _applyBaseRules(propId){
     if(airCh.length){for(var i=0;i<airPrices.length;i+=30)await _hostexEcrire('/listings/prices',{listing_id:airCh[0].listing_id,channel_type:airCh[0].channel_type,prices:airPrices.slice(i,i+30)});}
     if(bkCh.length){for(var i=0;i<bkPrices.length;i+=30)await _hostexEcrire('/listings/prices',{listing_id:bkCh[0].listing_id,channel_type:bkCh[0].channel_type,prices:bkPrices.slice(i,i+30)});}
     showToast('✓ '+airPrices.length+' jours synchronisés sur Airbnb + Booking');
+    _journaliserTarifs(journalRegles);
   }catch(e){showToast('❌ Hostex a refusé les tarifs : '+e.message,6000);}
   try{
     var joursMS=airPrices.map(function(x){return x.date;});
@@ -2698,6 +2703,13 @@ async function _hostexEcrire(ep,body){
   return r;
 }
 function _canalCle(ch){return platClass(ch.channel_type)==='airbnb'?'air':'bk';}
+// Journal des changements de prix (statistiques affichées dans Tarifs Pro)
+function _journaliserTarifs(entrees){
+  if(!entrees||!entrees.length)return;
+  fetch((typeof PROXY!=='undefined'?PROXY:'')+'/tarifs-journal-add',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({entries:entrees})})
+    .then(function(r){return r.json().then(function(d){if(!r.ok||!d.ok)throw new Error(d.error||('HTTP '+r.status));});})
+    .catch(function(e){showToast('⚠ Tarifs appliqués, mais le suivi n’a pas pu être enregistré : '+e.message,6000);});
+}
 // Restriction d'un jour en conservant les autres règles existantes (arrivée/départ interdits, max)
 function _itemRestr(propId,cle,ds,min){
   var c=(S.ratesAvail&&S.ratesAvail[propId]&&S.ratesAvail[propId][ds]&&S.ratesAvail[propId][ds][cle])||{};
@@ -3681,6 +3693,8 @@ async function _enregistrerTarifs(propId,jours,av,bv,msv){
   if(!jours.length){showToast('🔒 Aucun jour modifiable');if(S.page==='rates')renderRates();return;}
   if(!av&&!bv&&!msv){showToast('Entre un prix.');return;}
   if(!S.ratesModified)S.ratesModified={};
+  var avantPrix={},journalEntrees=[];
+  jours.forEach(function(ds){var k=propId+'_'+ds;avantPrix[ds]={air:S.ratesPrices[k+'_air']==null?null:S.ratesPrices[k+'_air'],bk:S.ratesPrices[k+'_bk']==null?null:S.ratesPrices[k+'_bk']};});
   jours.forEach(function(ds){var k=propId+'_'+ds;if(av){S.ratesPrices[k+'_air']=av;S.ratesModified[k+'_air']=true;}if(bv){S.ratesPrices[k+'_bk']=bv;S.ratesModified[k+'_bk']=true;}if(msv)S.ratesMinStay[k]=msv;});
   showToast('Envoi à Hostex…');
   var pl=_plages(jours),err=[];
@@ -3689,12 +3703,14 @@ async function _enregistrerTarifs(propId,jours,av,bv,msv){
     var ch=chs[i],cle=_canalCle(ch),prix=cle==='air'?av:bv;
     try{
       for(var j=0;prix>0&&j<pl.length;j+=30)await _hostexEcrire('/listings/prices',{listing_id:ch.listing_id,channel_type:ch.channel_type,prices:pl.slice(j,j+30).map(function(p){return {start_date:p.start_date,end_date:p.end_date,price:prix};})});
+      if(prix>0)jours.forEach(function(ds){if(avantPrix[ds][cle]!==prix)journalEntrees.push({prop_id:propId,date:ds,canal:cle,avant:avantPrix[ds][cle],apres:prix,source:'tarifs',mode:jours.length>1?'selection':'jour'});});
     }catch(e){err.push('tarif '+platLabel(ch.channel_type)+' : '+e.message);}
     try{
       for(var j2=0;msv>0&&j2<jours.length;j2+=30)await _hostexEcrire('/listings/restrictions',{listing_id:ch.listing_id,channel_type:ch.channel_type,restrictions:jours.slice(j2,j2+30).map(function(ds){return _itemRestr(propId,cle,ds,msv);})});
       if(msv>0){var dp=S.ratesAvail&&S.ratesAvail[propId];if(dp)jours.forEach(function(ds){if(dp[ds]&&dp[ds][cle])dp[ds][cle].min=msv;});}
     }catch(e){err.push('séjour min '+platLabel(ch.channel_type)+' : '+e.message);}
   }
+  _journaliserTarifs(journalEntrees);
   if(err.length)showToast('❌ Hostex a refusé — '+err.join(' / '),6000);
   else showToast('✓ '+jours.length+' jour(s) mis à jour sur Hostex'+(exclus?' · '+exclus+' verrouillé(s) ignoré(s)':''));
   if(S.page==='rates')renderRates();

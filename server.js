@@ -1404,6 +1404,46 @@ app.get('/factures-load', async function(req, res) {
   } catch(e) { res.json({ factures: [], error: e.message }); }
 });
 
+// ===== Journal des modifications de prix (suivi de l'efficacité des calendriers de tarifs) =====
+// Stocké dans app_data (clé 'tarifs_journal') : [{at, prop_id, date, canal, avant, apres, source, mode}]
+async function lireJournalTarifs() {
+  const rows = await supaFetch('app_data?key=eq.tarifs_journal&select=value');
+  if (rows && rows.length && rows[0].value) {
+    try { return JSON.parse(rows[0].value); } catch(e) { return []; }
+  }
+  return [];
+}
+
+app.get('/tarifs-journal', async function(req, res) {
+  try { res.json({ ok: true, entries: await lireJournalTarifs() }); }
+  catch(e) { res.status(500).json({ ok: false, entries: [], error: e.message }); }
+});
+
+let journalTarifsFile = Promise.resolve();
+app.post('/tarifs-journal-add', function(req, res) {
+  const entries = (req.body && req.body.entries) || [];
+  if (!Array.isArray(entries) || !entries.length) return res.status(400).json({ ok: false, error: 'Aucune entrée' });
+  const at = new Date().toISOString();
+  const num = v => (v === null || v === undefined || v === '' || !isFinite(+v)) ? null : Math.round(+v * 100) / 100;
+  const propres = [];
+  for (const e of entries) {
+    if (!e || !/^\d{4}-\d{2}-\d{2}$/.test(e.date || '') || !e.prop_id || (e.canal !== 'air' && e.canal !== 'bk')) {
+      return res.status(400).json({ ok: false, error: 'Entrée invalide' });
+    }
+    propres.push({ at, prop_id: String(e.prop_id), date: e.date, canal: e.canal, avant: num(e.avant), apres: num(e.apres),
+      source: String(e.source || 'inconnu').slice(0, 30), mode: String(e.mode || '').slice(0, 20) });
+  }
+  // Écritures en file pour ne perdre aucune entrée si deux ajouts arrivent en même temps
+  const tache = journalTarifsFile.then(async function() {
+    const total = (await lireJournalTarifs()).concat(propres);
+    await supaFetch('app_data?on_conflict=key', 'POST', [{ key: 'tarifs_journal', value: JSON.stringify(total) }]);
+    return total.length;
+  });
+  journalTarifsFile = tache.catch(function() {});
+  tache.then(n => res.json({ ok: true, count: n, at }))
+    .catch(e => res.status(500).json({ ok: false, error: e.message }));
+});
+
 app.get('/messagerie', function(req, res) {
   res.sendFile(__dirname+'/messagerie.html');
 });

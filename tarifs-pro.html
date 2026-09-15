@@ -41,6 +41,26 @@ input,select{border:1px solid var(--border);border-radius:8px;padding:8px 10px;f
 .day .chf{font-size:10px;color:#5F5A4F;font-weight:700;}
 .sync{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text3);justify-content:center;flex-wrap:wrap;margin:-4px 0 12px;}
 .sync i{width:7px;height:7px;border-radius:50%;display:inline-block;}
+.day.sel{box-shadow:inset 0 0 0 2px #1F4E5F;background:#E6EFF2;}
+.day .coche{position:absolute;bottom:4px;right:5px;font-size:11px;color:#1F4E5F;font-weight:800;}
+.day .modif{font-size:9px;color:#7C3AED;margin-left:3px;font-weight:700;}
+.modes{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px;margin-bottom:10px;}
+.modes label{display:flex;align-items:center;gap:8px;margin:0;padding:10px 12px;border:1px solid #BBF7D0;border-radius:10px;background:#fff;font-size:13px;color:#1a1a1a;font-weight:600;cursor:pointer;}
+.modes label.on{border-color:#1D9E75;box-shadow:inset 0 0 0 1px #1D9E75;}
+.modes small{display:block;font-size:11px;color:var(--text3);font-weight:400;margin-top:1px;}
+.selbar{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;background:#1F4E5F;color:#fff;border-radius:10px;padding:8px 12px;margin-top:10px;font-size:12.5px;}
+.selbar .btn{padding:6px 11px;font-size:12px;}
+.stats-kpi{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-bottom:12px;}
+.tbl-wrap{overflow-x:auto;}
+table.stats{width:100%;border-collapse:collapse;font-size:12.5px;min-width:680px;}
+table.stats th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--text3);padding:7px 8px;border-bottom:1px solid var(--border);white-space:nowrap;}
+table.stats td{padding:8px;border-bottom:1px solid #f0efeb;white-space:nowrap;font-variant-numeric:tabular-nums;}
+table.stats tr.mois{cursor:pointer;}
+table.stats tr.mois:hover td{background:#faf9f7;}
+table.stats tr.total td{font-weight:700;border-top:2px solid var(--border);}
+table.stats tr.detail td{background:#faf9f7;font-size:11.5px;color:#444;white-space:normal;}
+.pos{color:#059669;font-weight:700;}
+.neg{color:#DC2626;font-weight:700;}
 .day .dnum{font-weight:700;font-size:12px;}
 .day .dtag{font-size:8px;padding:1px 4px;border-radius:6px;color:#fff;display:inline-block;margin-top:1px;}
 .day .base{color:var(--text3);text-decoration:line-through;font-size:9px;}
@@ -113,7 +133,9 @@ input,select{border:1px solid var(--border);border-radius:8px;padding:8px 10px;f
     <span><i style="background:repeating-linear-gradient(135deg,#F2F0EA 0 3px,#D6D1C6 3px 4px);border:1px dashed #BDB6A6;"></i> Fermé</span>
     <span><i style="background:#D1D5DB"></i> 🔒 Réservé / passé · non modifiable</span>
     <span>« A / B » = prix actuel sur Hostex</span>
+    <span><b style="color:#7C3AED">✎</b> Prix modifié via l’app</span>
   </div>
+  <div id="selBar"></div>
 </div>
 
 <div class="card">
@@ -126,8 +148,23 @@ input,select{border:1px solid var(--border);border-radius:8px;padding:8px 10px;f
 
 <div class="card" style="background:#F0FDF4;border-color:#86EFAC;">
   <div style="font-weight:600;margin-bottom:6px;">🚀 Appliquer sur Airbnb + Booking</div>
-  <div class="mini" style="margin-bottom:10px;">Applique les prix suggérés du mois affiché sur les nuits modifiables (ni passées, ni réservées), via Hostex.</div>
-  <button class="btn btn-green" onclick="applyPrices()">Appliquer les prix de <span id="applyMonth"></span></button>
+  <div class="mini" style="margin-bottom:10px;">Choisissez les nuits qui passent au prix suggéré. Les nuits passées ou réservées ne sont jamais modifiées. Chaque changement est enregistré pour le suivi ci-dessous.</div>
+  <div class="modes">
+    <label id="modeMois" class="on"><input type="radio" name="modeApp" value="mois" checked onchange="choisirMode(this.value)"><span>Tout le mois de <span id="applyMonth"></span><small id="nbMois"></small></span></label>
+    <label id="modeSel"><input type="radio" name="modeApp" value="selection" onchange="choisirMode(this.value)"><span>Uniquement certains jours<small id="nbSel">Cliquez sur les jours dans le calendrier</small></span></label>
+  </div>
+  <button class="btn btn-green" id="applyBtn" onclick="applyPrices()">Appliquer</button>
+</div>
+
+<div class="card" id="suivi">
+  <div class="row" style="justify-content:space-between;margin-bottom:10px;">
+    <div style="font-weight:600;">📊 Suivi des modifications de prix — <span id="statsBien"></span></div>
+    <select id="statsSource" onchange="renderStats()" style="font-size:12.5px;padding:6px 8px;">
+      <option value="tarifs-pro">Tarifs Pro uniquement</option>
+      <option value="tout">Toutes les modifications (Tarifs + Tarifs Pro)</option>
+    </select>
+  </div>
+  <div id="statsBox" class="mini">Chargement du journal…</div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -253,10 +290,52 @@ function txtCanal(nom,c){
   if(!c)return nom+' : non synchronisé';
   return nom+' : '+(c.inv===0?'fermé':'ouvert')+(c.prix?' · '+c.prix+' €':'')+(c.min?' · min '+c.min+' nuit(s)':'')+(c.ctA?' · arrivée interdite':'')+(c.ctD?' · départ interdit':'');
 }
+// ===== Sélection de jours =====
+var selection={};
+var modeApp='mois';
 function clicJour(ds){
   var e=etatJour(ds);
   if(!e.modif){toast('🔒 '+fmtJ(ds)+' — '+e.lib.toLowerCase()+' : non modifiable');return;}
-  toast(fmtJ(ds)+' — '+e.lib+(e.air||e.bk?' ('+txtCanal('Airbnb',e.air)+' / '+txtCanal('Booking',e.bk)+')':''),4500);
+  if(selection[ds])delete selection[ds];else selection[ds]=true;
+  if(Object.keys(selection).length&&modeApp!=='selection')choisirMode('selection');
+  else{renderCalendar();}
+}
+function choisirMode(m){
+  modeApp=m;
+  document.querySelectorAll('input[name="modeApp"]').forEach(function(r){r.checked=r.value===m;});
+  renderCalendar();
+}
+function viderSelection(){selection={};renderCalendar();}
+function selectionnerTout(){joursCibles('mois').forEach(function(j){selection[j.ds]=true;});choisirMode('selection');}
+function joursMois(){
+  var y=curMonth.getFullYear(),m=curMonth.getMonth(),n=new Date(y,m+1,0).getDate(),out=[];
+  for(var d=1;d<=n;d++)out.push(y+'-'+('0'+(m+1)).slice(-2)+'-'+('0'+d).slice(-2));
+  return out;
+}
+// Nuits concernées par l'application : uniquement les nuits modifiables
+function joursCibles(mode){
+  return joursMois().filter(function(ds){return etatJour(ds).modif&&(mode!=='selection'||selection[ds]);})
+    .map(function(ds){return {ds:ds,prix:suggestedPrice(ds).sugg};});
+}
+function majApplyBox(){
+  var nm=joursCibles('mois').length,sel=joursCibles('selection'),ns=sel.length,el;
+  if((el=document.getElementById('nbMois')))el.textContent=nm+' nuit'+(nm>1?'s':'')+' modifiable'+(nm>1?'s':'');
+  if((el=document.getElementById('nbSel')))el.textContent=ns?ns+' jour'+(ns>1?'s':'')+' sélectionné'+(ns>1?'s':''):'Cliquez sur les jours dans le calendrier';
+  if((el=document.getElementById('modeMois')))el.className=modeApp==='mois'?'on':'';
+  if((el=document.getElementById('modeSel')))el.className=modeApp==='selection'?'on':'';
+  var n=modeApp==='selection'?ns:nm;
+  var btn=document.getElementById('applyBtn');
+  if(btn){
+    btn.disabled=!n;btn.style.opacity=n?1:.5;
+    btn.textContent=modeApp==='selection'
+      ?(n?'Appliquer sur les '+n+' jour'+(n>1?'s':'')+' sélectionné'+(n>1?'s':''):'Sélectionnez des jours dans le calendrier')
+      :'Appliquer sur les '+n+' nuit'+(n>1?'s':'')+' du mois';
+  }
+  var bar=document.getElementById('selBar');
+  if(bar)bar.innerHTML=ns
+    ?'<div class="selbar"><span><b>'+ns+'</b> jour'+(ns>1?'s':'')+' sélectionné'+(ns>1?'s':'')+' · '+sel.reduce(function(s,j){return s+j.prix;},0).toLocaleString('fr-FR')+' € au prix suggéré</span>'
+      +'<span class="row" style="gap:6px;"><button class="btn btn-green" onclick="choisirMode(\'selection\');applyPrices()">Appliquer</button><button class="btn btn-ghost" onclick="selectionnerTout()">Tout le mois</button><button class="btn btn-ghost" onclick="viderSelection()">Effacer</button></span></div>'
+    :'<div class="mini" style="margin-top:8px;">Astuce : cliquez sur des jours modifiables pour n’appliquer les prix qu’à ceux-là.</div>';
 }
 
 // ===== Chargement des données =====
@@ -273,7 +352,9 @@ async function loadData(){
         prop_id:String(x.property_id||x.prop_id||''),
         check_in:x.check_in_date||x.check_in||'',
         check_out:x.check_out_date||x.check_out||'',
-        status:x.status||''
+        status:x.status||'',
+        channel:x.channel_type||x.channel||'',
+        booked_at:x.booked_at||null
       };});
     }
   }catch(e){}
@@ -345,7 +426,7 @@ function renderTabs(){
 }
 function selectBien(id){currentBien=id;var b=BIENS.find(function(x){return x.id===id;});
   document.getElementById('baseWeek').value=b.baseWeek;document.getElementById('baseWE').value=b.baseWE;
-  computeOccupancy();renderTabs();recompute();}
+  selection={};computeOccupancy();renderTabs();recompute();renderStats();}
 
 function renderRules(){
   document.getElementById('rulesBox').innerHTML=rules.map(function(r,i){
@@ -359,7 +440,7 @@ function resetRules(){rules=JSON.parse(JSON.stringify(DEFAULT_RULES));saveRules(
 
 var MONTHS=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
 var DOW=['L','M','M','J','V','S','D'];
-function changeMonth(d){curMonth.setMonth(curMonth.getMonth()+d);recompute();}
+function changeMonth(d){curMonth.setMonth(curMonth.getMonth()+d);selection={};recompute();}
 
 function renderCalendar(){
   var y=curMonth.getFullYear(),m=curMonth.getMonth();
@@ -381,6 +462,10 @@ function renderCalendar(){
     else if(t.isFerie||t.isPont)cls+=' ferie';
     else if(t.isVac||t.isEte||t.isNoel)cls+=' vac';
     else if(t.isWE)cls+=' we';
+    if(!e.modif&&selection[ds])delete selection[ds];
+    var estSel=e.modif&&!!selection[ds];
+    if(estSel)cls+=' sel';
+    var modifs=entreesNuit(currentBien,ds);
     var tag='';
     if(t.isFerie)tag='<span class="dtag" style="background:#EF4444">Férié</span>';
     else if(t.isPont)tag='<span class="dtag" style="background:#F87171">Pont</span>';
@@ -389,7 +474,8 @@ function renderCalendar(){
     else if(t.isVac)tag='<span class="dtag" style="background:#60A5FA">Vac.</span>';
     else if(t.isWE)tag='<span class="dtag" style="background:#FB923C">WE</span>';
     var tip=fmtJ(ds)+' — '+e.lib+(e.modif?'':' (non modifiable)')+(e.air||e.bk?'\n'+txtCanal('Airbnb',e.air)+'\n'+txtCanal('Booking',e.bk):'');
-    html+='<div class="'+cls+'" title="'+tip.replace(/"/g,'&quot;')+'" onclick="clicJour(\''+ds+'\')"><div class="dnum">'+day+'</div>'+tag;
+    if(modifs.length){var dm=modifs[modifs.length-1];tip+='\nModifié via l’app le '+new Date(dm.at).toLocaleDateString('fr-FR')+' : '+(dm.canal==='air'?'Airbnb':'Booking')+' '+(dm.avant!=null?dm.avant+' € → ':'')+dm.apres+' €';}
+    html+='<div class="'+cls+'" title="'+tip.replace(/"/g,'&quot;')+'" onclick="clicJour(\''+ds+'\')"><div class="dnum">'+day+(modifs.length?'<span class="modif">✎</span>':'')+'</div>'+tag+(estSel?'<span class="coche">✓</span>':'');
     if(!e.modif){
       html+='<span class="lock">🔒</span><div style="font-size:9px;color:#9CA3AF;margin-top:4px;">'+(e.code==='reserve'?'Réservé':'Passé')+'</div>';
     }else if(e.code==='ferme'){
@@ -404,6 +490,7 @@ function renderCalendar(){
     html+='</div>';
   }
   document.getElementById('calGrid').innerHTML=html;
+  majApplyBox();
 }
 
 function renderKPI(){
@@ -442,26 +529,24 @@ function recompute(){
 }
 
 async function applyPrices(){
-  var y=curMonth.getFullYear(),m=curMonth.getMonth();
-  var nbDays=new Date(y,m+1,0).getDate();
-  var jours=[],fermes=0,verrous=0;
-  for(var day=1;day<=nbDays;day++){
-    var ds=y+'-'+('0'+(m+1)).slice(-2)+'-'+('0'+day).slice(-2);
-    var e=etatJour(ds);
-    if(!e.modif){verrous++;continue;}
-    if(e.code!=='ouvert'&&e.code!=='inconnu')fermes++;
-    jours.push({ds:ds,prix:suggestedPrice(ds).sugg});
-  }
-  if(!jours.length){toast('Aucune nuit modifiable ce mois-ci');return;}
-  if(!confirm('Appliquer les prix suggérés sur '+jours.length+' nuit(s) modifiable(s) (Airbnb + Booking) ?\n\n'
-    +verrous+' nuit(s) passée(s) ou réservée(s) ne seront pas touchées.'
+  var jours=joursCibles(modeApp);
+  var mois=MONTHS[curMonth.getMonth()]+' '+curMonth.getFullYear();
+  if(!jours.length){toast(modeApp==='selection'?'Sélectionnez des jours modifiables dans le calendrier':'Aucune nuit modifiable ce mois-ci');return;}
+  var fermes=jours.filter(function(j){var c=etatJour(j.ds).code;return c!=='ouvert'&&c!=='inconnu';}).length;
+  var total=jours.reduce(function(s,j){return s+j.prix;},0);
+  if(!confirm('Appliquer les prix suggérés sur '+jours.length+' nuit(s) '+(modeApp==='selection'?'sélectionnée(s)':'de '+mois)+' (Airbnb + Booking) ?\n\n'
+    +'Total au prix suggéré : '+total.toLocaleString('fr-FR')+' €'
     +(fermes?'\n'+fermes+' nuit(s) actuellement fermée(s) recevront le prix pour leur réouverture.':'')
+    +'\nLes nuits passées ou réservées ne sont pas touchées.'
     +'\n\nCela modifiera vos tarifs réels via Hostex.'))return;
   var b=BIENS.find(function(x){return x.id===currentBien;});
-  var ok=[],err=[];
+  var ok=[],err=[],entrees=[];
   toast('Envoi à Hostex…',8000);
   for(var c=0;c<b.channels.length;c++){
     var ch=b.channels[c],cle=cleCanal(ch.channel_type),nom=cle==='air'?'Airbnb':'Booking';
+    var dp=dispo[b.id]||{};
+    var avant={};
+    jours.forEach(function(j){avant[j.ds]=dp[j.ds]&&dp[j.ds][cle]?dp[j.ds][cle].prix:null;});
     try{
       for(var i=0;i<jours.length;i+=30){
         var r=await fetch('/api/listings/prices',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({listing_id:ch.listing_id,channel_type:ch.channel_type,prices:jours.slice(i,i+30).map(function(j){return {start_date:j.ds,end_date:j.ds,price:j.prix};})})});
@@ -469,13 +554,143 @@ async function applyPrices(){
         if(!r.ok||!d||(d.error_code&&d.error_code!==200))throw new Error((d&&d.error_msg)||('HTTP '+r.status));
       }
       ok.push(nom);
-      var dp=dispo[b.id]||{};
-      jours.forEach(function(j){if(dp[j.ds]&&dp[j.ds][cle])dp[j.ds][cle].prix=j.prix;});
+      jours.forEach(function(j){
+        if(avant[j.ds]!==j.prix)entrees.push({prop_id:b.id,date:j.ds,canal:cle,avant:avant[j.ds],apres:j.prix,source:'tarifs-pro',mode:modeApp});
+        if(dp[j.ds]&&dp[j.ds][cle])dp[j.ds][cle].prix=j.prix;
+      });
     }catch(ex){err.push(nom+' : '+ex.message);}
   }
   if(err.length)toast('❌ Hostex a refusé — '+err.join(' / ')+(ok.length?' · appliqué sur '+ok.join(', '):''),7000);
-  else toast('✓ '+jours.length+' nuits appliquées sur '+ok.join(' + '),4000);
+  else toast('✓ '+jours.length+' nuits appliquées sur '+ok.join(' + ')+(entrees.length?' · '+entrees.length+' changement(s) suivis':''),4500);
+  if(ok.length&&modeApp==='selection')selection={};
+  await enregistrerJournal(entrees);
   renderCalendar();
+}
+
+// ===== Journal des modifications et statistiques =====
+var journal=[],journalEtat='chargement',statsOuvert={};
+async function chargerJournal(){
+  try{
+    var r=await fetch('/tarifs-journal');var d=await r.json();
+    if(!r.ok||!d.ok)throw new Error(d.error||('HTTP '+r.status));
+    journal=d.entries||[];journalEtat='ok';
+  }catch(e){journalEtat='erreur';console.error('Journal tarifs',e);}
+  renderStats();renderCalendar();
+}
+async function enregistrerJournal(entrees){
+  if(!entrees.length){renderStats();return;}
+  try{
+    var r=await fetch('/tarifs-journal-add',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({entries:entrees})});
+    var d=await r.json().catch(function(){return {};});
+    if(!r.ok||!d.ok)throw new Error(d.error||('HTTP '+r.status));
+    entrees.forEach(function(e){e.at=d.at||new Date().toISOString();});
+    journal=journal.concat(entrees);
+  }catch(e){toast('⚠ Prix appliqués, mais le suivi n’a pas pu être enregistré : '+e.message,7000);}
+  renderStats();
+}
+function entreesNuit(bienId,ds){
+  return journal.filter(function(e){return e.prop_id===bienId&&e.date===ds;}).sort(function(a,b){return a.at<b.at?-1:1;});
+}
+function resaSurNuit(bienId,ds){
+  return reservations.find(function(r){return r.prop_id===bienId&&r.check_in<=ds&&ds<r.check_out;});
+}
+// Statistiques par mois (mois de la nuit) : nuits modifiées, réservées ensuite, gain par rapport à l'ancien prix
+function calculerStats(bienId,source){
+  var auj=dsLocal(new Date());
+  var parNuit={};
+  journal.forEach(function(e){if(e.prop_id===bienId&&(source==='tout'||e.source===source))(parNuit[e.date]||(parNuit[e.date]=[])).push(e);});
+  var mois={};
+  function M(m){return mois[m]||(mois[m]={m:m,modif:0,resa:0,libresPassees:0,aVenir:0,gain:0,hausse:0,baisse:0,nbHausse:0,nbBaisse:0,autreCanal:0,autresResa:0,autresLibres:0,t0:null,nuits:[]});}
+  Object.keys(parNuit).forEach(function(ds){
+    var liste=parNuit[ds].sort(function(a,b){return a.at<b.at?-1:1;});
+    var s=M(ds.slice(0,7));
+    if(!s.t0||liste[0].at<s.t0)s.t0=liste[0].at;
+    var resa=resaSurNuit(bienId,ds);
+    var ligne={ds:ds,modifs:liste,statut:'',diff:null,resa:resa||null};
+    s.nuits.push(ligne);
+    // Réservée avant la modification : hors statistiques
+    if(resa&&resa.booked_at&&resa.booked_at<liste[0].at){ligne.statut='avant';return;}
+    s.modif++;
+    if(resa){
+      s.resa++;
+      var cle=String(resa.channel).indexOf('airbnb')>=0?'air':'bk';
+      var cand=liste.filter(function(e){return e.canal===cle&&(!resa.booked_at||e.at<=resa.booked_at);});
+      if(!cand.length){s.autreCanal++;ligne.statut='autre';return;}
+      // Prix d'avant la première modification comparé au prix en vigueur à la réservation
+      var av=cand[0].avant,ap=cand[cand.length-1].apres;
+      ligne.statut='resa';ligne.canal=cle;
+      if(av!=null&&ap!=null){
+        var d=ap-av;ligne.diff=d;s.gain+=d;
+        if(d>0){s.hausse+=d;s.nbHausse++;}else if(d<0){s.baisse+=d;s.nbBaisse++;}
+      }
+    }else if(ds<auj){s.libresPassees++;ligne.statut='libre';}
+    else{s.aVenir++;ligne.statut='avenir';}
+  });
+  // Comparaison : nuits non modifiées du même mois, à partir du jour de la première modification
+  Object.keys(mois).forEach(function(m){
+    var s=mois[m],j0=dsLocal(new Date(s.t0)),y=+m.slice(0,4),mo=+m.slice(5,7),n=new Date(y,mo,0).getDate();
+    for(var d=1;d<=n;d++){
+      var ds=m+'-'+('0'+d).slice(-2);
+      if(ds<j0||parNuit[ds])continue;
+      var r=resaSurNuit(bienId,ds);
+      if(r){if(r.booked_at&&r.booked_at>=s.t0)s.autresResa++;}
+      else if(ds<auj)s.autresLibres++;
+    }
+  });
+  return Object.keys(mois).sort().reverse().map(function(m){return mois[m];});
+}
+function eur(v){v=Math.round(v);return (v>0?'+':v<0?'−':'')+Math.abs(v).toLocaleString('fr-FR')+' €';}
+function pct(a,b){return b>0?Math.round(a/b*100)+' %':'—';}
+function boiteKpi(bg,l,v,c,s){return '<div class="kpibox" style="background:'+bg+';"><div class="lbl">'+l+'</div><div class="val" style="color:'+c+';font-size:20px;">'+v+'</div><div class="sub2">'+s+'</div></div>';}
+function renderStats(){
+  var box=document.getElementById('statsBox');if(!box)return;
+  var b=BIENS.find(function(x){return x.id===currentBien;});
+  var sb=document.getElementById('statsBien');if(sb)sb.textContent=b?b.name:'';
+  if(journalEtat==='chargement'){box.innerHTML='Chargement du journal…';return;}
+  if(journalEtat==='erreur'){box.innerHTML='<span style="color:#DC2626;">Journal indisponible.</span> <button class="btn btn-ghost" style="padding:4px 10px;font-size:12px;" onclick="journalEtat=\'chargement\';renderStats();chargerJournal()">Réessayer</button>';return;}
+  var source=(document.getElementById('statsSource')||{}).value||'tarifs-pro';
+  var lignes=calculerStats(currentBien,source);
+  if(!lignes.length){box.innerHTML='Aucune modification enregistrée pour ce logement'+(source==='tarifs-pro'?' depuis Tarifs Pro':'')+'. Le suivi démarre à votre prochaine application de prix : chaque nuit modifiée puis réservée sera comptée ici, avec le gain ou la perte par rapport à l’ancien prix.';return;}
+  var T={modif:0,resa:0,libresPassees:0,aVenir:0,gain:0,hausse:0,baisse:0,nbHausse:0,nbBaisse:0,autreCanal:0,autresResa:0,autresLibres:0};
+  lignes.forEach(function(s){Object.keys(T).forEach(function(k){T[k]+=s[k];});});
+  var tauxM=pct(T.resa,T.resa+T.libresPassees),tauxA=pct(T.autresResa,T.autresResa+T.autresLibres);
+  var html='<div class="stats-kpi">'
+    +boiteKpi(T.gain>=0?'#ECFDF5':'#FEF2F2','GAIN NET DES MODIFICATIONS',eur(T.gain),T.gain>=0?'#059669':'#DC2626',(T.nbHausse+T.nbBaisse)+' nuit(s) vendue(s) à un prix modifié')
+    +boiteKpi('#EEF4F7','NUITS MODIFIÉES RÉSERVÉES',T.resa+' / '+T.modif,'#1F4E5F',T.aVenir+' à venir encore libre(s)')
+    +boiteKpi('#F5F3FF','TAUX DE RÉSERVATION',tauxM,'#5B21B6','nuits modifiées · '+tauxA+' pour les non modifiées')
+    +boiteKpi('#FFFBEB','HAUSSES / BAISSES',eur(T.hausse)+' / '+eur(T.baisse),'#92400E',T.nbHausse+' hausse(s) · '+T.nbBaisse+' baisse(s) vendue(s)')
+  +'</div>';
+  html+='<div class="tbl-wrap"><table class="stats"><thead><tr><th>Mois</th><th>Nuits modifiées</th><th>Réservées</th><th>Taux modifiées</th><th>Taux non modifiées</th><th>Hausses</th><th>Baisses</th><th>Gain net</th></tr></thead><tbody>';
+  lignes.forEach(function(s){
+    var y=+s.m.slice(0,4),mo=+s.m.slice(5,7);
+    html+='<tr class="mois" onclick="statsOuvert[\''+s.m+'\']=!statsOuvert[\''+s.m+'\'];renderStats()">'
+      +'<td><b>'+(statsOuvert[s.m]?'▾ ':'▸ ')+MONTHS[mo-1]+' '+y+'</b></td>'
+      +'<td>'+s.modif+'</td>'
+      +'<td>'+s.resa+(s.aVenir?' <span class="mini">('+s.aVenir+' à venir)</span>':'')+'</td>'
+      +'<td>'+pct(s.resa,s.resa+s.libresPassees)+'</td>'
+      +'<td>'+pct(s.autresResa,s.autresResa+s.autresLibres)+'</td>'
+      +'<td class="pos">'+(s.nbHausse?eur(s.hausse):'—')+'</td>'
+      +'<td class="neg">'+(s.nbBaisse?eur(s.baisse):'—')+'</td>'
+      +'<td class="'+(s.gain>0?'pos':s.gain<0?'neg':'')+'">'+eur(s.gain)+'</td></tr>';
+    if(statsOuvert[s.m]){
+      html+='<tr class="detail"><td colspan="8">'+s.nuits.slice().sort(function(a,c){return a.ds<c.ds?-1:1;}).map(function(n){
+        var chg=n.modifs.map(function(e){return (e.canal==='air'?'Airbnb ':'Booking ')+(e.avant!=null?e.avant+' → ':'')+e.apres+' €';}).join(', ');
+        var st=n.statut==='resa'?'<b>réservée</b> sur '+(n.canal==='air'?'Airbnb':'Booking')+(n.resa&&n.resa.booked_at?' le '+new Date(n.resa.booked_at).toLocaleDateString('fr-FR'):'')+(n.diff!=null?' · <span class="'+(n.diff>=0?'pos':'neg')+'">'+eur(n.diff)+'</span>':'')
+          :n.statut==='autre'?'réservée sur une plateforme dont le prix n’a pas été modifié'
+          :n.statut==='libre'?'<span style="color:#DC2626;">non réservée</span>'
+          :n.statut==='avant'?'réservée avant la modification (exclue)'
+          :'à venir, encore libre';
+        return '<div style="padding:3px 0;">'+fmtJ(n.ds)+' · '+chg+' · '+st+'</div>';
+      }).join('')+'</td></tr>';
+    }
+  });
+  html+='<tr class="total"><td>Total</td><td>'+T.modif+'</td><td>'+T.resa+'</td><td>'+tauxM+'</td><td>'+tauxA+'</td>'
+    +'<td class="pos">'+(T.nbHausse?eur(T.hausse):'—')+'</td><td class="neg">'+(T.nbBaisse?eur(T.baisse):'—')+'</td>'
+    +'<td class="'+(T.gain>0?'pos':T.gain<0?'neg':'')+'">'+eur(T.gain)+'</td></tr></tbody></table></div>'
+    +'<div class="mini" style="margin-top:10px;line-height:1.55;"><b>Gain net</b> : pour chaque nuit modifiée puis réservée, prix en vigueur au moment de la réservation moins le prix d’avant la modification, sur la plateforme qui a vendu la nuit (par nuit, avant commission). '
+    +'<b>Taux</b> : nuits réservées ÷ (nuits réservées + nuits passées restées libres) ; les nuits futures encore libres ne comptent pas encore. '
+    +'Les nuits non modifiées du même mois servent de comparaison à partir du jour de la première modification. Cliquez sur un mois pour le détail.</div>';
+  box.innerHTML=html;
 }
 
 // ===== Estimation marché via IA =====
@@ -516,6 +731,7 @@ async function estimateMarket(){
   document.getElementById('baseWeek').value=b.baseWeek;
   document.getElementById('baseWE').value=b.baseWE;
   recompute();
+  chargerJournal();
 })();
 </script>
 </body>
