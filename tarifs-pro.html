@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tarification Pro — Patrimoine PONTAC</title>
+<style>
+:root{--accent:#1F4E5F;--border:#e5e4e0;--text3:#888;--bg:#faf9f7;--green:#1D9E75;--pink:#F4A6B8;--blue:#A6C8E8;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:#1a1a1a;padding:14px;max-width:1200px;margin:0 auto;-webkit-font-smoothing:antialiased;}
+h1{font-size:21px;margin-bottom:2px;}
+.sub{font-size:12px;color:var(--text3);margin-bottom:16px;}
+.card{background:#fff;border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:14px;}
+.btn{border:none;border-radius:9px;padding:9px 14px;font-size:13px;cursor:pointer;font-weight:600;}
+.btn-primary{background:var(--accent);color:#fff;}
+.btn-green{background:var(--green);color:#fff;}
+.btn-ghost{background:#fff;border:1px solid var(--border);color:var(--accent);}
+.tabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;}
+.tab{padding:8px 14px;border-radius:20px;border:1px solid var(--border);background:#fff;cursor:pointer;font-size:13px;font-weight:600;}
+.tab.on{background:var(--accent);color:#fff;border-color:var(--accent);}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+label{font-size:11px;color:var(--text3);font-weight:600;display:block;margin-bottom:3px;}
+input,select{border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:14px;background:#fff;}
+.monthnav{display:flex;align-items:center;gap:12px;justify-content:center;margin-bottom:14px;}
+.monthnav button{border:none;background:#fff;border:1px solid var(--border);border-radius:8px;width:34px;height:34px;cursor:pointer;font-size:16px;}
+.monthnav .mlabel{font-weight:700;font-size:16px;min-width:150px;text-align:center;}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;}
+.cal .dow{text-align:center;font-size:10px;color:var(--text3);font-weight:700;padding:4px 0;}
+.day{border:1px solid var(--border);border-radius:8px;padding:5px 4px;min-height:66px;font-size:11px;position:relative;cursor:pointer;transition:.15s;}
+.day:hover{border-color:var(--accent);}
+.day.empty{border:none;background:transparent;cursor:default;}
+.day.we{background:#FFF7ED;}
+.day.vac{background:#EFF6FF;}
+.day.ferie{background:#FEF2F2;}
+.day.booked{background:#F3F4F6;opacity:.55;cursor:default;}
+.day .dnum{font-weight:700;font-size:12px;}
+.day .dtag{font-size:8px;padding:1px 4px;border-radius:6px;color:#fff;display:inline-block;margin-top:1px;}
+.day .base{color:var(--text3);text-decoration:line-through;font-size:9px;}
+.day .sugg{color:var(--green);font-weight:700;font-size:13px;}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:11px;margin-top:10px;color:var(--text3);}
+.legend span{display:inline-flex;align-items:center;gap:4px;}
+.legend i{width:11px;height:11px;border-radius:3px;display:inline-block;}
+.rule{display:flex;gap:8px;align-items:center;padding:8px;border:1px solid var(--border);border-radius:9px;margin-bottom:7px;flex-wrap:wrap;}
+.rule .rname{font-weight:600;font-size:13px;flex:1;min-width:120px;}
+.rule input[type=number]{width:70px;}
+.kpi{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;}
+.kpibox{border-radius:12px;padding:14px;}
+.kpibox .lbl{font-size:11px;font-weight:600;opacity:.8;}
+.kpibox .val{font-size:22px;font-weight:800;margin-top:3px;}
+.kpibox .sub2{font-size:11px;margin-top:2px;opacity:.75;}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;padding:12px 20px;border-radius:10px;font-size:13px;z-index:999;opacity:0;transition:.3s;}
+.toast.show{opacity:1;}
+.mini{font-size:11px;color:var(--text3);}
+</style>
+</head>
+<body>
+<h1>📈 Tarification stratégique</h1>
+<div class="sub">Optimisez vos prix Airbnb & Booking par nuit selon les périodes stratégiques.</div>
+
+<div class="tabs" id="bienTabs"></div>
+
+<div class="card">
+  <div style="font-weight:600;margin-bottom:10px;">⚙️ Règles de prix (ajustez les %)</div>
+  <div id="rulesBox"></div>
+  <div class="row" style="margin-top:8px;">
+    <button class="btn btn-ghost" onclick="resetRules()">↺ Réinitialiser aux suggestions</button>
+    <span class="mini">Le % s'applique au prix de base de chaque bien. Les règles se cumulent (ex: week-end en vacances).</span>
+  </div>
+</div>
+
+<div class="card">
+  <div class="row" style="justify-content:space-between;margin-bottom:8px;">
+    <div style="font-weight:600;">Prix de base (par nuit)</div>
+  </div>
+  <div class="row">
+    <div><label>Base semaine (€)</label><input type="number" id="baseWeek" onchange="recompute()"></div>
+    <div><label>Base week-end (€)</label><input type="number" id="baseWE" onchange="recompute()"></div>
+    <span class="mini">Ces prix de référence servent de base aux règles. Modifiez-les selon votre bien.</span>
+  </div>
+</div>
+
+<div class="card">
+  <div class="monthnav">
+    <button onclick="changeMonth(-1)">‹</button>
+    <div class="mlabel" id="mlabel"></div>
+    <button onclick="changeMonth(1)">›</button>
+  </div>
+  <div class="cal" id="calGrid"></div>
+  <div class="legend">
+    <span><i style="background:#FDBA74"></i> Week-end</span>
+    <span><i style="background:#93C5FD"></i> Vacances scolaires</span>
+    <span><i style="background:#FCA5A5"></i> Jour férié / pont</span>
+    <span><i style="background:#D1D5DB"></i> Déjà réservé</span>
+  </div>
+</div>
+
+<div class="card">
+  <div style="font-weight:600;margin-bottom:12px;">💰 Impact sur les revenus — <span id="impactMonth"></span></div>
+  <div class="kpi" id="kpiBox"></div>
+  <div class="mini" style="margin-top:10px;">
+    <b>Potentiel théorique</b> : si toutes les nuits libres se louaient au prix suggéré. <b>Potentiel réaliste</b> : ajusté par votre taux d'occupation historique (<span id="occRate">?</span>%).
+  </div>
+</div>
+
+<div class="card" style="background:#F0FDF4;border-color:#86EFAC;">
+  <div style="font-weight:600;margin-bottom:6px;">🚀 Appliquer sur Airbnb + Booking</div>
+  <div class="mini" style="margin-bottom:10px;">Applique les prix suggérés du mois affiché sur les nuits encore libres, via Hostex.</div>
+  <button class="btn btn-green" onclick="applyPrices()">Appliquer les prix de <span id="applyMonth"></span></button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ===== Config biens =====
+var BIENS=[
+  {id:'12619011',name:'Suite Illiberis',baseWeek:80,baseWE:95,listings:['1444758558715417027','1481914101-57774854']},
+  {id:'12619012',name:'Loft Cinema',baseWeek:90,baseWE:110,listings:['1499112879728152781','1500939401-58637824']}
+];
+var currentBien='12619011';
+var curMonth=new Date();curMonth.setDate(1);
+var reservations=[];
+var occupancyRate=65; // défaut, recalculé depuis l'historique
+
+// ===== Règles par défaut (suggestions) =====
+var DEFAULT_RULES=[
+  {id:'we',name:'Week-end (ven/sam)',pct:20,on:true},
+  {id:'vac',name:'Vacances scolaires',pct:25,on:true},
+  {id:'ferie',name:'Jour férié',pct:30,on:true},
+  {id:'pont',name:'Pont (jeu/ven avant férié)',pct:20,on:true},
+  {id:'ete',name:'Haute saison (juil-août)',pct:35,on:true},
+  {id:'noel',name:'Fêtes (23 déc-2 jan)',pct:40,on:true}
+];
+var rules=JSON.parse(JSON.stringify(DEFAULT_RULES));
+
+// ===== Jours fériés France =====
+function joursFeries(year){
+  var f=[year+'-01-01',year+'-05-01',year+'-05-08',year+'-07-14',year+'-08-15',year+'-11-01',year+'-11-11',year+'-12-25'];
+  // Pâques (algorithme de Meeus) → lundi de Pâques, Ascension, Pentecôte
+  var a=year%19,b=Math.floor(year/100),c=year%100,d=Math.floor(b/4),e=b%4,g=Math.floor((8*b+13)/25),h=(19*a+b-d-g+15)%30,i=Math.floor(c/4),k=c%4,l=(32+2*e+2*i-h-k)%7,m=Math.floor((a+11*h+22*l)/451),mo=Math.floor((h+l-7*m+114)/31),da=((h+l-7*m+114)%31)+1;
+  var easter=new Date(year,mo-1,da);
+  function addDays(dt,n){var x=new Date(dt);x.setDate(x.getDate()+n);return x.toISOString().slice(0,10);}
+  f.push(addDays(easter,1));   // lundi Pâques
+  f.push(addDays(easter,39));  // Ascension
+  f.push(addDays(easter,50));  // lundi Pentecôte
+  return f;
+}
+// ===== Vacances scolaires (zone C - Montpellier/Toulouse, approximatif) =====
+function estVacances(dateStr){
+  var y=dateStr.slice(0,4),md=dateStr.slice(5);
+  // Périodes approximatives zone C (à ajuster chaque année)
+  var periodes=[
+    ['01-01','01-05'],   // fin Noël
+    ['02-14','03-02'],   // hiver
+    ['04-11','04-27'],   // printemps
+    ['07-05','08-31'],   // été
+    ['10-18','11-03'],   // Toussaint
+    ['12-20','12-31']    // Noël
+  ];
+  return periodes.some(function(p){return md>=p[0]&&md<=p[1];});
+}
+
+function toast(m){var t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(function(){t.classList.remove('show');},2600);}
+
+// ===== Chargement des données =====
+async function loadData(){
+  // Biens custom éventuels
+  try{var custom=JSON.parse(localStorage.getItem('custom_biens')||'[]');}catch(e){}
+  // Réservations (pour occupation + jours réservés)
+  try{
+    var r=await fetch('/all-reservations');
+    if(r.ok){var d=await r.json();var list=(d.reservations||d.data||d||[]);
+      reservations=list.filter(function(x){return (x.status||'')!=='cancelled';}).map(function(x){return {
+        prop_id:String(x.property_id||x.prop_id||''),
+        check_in:x.check_in_date||x.check_in||'',
+        check_out:x.check_out_date||x.check_out||'',
+        status:x.status||''
+      };});
+    }
+  }catch(e){}
+  // Prix de base sauvegardés
+  try{var saved=JSON.parse(localStorage.getItem('tarifs_pro_base')||'{}');
+    BIENS.forEach(function(b){if(saved[b.id]){b.baseWeek=saved[b.id].baseWeek;b.baseWE=saved[b.id].baseWE;}});
+  }catch(e){}
+  // Règles sauvegardées
+  try{var sr=localStorage.getItem('tarifs_pro_rules');if(sr)rules=JSON.parse(sr);}catch(e){}
+  computeOccupancy();
+}
+
+function computeOccupancy(){
+  // Taux d'occupation historique sur les 6 derniers mois pour le bien courant
+  var now=new Date();var start=new Date();start.setMonth(start.getMonth()-6);
+  var nights=0,span=Math.round((now-start)/86400000);
+  reservations.filter(function(r){return String(r.prop_id||r.property_id)===currentBien;}).forEach(function(r){
+    var ci=new Date((r.check_in||r.check_in_date)+'T12:00:00'),co=new Date((r.check_out||r.check_out_date)+'T12:00:00');
+    if(co<start||ci>now)return;
+    var s=Math.max(ci,start),e=Math.min(co,now);
+    nights+=Math.max(0,Math.round((e-s)/86400000));
+  });
+  occupancyRate=span>0?Math.min(100,Math.round(nights/span*100)):65;
+  document.getElementById('occRate').textContent=occupancyRate;
+}
+
+// ===== Calcul du prix suggéré d'un jour =====
+function isBooked(ds){
+  return reservations.some(function(r){
+    if(String(r.prop_id||r.property_id)!==currentBien)return false;
+    var ci=(r.check_in||r.check_in_date||''),co=(r.check_out||r.check_out_date||'');
+    return ds>=ci && ds<co;
+  });
+}
+function dayType(dateStr){
+  var d=new Date(dateStr+'T12:00:00');var dow=d.getDay(); // 0=dim,5=ven,6=sam
+  var types=[];
+  var isWE=(dow===5||dow===6);
+  var feries=joursFeries(parseInt(dateStr.slice(0,4)));
+  var isFerie=feries.indexOf(dateStr)>=0;
+  var isVac=estVacances(dateStr);
+  var mo=parseInt(dateStr.slice(5,7));var isEte=(mo===7||mo===8);
+  var md=dateStr.slice(5);var isNoel=(md>='12-23'||md<='01-02');
+  // Pont : jeudi ou vendredi précédant un férié
+  var isPont=false;
+  if(dow===4||dow===5){var next=new Date(d);next.setDate(next.getDate()+1);if(feries.indexOf(next.toISOString().slice(0,10))>=0)isPont=true;}
+  return {isWE:isWE,isFerie:isFerie,isVac:isVac,isEte:isEte,isNoel:isNoel,isPont:isPont};
+}
+function suggestedPrice(dateStr){
+  var b=BIENS.find(function(x){return x.id===currentBien;});
+  var t=dayType(dateStr);
+  var base=t.isWE?b.baseWE:b.baseWeek;
+  var mult=1;
+  function rule(id){var r=rules.find(function(x){return x.id===id;});return (r&&r.on)?r.pct/100:0;}
+  if(t.isWE)mult+=rule('we');
+  if(t.isVac)mult+=rule('vac');
+  if(t.isFerie)mult+=rule('ferie');
+  if(t.isPont)mult+=rule('pont');
+  if(t.isEte)mult+=rule('ete');
+  if(t.isNoel)mult+=rule('noel');
+  return {base:base,sugg:Math.round(base*mult),type:t};
+}
+
+// ===== Rendu =====
+function renderTabs(){
+  document.getElementById('bienTabs').innerHTML=BIENS.map(function(b){
+    return '<div class="tab'+(b.id===currentBien?' on':'')+'" onclick="selectBien(\''+b.id+'\')">'+b.name+'</div>';
+  }).join('');
+}
+function selectBien(id){currentBien=id;var b=BIENS.find(function(x){return x.id===id;});
+  document.getElementById('baseWeek').value=b.baseWeek;document.getElementById('baseWE').value=b.baseWE;
+  computeOccupancy();renderTabs();recompute();}
+
+function renderRules(){
+  document.getElementById('rulesBox').innerHTML=rules.map(function(r,i){
+    return '<div class="rule"><input type="checkbox" '+(r.on?'checked':'')+' onchange="rules['+i+'].on=this.checked;saveRules();recompute()">'
+      +'<span class="rname">'+r.name+'</span>'
+      +'<span>+<input type="number" value="'+r.pct+'" onchange="rules['+i+'].pct=parseFloat(this.value)||0;saveRules();recompute()">%</span></div>';
+  }).join('');
+}
+function saveRules(){try{localStorage.setItem('tarifs_pro_rules',JSON.stringify(rules));}catch(e){}}
+function resetRules(){rules=JSON.parse(JSON.stringify(DEFAULT_RULES));saveRules();renderRules();recompute();toast('Règles réinitialisées');}
+
+var MONTHS=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+var DOW=['L','M','M','J','V','S','D'];
+function changeMonth(d){curMonth.setMonth(curMonth.getMonth()+d);recompute();}
+
+function renderCalendar(){
+  var y=curMonth.getFullYear(),m=curMonth.getMonth();
+  document.getElementById('mlabel').textContent=MONTHS[m]+' '+y;
+  document.getElementById('impactMonth').textContent=MONTHS[m]+' '+y;
+  document.getElementById('applyMonth').textContent=MONTHS[m]+' '+y;
+  var first=new Date(y,m,1);var startDow=(first.getDay()+6)%7; // lundi=0
+  var nbDays=new Date(y,m+1,0).getDate();
+  var html=DOW.map(function(d){return '<div class="dow">'+d+'</div>';}).join('');
+  for(var i=0;i<startDow;i++)html+='<div class="day empty"></div>';
+  for(var day=1;day<=nbDays;day++){
+    var ds=y+'-'+('0'+(m+1)).slice(-2)+'-'+('0'+day).slice(-2);
+    var booked=isBooked(ds);
+    var sp=suggestedPrice(ds);var t=sp.type;
+    var cls='day';
+    if(booked)cls+=' booked';
+    else if(t.isFerie||t.isPont)cls+=' ferie';
+    else if(t.isVac||t.isEte||t.isNoel)cls+=' vac';
+    else if(t.isWE)cls+=' we';
+    var tag='';
+    if(t.isFerie)tag='<span class="dtag" style="background:#EF4444">Férié</span>';
+    else if(t.isPont)tag='<span class="dtag" style="background:#F87171">Pont</span>';
+    else if(t.isNoel)tag='<span class="dtag" style="background:#DC2626">Fêtes</span>';
+    else if(t.isEte)tag='<span class="dtag" style="background:#3B82F6">Été</span>';
+    else if(t.isVac)tag='<span class="dtag" style="background:#60A5FA">Vac.</span>';
+    else if(t.isWE)tag='<span class="dtag" style="background:#FB923C">WE</span>';
+    html+='<div class="'+cls+'"><div class="dnum">'+day+'</div>'+tag;
+    if(booked){html+='<div style="font-size:9px;color:#9CA3AF;margin-top:4px;">Réservé</div>';}
+    else{html+='<div style="margin-top:3px;"><span class="base">'+sp.base+'€</span> <span class="sugg">'+sp.sugg+'€</span></div>';}
+    html+='</div>';
+  }
+  document.getElementById('calGrid').innerHTML=html;
+}
+
+function renderKPI(){
+  var y=curMonth.getFullYear(),m=curMonth.getMonth();
+  var nbDays=new Date(y,m+1,0).getDate();
+  var baseTotal=0,suggTotal=0,libres=0;
+  for(var day=1;day<=nbDays;day++){
+    var ds=y+'-'+('0'+(m+1)).slice(-2)+'-'+('0'+day).slice(-2);
+    if(isBooked(ds))continue;
+    libres++;
+    var sp=suggestedPrice(ds);
+    baseTotal+=sp.base;suggTotal+=sp.sugg;
+  }
+  var diff=suggTotal-baseTotal;
+  var pct=baseTotal>0?Math.round(diff/baseTotal*100):0;
+  // Réaliste = pondéré par taux d'occupation
+  var baseReal=Math.round(baseTotal*occupancyRate/100);
+  var suggReal=Math.round(suggTotal*occupancyRate/100);
+  var diffReal=suggReal-baseReal;
+  document.getElementById('kpiBox').innerHTML=
+    '<div class="kpibox" style="background:#EEF4F7;"><div class="lbl">POTENTIEL THÉORIQUE (base)</div><div class="val">'+baseTotal.toLocaleString('fr-FR')+'€</div><div class="sub2">'+libres+' nuits libres au prix de base</div></div>'
+    +'<div class="kpibox" style="background:#ECFDF5;"><div class="lbl">POTENTIEL THÉORIQUE (optimisé)</div><div class="val" style="color:#059669;">'+suggTotal.toLocaleString('fr-FR')+'€</div><div class="sub2">+'+diff.toLocaleString('fr-FR')+'€ · +'+pct+'%</div></div>'
+    +'<div class="kpibox" style="background:#EEF4F7;"><div class="lbl">RÉALISTE (base · '+occupancyRate+'% occ.)</div><div class="val">'+baseReal.toLocaleString('fr-FR')+'€</div><div class="sub2">estimation encaissée</div></div>'
+    +'<div class="kpibox" style="background:#ECFDF5;"><div class="lbl">RÉALISTE (optimisé)</div><div class="val" style="color:#059669;">'+suggReal.toLocaleString('fr-FR')+'€</div><div class="sub2">+'+diffReal.toLocaleString('fr-FR')+'€ estimés</div></div>';
+}
+
+function recompute(){
+  var b=BIENS.find(function(x){return x.id===currentBien;});
+  b.baseWeek=parseFloat(document.getElementById('baseWeek').value)||b.baseWeek;
+  b.baseWE=parseFloat(document.getElementById('baseWE').value)||b.baseWE;
+  try{var saved=JSON.parse(localStorage.getItem('tarifs_pro_base')||'{}');saved[b.id]={baseWeek:b.baseWeek,baseWE:b.baseWE};localStorage.setItem('tarifs_pro_base',JSON.stringify(saved));}catch(e){}
+  renderCalendar();renderKPI();
+}
+
+async function applyPrices(){
+  if(!confirm('Appliquer les prix suggérés de ce mois sur les nuits libres (Airbnb + Booking) ?\\n\\nCela modifiera vos tarifs réels via Hostex.'))return;
+  var y=curMonth.getFullYear(),m=curMonth.getMonth();
+  var nbDays=new Date(y,m+1,0).getDate();
+  var prices=[];
+  for(var day=1;day<=nbDays;day++){
+    var ds=y+'-'+('0'+(m+1)).slice(-2)+'-'+('0'+day).slice(-2);
+    if(isBooked(ds))continue;
+    prices.push({date:ds,price:suggestedPrice(ds).sugg});
+  }
+  if(!prices.length){toast('Aucune nuit libre à tarifer');return;}
+  try{
+    // Format Hostex : listing_id + inventories (date, price)
+    var b=BIENS.find(function(x){return x.id===currentBien;});
+    var listingIds=(b.listings||[]);
+    var invs=prices.map(function(p){return {date:p.date,price:p.price};});
+    // Appliquer sur chaque listing (Airbnb + Booking) du bien
+    var okCount=0;
+    for(var li=0;li<listingIds.length;li++){
+      try{
+        await fetch('/api/listings/inventories',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({listing_id:listingIds[li],inventories:invs})});
+        okCount++;
+      }catch(e){}
+    }
+    toast('✓ '+prices.length+' nuits appliquées ('+okCount+' canaux)');
+  }catch(e){toast('Erreur application : '+e.message);}
+}
+
+// ===== Init =====
+(async function(){
+  renderTabs();renderRules();
+  await loadData();
+  var b=BIENS.find(function(x){return x.id===currentBien;});
+  document.getElementById('baseWeek').value=b.baseWeek;
+  document.getElementById('baseWE').value=b.baseWE;
+  recompute();
+})();
+</script>
+</body>
+</html>

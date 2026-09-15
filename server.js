@@ -1374,6 +1374,10 @@ app.get('/revenue', function(req, res) {
   res.sendFile(__dirname+'/revenue.html');
 });
 
+app.get('/tarifs-pro', function(req, res) {
+  res.sendFile(__dirname+'/tarifs-pro.html');
+});
+
 app.get('/factures', function(req, res) {
   res.sendFile(__dirname+'/factures.html');
 });
