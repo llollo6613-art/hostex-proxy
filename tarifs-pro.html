@@ -32,7 +32,15 @@ input,select{border:1px solid var(--border);border-radius:8px;padding:8px 10px;f
 .day.we{background:#FFF7ED;}
 .day.vac{background:#EFF6FF;}
 .day.ferie{background:#FEF2F2;}
-.day.booked{background:#F3F4F6;opacity:.55;cursor:default;}
+.day.booked{background:#F3F4F6;opacity:.55;cursor:not-allowed;}
+.day.past{background:#F4F3EE;opacity:.45;cursor:not-allowed;}
+.day.closed{background:repeating-linear-gradient(135deg,#F2F0EA 0 7px,#E8E4DB 7px 8px);border-style:dashed;border-color:#BDB6A6;}
+.day .etat{position:absolute;top:6px;right:6px;width:7px;height:7px;border-radius:50%;}
+.day .lock{position:absolute;top:4px;right:5px;font-size:9px;}
+.day .cur{font-size:9px;color:#6B7280;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.day .chf{font-size:10px;color:#5F5A4F;font-weight:700;}
+.sync{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text3);justify-content:center;flex-wrap:wrap;margin:-4px 0 12px;}
+.sync i{width:7px;height:7px;border-radius:50%;display:inline-block;}
 .day .dnum{font-weight:700;font-size:12px;}
 .day .dtag{font-size:8px;padding:1px 4px;border-radius:6px;color:#fff;display:inline-block;margin-top:1px;}
 .day .base{color:var(--text3);text-decoration:line-through;font-size:9px;}
@@ -94,12 +102,17 @@ input,select{border:1px solid var(--border);border-radius:8px;padding:8px 10px;f
     <div class="mlabel" id="mlabel"></div>
     <button onclick="changeMonth(1)">›</button>
   </div>
+  <div class="sync" id="syncBox"></div>
   <div class="cal" id="calGrid"></div>
   <div class="legend">
     <span><i style="background:#FDBA74"></i> Week-end</span>
     <span><i style="background:#93C5FD"></i> Vacances scolaires</span>
     <span><i style="background:#FCA5A5"></i> Jour férié / pont</span>
-    <span><i style="background:#D1D5DB"></i> Déjà réservé</span>
+    <span><i style="background:#1D9E75;border-radius:50%;width:8px;height:8px;"></i> Ouvert · modifiable</span>
+    <span><i style="background:#E5A23B;border-radius:50%;width:8px;height:8px;"></i> Fermé sur une plateforme</span>
+    <span><i style="background:repeating-linear-gradient(135deg,#F2F0EA 0 3px,#D6D1C6 3px 4px);border:1px dashed #BDB6A6;"></i> Fermé</span>
+    <span><i style="background:#D1D5DB"></i> 🔒 Réservé / passé · non modifiable</span>
+    <span>« A / B » = prix actuel sur Hostex</span>
   </div>
 </div>
 
@@ -113,7 +126,7 @@ input,select{border:1px solid var(--border);border-radius:8px;padding:8px 10px;f
 
 <div class="card" style="background:#F0FDF4;border-color:#86EFAC;">
   <div style="font-weight:600;margin-bottom:6px;">🚀 Appliquer sur Airbnb + Booking</div>
-  <div class="mini" style="margin-bottom:10px;">Applique les prix suggérés du mois affiché sur les nuits encore libres, via Hostex.</div>
+  <div class="mini" style="margin-bottom:10px;">Applique les prix suggérés du mois affiché sur les nuits modifiables (ni passées, ni réservées), via Hostex.</div>
   <button class="btn btn-green" onclick="applyPrices()">Appliquer les prix de <span id="applyMonth"></span></button>
 </div>
 
@@ -122,8 +135,8 @@ input,select{border:1px solid var(--border);border-radius:8px;padding:8px 10px;f
 <script>
 // ===== Config biens =====
 var BIENS=[
-  {id:'12619011',name:'Suite Illiberis',baseWeek:80,baseWE:95,listings:['1444758558715417027','1481914101-57774854']},
-  {id:'12619012',name:'Loft Cinema',baseWeek:90,baseWE:110,listings:['1499112879728152781','1500939401-58637824']}
+  {id:'12619011',name:'Suite Illiberis',baseWeek:80,baseWE:95,channels:[{listing_id:'1444758558715417027',channel_type:'airbnb'},{listing_id:'1481914101-57774854',channel_type:'booking.com'}]},
+  {id:'12619012',name:'Loft Cinema',baseWeek:90,baseWE:110,channels:[{listing_id:'1499112879728152781',channel_type:'airbnb'},{listing_id:'1500939401-58637824',channel_type:'booking.com'}]}
 ];
 var currentBien='12619011';
 var curMonth=new Date();curMonth.setDate(1);
@@ -168,7 +181,83 @@ function estVacances(dateStr){
   return periodes.some(function(p){return md>=p[0]&&md<=p[1];});
 }
 
-function toast(m){var t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(function(){t.classList.remove('show');},2600);}
+function toast(m,dur){var t=document.getElementById('toast');t.textContent=m;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(function(){t.classList.remove('show');},dur||2600);}
+
+// ===== Calendrier réel Hostex (disponibilité par plateforme) =====
+var dispo={};      // dispo[bienId][date] = {air:{inv,prix,min,ctA,ctD}, bk:{...}}
+var dispoRange={}; // dispoRange[bienId] = {from,to,at,ok,chargement,erreurs}
+function dsLocal(d){return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);}
+function cleCanal(t){return String(t).indexOf('airbnb')>=0?'air':'bk';}
+function fmtJ(ds){return ds.split('-').reverse().join('/');}
+
+async function chargerDispo(force){
+  var bienId=currentBien,b=BIENS.find(function(x){return x.id===bienId;});
+  if(!b||!b.channels)return;
+  var auj=new Date(),m0=new Date(auj.getFullYear(),auj.getMonth(),1);
+  var base=new Date(curMonth.getFullYear(),curMonth.getMonth(),1);if(base<m0)base=m0;
+  var finMois=dsLocal(new Date(curMonth.getFullYear(),curMonth.getMonth()+1,0));
+  var rg=dispoRange[bienId];
+  if(rg&&rg.chargement)return;
+  if(!force&&finMois<dsLocal(m0))return; // mois entièrement passé
+  if(!force&&rg&&rg.from<=dsLocal(base)&&rg.to>=finMois&&Date.now()-rg.at<5*60000)return;
+  var from=dsLocal(base),to=dsLocal(new Date(base.getFullYear(),base.getMonth()+12,0));
+  dispoRange[bienId]={from:from,to:to,at:Date.now(),ok:false,chargement:true,erreurs:[]};
+  renderSync();
+  var dp=dispo[bienId]||(dispo[bienId]={});
+  var erreurs=[];
+  await Promise.all(b.channels.map(async function(ch){
+    try{
+      var r=await fetch('/api/listings/calendar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({listings:[{listing_id:ch.listing_id,channel_type:ch.channel_type}],start_date:from,end_date:to})});
+      var d=await r.json();
+      if(!d||(d.error_code&&d.error_code!==200))throw new Error((d&&d.error_msg)||'réponse invalide');
+      var cle=cleCanal(ch.channel_type);
+      ((d.data&&d.data.listings)||[]).forEach(function(l){(l.calendar||[]).forEach(function(p){
+        if(!p.date)return;var rs=p.restrictions||{};
+        (dp[p.date]||(dp[p.date]={}))[cle]={inv:p.inventory==null?null:+p.inventory,prix:p.price?Math.round(+p.price):null,min:rs.min_stay_on_arrival||null,ctA:!!rs.closed_on_arrival,ctD:!!rs.closed_on_departure};
+      });});
+    }catch(e){erreurs.push(cleCanal(ch.channel_type)==='air'?'Airbnb':'Booking');}
+  }));
+  dispoRange[bienId]={from:from,to:to,at:Date.now(),ok:erreurs.length<b.channels.length,chargement:false,erreurs:erreurs};
+  if(erreurs.length)toast('⚠ Calendrier Hostex indisponible pour '+erreurs.join(', '),4000);
+  else if(force)toast('✓ Calendrier réel synchronisé');
+  if(bienId===currentBien){renderCalendar();renderKPI();}
+  renderSync();
+}
+
+function renderSync(){
+  var el=document.getElementById('syncBox');if(!el)return;
+  var rg=dispoRange[currentBien],h;
+  if(!rg)h='<i style="background:#C9C3B6"></i>Calendrier réel non synchronisé';
+  else if(rg.chargement)h='<i style="background:#E5B84B"></i>Synchronisation avec Hostex…';
+  else if(!rg.ok)h='<i style="background:#D8544E"></i>Hostex injoignable — disponibilités non vérifiées';
+  else{var d=new Date(rg.at);h='<i style="background:#1D9E75"></i>Calendrier réel Hostex · '+('0'+d.getHours()).slice(-2)+'h'+('0'+d.getMinutes()).slice(-2)+(rg.erreurs.length?' (sans '+rg.erreurs.join(', ')+')':'');}
+  el.innerHTML=h+' <button class="btn btn-ghost" style="padding:3px 9px;font-size:11px;" onclick="chargerDispo(true)">↻ Actualiser</button>';
+}
+
+// État réel d'un jour : passe | reserve | ferme | ferme_air | ferme_bk | ouvert | inconnu
+function etatJour(ds){
+  var j=(dispo[currentBien]||{})[ds]||null;
+  var o={air:j&&j.air||null,bk:j&&j.bk||null};
+  if(ds<dsLocal(new Date())){o.code='passe';o.modif=false;o.lib='Date passée';return o;}
+  if(isBooked(ds)){o.code='reserve';o.modif=false;o.lib='Réservé';return o;}
+  o.modif=true;
+  if(!j){o.code='inconnu';o.lib='Disponibilité non synchronisée';return o;}
+  var aO=!!(o.air&&o.air.inv>0),bO=!!(o.bk&&o.bk.inv>0);
+  if(!aO&&!bO){o.code='ferme';o.lib='Fermé à la réservation';}
+  else if(o.air&&o.air.inv===0){o.code='ferme_air';o.lib='Fermé sur Airbnb · ouvert sur Booking';}
+  else if(o.bk&&o.bk.inv===0){o.code='ferme_bk';o.lib='Ouvert sur Airbnb · fermé sur Booking';}
+  else{o.code='ouvert';o.lib='Ouvert à la réservation';}
+  return o;
+}
+function txtCanal(nom,c){
+  if(!c)return nom+' : non synchronisé';
+  return nom+' : '+(c.inv===0?'fermé':'ouvert')+(c.prix?' · '+c.prix+' €':'')+(c.min?' · min '+c.min+' nuit(s)':'')+(c.ctA?' · arrivée interdite':'')+(c.ctD?' · départ interdit':'');
+}
+function clicJour(ds){
+  var e=etatJour(ds);
+  if(!e.modif){toast('🔒 '+fmtJ(ds)+' — '+e.lib.toLowerCase()+' : non modifiable');return;}
+  toast(fmtJ(ds)+' — '+e.lib+(e.air||e.bk?' ('+txtCanal('Airbnb',e.air)+' / '+txtCanal('Booking',e.bk)+')':''),4500);
+}
 
 // ===== Chargement des données =====
 async function loadData(){
@@ -177,7 +266,9 @@ async function loadData(){
   // Réservations (pour occupation + jours réservés)
   try{
     var r=await fetch('/all-reservations');
-    if(r.ok){var d=await r.json();var list=(d.reservations||d.data||d||[]);
+    if(r.ok){var d=await r.json();
+      // /all-reservations renvoie {ok, data:{reservations:[...]}}
+      var list=(d.data&&d.data.reservations)||d.reservations||(Array.isArray(d.data)?d.data:null)||(Array.isArray(d)?d:[]);
       reservations=list.filter(function(x){return (x.status||'')!=='cancelled';}).map(function(x){return {
         prop_id:String(x.property_id||x.prop_id||''),
         check_in:x.check_in_date||x.check_in||'',
@@ -281,10 +372,12 @@ function renderCalendar(){
   for(var i=0;i<startDow;i++)html+='<div class="day empty"></div>';
   for(var day=1;day<=nbDays;day++){
     var ds=y+'-'+('0'+(m+1)).slice(-2)+'-'+('0'+day).slice(-2);
-    var booked=isBooked(ds);
+    var e=etatJour(ds);
     var sp=suggestedPrice(ds);var t=sp.type;
     var cls='day';
-    if(booked)cls+=' booked';
+    if(e.code==='passe')cls+=' past';
+    else if(e.code==='reserve')cls+=' booked';
+    else if(e.code==='ferme')cls+=' closed';
     else if(t.isFerie||t.isPont)cls+=' ferie';
     else if(t.isVac||t.isEte||t.isNoel)cls+=' vac';
     else if(t.isWE)cls+=' we';
@@ -295,9 +388,19 @@ function renderCalendar(){
     else if(t.isEte)tag='<span class="dtag" style="background:#3B82F6">Été</span>';
     else if(t.isVac)tag='<span class="dtag" style="background:#60A5FA">Vac.</span>';
     else if(t.isWE)tag='<span class="dtag" style="background:#FB923C">WE</span>';
-    html+='<div class="'+cls+'"><div class="dnum">'+day+'</div>'+tag;
-    if(booked){html+='<div style="font-size:9px;color:#9CA3AF;margin-top:4px;">Réservé</div>';}
-    else{html+='<div style="margin-top:3px;"><span class="base">'+sp.base+'€</span> <span class="sugg">'+sp.sugg+'€</span></div>';}
+    var tip=fmtJ(ds)+' — '+e.lib+(e.modif?'':' (non modifiable)')+(e.air||e.bk?'\n'+txtCanal('Airbnb',e.air)+'\n'+txtCanal('Booking',e.bk):'');
+    html+='<div class="'+cls+'" title="'+tip.replace(/"/g,'&quot;')+'" onclick="clicJour(\''+ds+'\')"><div class="dnum">'+day+'</div>'+tag;
+    if(!e.modif){
+      html+='<span class="lock">🔒</span><div style="font-size:9px;color:#9CA3AF;margin-top:4px;">'+(e.code==='reserve'?'Réservé':'Passé')+'</div>';
+    }else if(e.code==='ferme'){
+      html+='<span class="etat" style="background:#8A8474"></span><div class="chf" style="margin-top:4px;">Fermé</div><div style="font-size:9px;color:#8A8474;">non réservable</div>';
+    }else{
+      var pA=e.air?(e.air.inv===0?'fermé':(e.air.prix?e.air.prix+'€':'—')):'—';
+      var pB=e.bk?(e.bk.inv===0?'fermé':(e.bk.prix?e.bk.prix+'€':'—')):'—';
+      html+='<span class="etat" style="background:'+(e.code==='ouvert'?'#1D9E75':e.code==='inconnu'?'#C9C3B6':'#E5A23B')+'"></span>'
+        +'<div style="margin-top:3px;"><span class="base">'+sp.base+'€</span> <span class="sugg">'+sp.sugg+'€</span></div>'
+        +(e.code!=='inconnu'?'<div class="cur">A '+pA+' · B '+pB+'</div>':'');
+    }
     html+='</div>';
   }
   document.getElementById('calGrid').innerHTML=html;
@@ -306,10 +409,12 @@ function renderCalendar(){
 function renderKPI(){
   var y=curMonth.getFullYear(),m=curMonth.getMonth();
   var nbDays=new Date(y,m+1,0).getDate();
-  var baseTotal=0,suggTotal=0,libres=0;
+  var baseTotal=0,suggTotal=0,libres=0,fermes=0;
   for(var day=1;day<=nbDays;day++){
     var ds=y+'-'+('0'+(m+1)).slice(-2)+'-'+('0'+day).slice(-2);
-    if(isBooked(ds))continue;
+    var e=etatJour(ds);
+    if(!e.modif)continue;
+    if(e.code==='ferme'){fermes++;continue;}
     libres++;
     var sp=suggestedPrice(ds);
     baseTotal+=sp.base;suggTotal+=sp.sugg;
@@ -321,7 +426,7 @@ function renderKPI(){
   var suggReal=Math.round(suggTotal*occupancyRate/100);
   var diffReal=suggReal-baseReal;
   document.getElementById('kpiBox').innerHTML=
-    '<div class="kpibox" style="background:#EEF4F7;"><div class="lbl">POTENTIEL THÉORIQUE (base)</div><div class="val">'+baseTotal.toLocaleString('fr-FR')+'€</div><div class="sub2">'+libres+' nuits libres au prix de base</div></div>'
+    '<div class="kpibox" style="background:#EEF4F7;"><div class="lbl">POTENTIEL THÉORIQUE (base)</div><div class="val">'+baseTotal.toLocaleString('fr-FR')+'€</div><div class="sub2">'+libres+' nuits libres et ouvertes'+(fermes?' · '+fermes+' fermée(s) exclue(s)':'')+'</div></div>'
     +'<div class="kpibox" style="background:#ECFDF5;"><div class="lbl">POTENTIEL THÉORIQUE (optimisé)</div><div class="val" style="color:#059669;">'+suggTotal.toLocaleString('fr-FR')+'€</div><div class="sub2">+'+diff.toLocaleString('fr-FR')+'€ · +'+pct+'%</div></div>'
     +'<div class="kpibox" style="background:#EEF4F7;"><div class="lbl">RÉALISTE (base · '+occupancyRate+'% occ.)</div><div class="val">'+baseReal.toLocaleString('fr-FR')+'€</div><div class="sub2">estimation encaissée</div></div>'
     +'<div class="kpibox" style="background:#ECFDF5;"><div class="lbl">RÉALISTE (optimisé)</div><div class="val" style="color:#059669;">'+suggReal.toLocaleString('fr-FR')+'€</div><div class="sub2">+'+diffReal.toLocaleString('fr-FR')+'€ estimés</div></div>';
@@ -332,35 +437,45 @@ function recompute(){
   b.baseWeek=parseFloat(document.getElementById('baseWeek').value)||b.baseWeek;
   b.baseWE=parseFloat(document.getElementById('baseWE').value)||b.baseWE;
   try{var saved=JSON.parse(localStorage.getItem('tarifs_pro_base')||'{}');saved[b.id]={baseWeek:b.baseWeek,baseWE:b.baseWE};localStorage.setItem('tarifs_pro_base',JSON.stringify(saved));}catch(e){}
-  renderCalendar();renderKPI();
+  renderCalendar();renderKPI();renderSync();
+  chargerDispo(false);
 }
 
 async function applyPrices(){
-  if(!confirm('Appliquer les prix suggérés de ce mois sur les nuits libres (Airbnb + Booking) ?\\n\\nCela modifiera vos tarifs réels via Hostex.'))return;
   var y=curMonth.getFullYear(),m=curMonth.getMonth();
   var nbDays=new Date(y,m+1,0).getDate();
-  var prices=[];
+  var jours=[],fermes=0,verrous=0;
   for(var day=1;day<=nbDays;day++){
     var ds=y+'-'+('0'+(m+1)).slice(-2)+'-'+('0'+day).slice(-2);
-    if(isBooked(ds))continue;
-    prices.push({date:ds,price:suggestedPrice(ds).sugg});
+    var e=etatJour(ds);
+    if(!e.modif){verrous++;continue;}
+    if(e.code!=='ouvert'&&e.code!=='inconnu')fermes++;
+    jours.push({ds:ds,prix:suggestedPrice(ds).sugg});
   }
-  if(!prices.length){toast('Aucune nuit libre à tarifer');return;}
-  try{
-    // Format Hostex : listing_id + inventories (date, price)
-    var b=BIENS.find(function(x){return x.id===currentBien;});
-    var listingIds=(b.listings||[]);
-    var invs=prices.map(function(p){return {date:p.date,price:p.price};});
-    // Appliquer sur chaque listing (Airbnb + Booking) du bien
-    var okCount=0;
-    for(var li=0;li<listingIds.length;li++){
-      try{
-        await fetch('/api/listings/inventories',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({listing_id:listingIds[li],inventories:invs})});
-        okCount++;
-      }catch(e){}
-    }
-    toast('✓ '+prices.length+' nuits appliquées ('+okCount+' canaux)');
-  }catch(e){toast('Erreur application : '+e.message);}
+  if(!jours.length){toast('Aucune nuit modifiable ce mois-ci');return;}
+  if(!confirm('Appliquer les prix suggérés sur '+jours.length+' nuit(s) modifiable(s) (Airbnb + Booking) ?\n\n'
+    +verrous+' nuit(s) passée(s) ou réservée(s) ne seront pas touchées.'
+    +(fermes?'\n'+fermes+' nuit(s) actuellement fermée(s) recevront le prix pour leur réouverture.':'')
+    +'\n\nCela modifiera vos tarifs réels via Hostex.'))return;
+  var b=BIENS.find(function(x){return x.id===currentBien;});
+  var ok=[],err=[];
+  toast('Envoi à Hostex…',8000);
+  for(var c=0;c<b.channels.length;c++){
+    var ch=b.channels[c],cle=cleCanal(ch.channel_type),nom=cle==='air'?'Airbnb':'Booking';
+    try{
+      for(var i=0;i<jours.length;i+=30){
+        var r=await fetch('/api/listings/prices',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({listing_id:ch.listing_id,channel_type:ch.channel_type,prices:jours.slice(i,i+30).map(function(j){return {start_date:j.ds,end_date:j.ds,price:j.prix};})})});
+        var d=await r.json().catch(function(){return null;});
+        if(!r.ok||!d||(d.error_code&&d.error_code!==200))throw new Error((d&&d.error_msg)||('HTTP '+r.status));
+      }
+      ok.push(nom);
+      var dp=dispo[b.id]||{};
+      jours.forEach(function(j){if(dp[j.ds]&&dp[j.ds][cle])dp[j.ds][cle].prix=j.prix;});
+    }catch(ex){err.push(nom+' : '+ex.message);}
+  }
+  if(err.length)toast('❌ Hostex a refusé — '+err.join(' / ')+(ok.length?' · appliqué sur '+ok.join(', '):''),7000);
+  else toast('✓ '+jours.length+' nuits appliquées sur '+ok.join(' + '),4000);
+  renderCalendar();
 }
 
 // ===== Estimation marché via IA =====

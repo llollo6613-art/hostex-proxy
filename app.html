@@ -362,116 +362,113 @@ function render(){
   ta.innerHTML='';
   if(S.page==='reservations')ta.innerHTML=`<button class="btn btn-green" onclick="openAddRes()">+ Nouvelle réservation</button><button class="btn" onclick="_syncHostexDirect()" style="margin-left:8px;">🔄 Sync Hostex</button><button class="btn" onclick="_importCSVDialog()" style="margin-left:8px;">📥 CSV</button>`;
   if(S.page==='calendar')ta.innerHTML=`<button class="btn" onclick="openBlock()">Bloquer dates</button>`;
-  if(S.page==='rates')ta.innerHTML=`<button class="btn btn-green" onclick="S.ratesLoaded={};_loadPricesFromAPI(S.ratesProp)">↻ Charger tarifs Hostex</button>`;
+  if(S.page==='rates')ta.innerHTML=`<button class="btn btn-green" onclick="_loadPricesFromAPI(S.ratesProp,true,S.ratesMonth)">↻ Synchroniser Hostex</button>`;
   const pages={dashboard:renderDash,reservations:renderRes,calendar:renderCal,rates:renderRates,properties:renderProps,messages:renderMsgs,bilan:renderBilan,reviews:renderReviews,virements:renderVirements};
   (pages[S.page]||renderDash)();
 }
 
-async function _openBlockDates(propId){
-  // Utiliser _pendingBlock (sauvegardé avant renderRates) ou ratesSelected
-  var sel=Object.keys(window._ratesDragSel||S.ratesSelected||{});
-  if(!sel.length){showToast('⚠ Sélectionnez des dates sur le calendrier');return;}
-  sel.sort();
-  var from=sel[0],to=sel[sel.length-1];
-  var n=sel.length;
-  window._blockPropId=propId;
-  showModal('<h3>⛔ Bloquer '+n+' jour'+(n>1?'s':'')+'</h3>'
-    +'<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:12px;margin-bottom:12px;font-size:13px;color:#dc2626;">'
-    +'Du <b>'+from+'</b> au <b>'+to+'</b><br><span style="font-size:11px;color:#888;">Fermé sur Airbnb et Booking</span>'
-    +'</div>'
-    +'<div class="modal-actions">'
-    +'<button class="btn" onclick="closeModal()">Annuler</button>'
-    +'<button class="btn btn-red" onclick="_saveBlock()">Bloquer ces dates</button>'
-    +'</div>');
+// ===== Fermeture / ouverture réelles des dates (Hostex, canal par canal) =====
+function _joursSelectionnes(){
+  var src=(window._ratesDragSel&&Object.keys(window._ratesDragSel).length)?window._ratesDragSel:(S.ratesSelected||{});
+  return Object.keys(src).filter(function(k){return src[k];}).sort();
+}
+// Regroupe des dates en plages consécutives [{start_date,end_date}]
+function _plages(jours){
+  var out=[];
+  jours.slice().sort().forEach(function(ds){
+    var last=out[out.length-1];
+    if(last){var n=new Date(last.end_date+'T00:00:00');n.setDate(n.getDate()+1);if(dStr(n)===ds){last.end_date=ds;return;}}
+    out.push({start_date:ds,end_date:ds});
+  });
+  return out;
+}
+function _fmtJ(ds){return ds.split('-').reverse().join('/');}
+function _txtPlages(jours){
+  return _plages(jours).map(function(p){return p.start_date===p.end_date?_fmtJ(p.start_date):'du '+_fmtJ(p.start_date)+' au '+_fmtJ(p.end_date);}).join(' · ');
+}
+function _choixCanaux(nom){
+  return '<div style="display:grid;gap:5px;margin-bottom:12px;">'
+    +[['tous','Airbnb et Booking'],['air','Airbnb uniquement'],['bk','Booking uniquement']].map(function(o,i){
+      return '<label style="display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:13px;"><input type="radio" name="'+nom+'" value="'+o[0]+'"'+(i===0?' checked':'')+' style="margin:0;">'+o[1]+'</label>';
+    }).join('')+'</div>';
+}
+function _canauxChoisis(prop,nom){
+  var el=document.querySelector('input[name="'+nom+'"]:checked');var v=el?el.value:'tous';
+  return prop.channels.filter(function(ch){return v==='tous'||_canalCle(ch)===v;});
+}
+
+function _openBlockDates(propId,jours){
+  jours=(jours||_joursSelectionnes()).filter(function(ds){var e=_etatJour(propId,ds);return e.modifiable&&e.code!=='ferme';});
+  if(!jours.length){showToast('⚠ Aucune date ouverte et modifiable dans la sélection');return;}
+  window._blockPropId=propId;window._blockJours=jours;
+  showModal('<h3>Fermer '+jours.length+' jour'+(jours.length>1?'s':'')+' à la réservation</h3>'
+    +'<div style="font-size:12.5px;color:var(--text-2);margin-bottom:12px;line-height:1.6;">'+_txtPlages(jours)+'</div>'
+    +'<div style="font-size:11px;font-weight:600;color:var(--text-2);margin-bottom:6px;">Plateformes à fermer</div>'
+    +_choixCanaux('blk-canal')
+    +'<div class="modal-actions"><button class="btn" onclick="closeModal()">Annuler</button><button class="btn btn-red" onclick="_saveBlock()">Fermer ces dates</button></div>');
+}
+
+async function _majInventaire(propId,jours,canaux,inv){
+  var pl=_plages(jours),err=[];
+  if(!S.ratesAvail)S.ratesAvail={};
+  for(var i=0;i<canaux.length;i++){
+    var ch=canaux[i];
+    try{
+      await _hostexEcrire('/listings/inventories',{listing_id:ch.listing_id,channel_type:ch.channel_type,inventories:pl.map(function(p){return {start_date:p.start_date,end_date:p.end_date,inventory:inv};})});
+      var cle=_canalCle(ch),dp=(S.ratesAvail[propId]=S.ratesAvail[propId]||{});
+      jours.forEach(function(ds){var j=dp[ds]||(dp[ds]={});j[cle]=Object.assign({},j[cle]||{},{inv:inv});});
+    }catch(e){err.push(platLabel(ch.channel_type)+' : '+e.message);}
+  }
+  return err;
 }
 
 async function _saveBlock(){
-  var propId=window._blockPropId;
-  var sel=Object.keys(window._ratesDragSel||S.ratesSelected||{});
-  if(!sel.length){showToast('Aucune date');return;}
-  sel.sort();
-  var from=sel[0],to=sel[sel.length-1];
+  var propId=window._blockPropId,jours=window._blockJours||[];
   var prop=S.props.find(function(p){return p.id===propId;});
-  if(!prop)return;
-  try{
-    for(var i=0;i<prop.channels.length;i++){
-      var ch=prop.channels[i];
-      await api('/listings/inventories','POST',{
-        listing_id:ch.listing_id,
-        channel_type:ch.channel_type,
-        start_date:from,
-        end_date:to,
-        inventories:[{start_date:from,end_date:to,inventory:0}]
-      });
-    }
-    if(!S.blockedDates)S.blockedDates=[];
-    var cur=new Date(from+'T00:00:00');
-    var endD=new Date(to+'T00:00:00');
-    while(cur<=endD){
-      var dd=cur.getFullYear()+'-'+String(cur.getMonth()+1).padStart(2,'0')+'-'+String(cur.getDate()).padStart(2,'0');
-      if(S.blockedDates.indexOf(dd)<0)S.blockedDates.push(dd);
-      cur=new Date(cur.getFullYear(),cur.getMonth(),cur.getDate()+1);
-    }
-    try{localStorage.setItem('blockedDates_'+propId,JSON.stringify(S.blockedDates));}catch(ex){}
-    showToast('✓ '+sel.length+' jour(s) bloqué(s) sur Airbnb et Booking');
-    S.ratesSelected={};window._ratesDragSel={};
-    closeModal();
-    // Ne pas réinitialiser ratesLoaded pour conserver S.blockedDates mis à jour
-    renderRates();
-  }catch(e){
-    console.error('Block error:',e);
-    showToast('Erreur blocage: '+e.message);
-  }
+  if(!prop||!jours.length)return;
+  var canaux=_canauxChoisis(prop,'blk-canal');
+  closeModal();showToast('Fermeture sur Hostex…');
+  var err=await _majInventaire(propId,jours,canaux,0);
+  if(err.length)showToast('❌ Erreur Hostex — '+err.join(' / '),6000);
+  else showToast('✓ '+jours.length+' jour(s) fermé(s) sur '+canaux.map(function(c){return platLabel(c.channel_type);}).join(' + '));
+  S.ratesSelected={};window._ratesDragSel={};
+  _majBlockedDates(propId);
+  if(S.page==='rates')renderRates();
 }
 
-async function _unblockDates(propId,from,to){
-  // L'API Hostex ne supporte pas le déblocage via API
-  // Montrer un message avec lien vers Hostex
-  showModal('<h3>🔓 Débloquer ces dates</h3>'
-    +'<div style="background:#fef9c3;border:1px solid #fde047;border-radius:8px;padding:12px;margin-bottom:12px;font-size:13px;color:#854d0e;">'
-    +'⚠️ Le déblocage doit se faire directement sur Hostex ou Airbnb.<br><br>'
-    +'<b>'+from+'</b> → Ouvrir Hostex pour débloquer.'
-    +'</div>'
-    +'<div class="modal-actions">'
-    +'<button class="btn" onclick="closeModal()">Fermer</button>'
-    +'<a href="https://app.hostex.io/calendar" target="_blank" class="btn btn-green" onclick="closeModal()">Ouvrir Hostex →</a>'
-    +'</div>');
-  // Mémoriser localement pour masquer visuellement
-  if(!S.manuallyUnblocked)S.manuallyUnblocked=[];
-  try{
-    var saved=JSON.parse(localStorage.getItem('manuallyUnblocked_'+propId)||'[]');
-    var cur=new Date(from+'T00:00:00');
-    var endD=new Date(to+'T00:00:00');
-    while(cur<=endD){
-      var dd=cur.getFullYear()+'-'+String(cur.getMonth()+1).padStart(2,'0')+'-'+String(cur.getDate()).padStart(2,'0');
-      if(S.manuallyUnblocked.indexOf(dd)<0)S.manuallyUnblocked.push(dd);
-      if(saved.indexOf(dd)<0)saved.push(dd);
-      cur=new Date(cur.getFullYear(),cur.getMonth(),cur.getDate()+1);
-    }
-    localStorage.setItem('manuallyUnblocked_'+propId,JSON.stringify(saved));
-  }catch(ex){}
+function _openUnblockDates(propId,jours){
+  jours=(jours||_joursSelectionnes()).filter(function(ds){var e=_etatJour(propId,ds);return e.modifiable&&e.code!=='ouvert';});
+  if(!jours.length){showToast('Les dates sélectionnées sont déjà ouvertes');return;}
+  window._blockPropId=propId;window._blockJours=jours;
+  showModal('<h3>Ouvrir '+jours.length+' jour'+(jours.length>1?'s':'')+' à la réservation</h3>'
+    +'<div style="font-size:12.5px;color:var(--text-2);margin-bottom:10px;line-height:1.6;">'+_txtPlages(jours)+'</div>'
+    +'<div style="background:#FDF6E3;border:1px solid #E5B84B;border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:12px;color:#6B4E0B;line-height:1.5;">Vérifiez qu’aucune réservation hors Airbnb/Booking (directe, autre calendrier) n’occupe ces dates : les rouvrir pourrait créer un doublon.</div>'
+    +'<div style="font-size:11px;font-weight:600;color:var(--text-2);margin-bottom:6px;">Plateformes à ouvrir</div>'
+    +_choixCanaux('ouv-canal')
+    +'<div class="modal-actions"><button class="btn" onclick="closeModal()">Annuler</button><button class="btn btn-green" onclick="_saveUnblock()">Ouvrir ces dates</button></div>');
+}
+
+async function _saveUnblock(){
+  var propId=window._blockPropId;
   var prop=S.props.find(function(p){return p.id===propId;});
-  if(!prop)return;
-  try{
-    for(var i=0;i<prop.channels.length;i++){
-      var ch=prop.channels[i];
-      await api('/listings/inventories','POST',{
-        listing_id:ch.listing_id,
-        channel_type:ch.channel_type,
-        start_date:from,
-        end_date:to,
-        inventories:[{start_date:from,end_date:to,inventory:1}]
-      });
-    }
-    // Mettre à jour blockedDates local
-    if(S.blockedDates){
-      S.blockedDates=S.blockedDates.filter(function(d){return d<from||d>to;});
-      try{localStorage.setItem('blockedDates_'+propId,JSON.stringify(S.blockedDates));}catch(ex){}
-    }
-    showToast('✓ Dates débloquées');
-    S.ratesLoaded={};
-    renderRates();
-  }catch(e){showToast('Erreur: '+e.message);}
+  // Sécurité : jamais sur un jour passé ou réservé
+  var jours=(window._blockJours||[]).filter(function(ds){return _etatJour(propId,ds).modifiable;});
+  if(!prop||!jours.length)return;
+  var canaux=_canauxChoisis(prop,'ouv-canal');
+  closeModal();showToast('Ouverture sur Hostex…');
+  var err=await _majInventaire(propId,jours,canaux,1);
+  if(err.length)showToast('❌ Erreur Hostex — '+err.join(' / '),6000);
+  else showToast('✓ '+jours.length+' jour(s) ouvert(s) sur '+canaux.map(function(c){return platLabel(c.channel_type);}).join(' + '));
+  S.ratesSelected={};window._ratesDragSel={};
+  _majBlockedDates(propId);
+  if(S.page==='rates')renderRates();
+}
+
+// Compatibilité avec les anciens appels (propId, du, au)
+function _unblockDates(propId,from,to){
+  var jours=[],cur=new Date(from+'T00:00:00'),fin=new Date(to+'T00:00:00');
+  while(cur<=fin){jours.push(dStr(cur));cur.setDate(cur.getDate()+1);}
+  _openUnblockDates(propId,jours);
 }
 
 function renderBilan(){
@@ -2054,8 +2051,8 @@ function renderRates(){
   if(!S.ratesSpan)S.ratesSpan=1;
   var prop=S.props.find(function(p){return p.id===S.ratesProp;})||S.props[0];
   if(!prop){document.getElementById('main-content').innerHTML='<div style="padding:20px;color:var(--text-3);">Aucun bien.</div>';return;}
-  if(!S.ratesLoaded)S.ratesLoaded={};
-  if(!S.ratesLoaded[prop.id]){_loadPricesFromAPI(prop.id);S.ratesLoaded[prop.id]=true;}
+  S.ratesProp=prop.id;
+  _assurerDispo(prop.id,S.ratesMonth,S.ratesSpan);
 
   var MOIS=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
   var JOURS=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
@@ -2068,7 +2065,20 @@ function renderRates(){
   function prixAir(ds){return S.ratesPrices[prop.id+'_'+ds+'_air']||null;}
   function prixBk(ds){return S.ratesPrices[prop.id+'_'+ds+'_bk']||null;}
   function resaDu(ds){return S.reservations.find(function(r){return r.prop_id===prop.id&&r.check_in&&r.check_out&&r.status!=='cancelled'&&r.check_in<=ds&&r.check_out>ds;});}
-  function bloque(ds){return S.blockedDates&&S.blockedDates.indexOf(ds)>=0;}
+  // État réel (Hostex) de chaque jour, par plateforme
+  var _etats={};
+  function etat(ds){return _etats[ds]||(_etats[ds]=_etatJour(prop.id,ds));}
+  function bloque(ds){return etat(ds).code==='ferme';}
+  var CADENAS='<svg width="9" height="10" viewBox="0 0 9 10" style="flex-shrink:0;"><rect x="1" y="4.5" width="7" height="5" rx="1" fill="#9A9486"/><path d="M2.6 4.5V3a1.9 1.9 0 0 1 3.8 0v1.5" fill="none" stroke="#9A9486" stroke-width="1.1"/></svg>';
+  function ligneCanal(lettre,coul,prix,ferme){
+    var actif=prix&&!ferme;
+    return '<div style="display:flex;align-items:center;gap:5px;">'
+      +'<span style="width:15px;height:15px;border-radius:4px;background:'+(actif?coul:'var(--bg)')+';color:'+(actif?'#fff':'var(--text-3)')+';font-size:9px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0;">'+lettre+'</span>'
+      +(ferme
+        ?'<span style="font-size:10.5px;font-weight:600;color:#8A8474;">Fermé</span>'+(prix?'<span style="font-size:10px;color:var(--text-3);text-decoration:line-through;'+NUM+'">'+prix+'</span>':'')
+        :'<span style="font-size:13px;font-weight:600;color:'+(prix?'var(--text)':'var(--text-3)')+';'+NUM+'">'+(prix?prix+' €':'—')+'</span>')
+    +'</div>';
+  }
 
   var selMap=window._ratesDragSel&&Object.keys(window._ratesDragSel).length?window._ratesDragSel:S.ratesSelected;
   var selDays=Object.keys(selMap||{}).filter(function(k){return selMap[k];});
@@ -2080,7 +2090,7 @@ function renderRates(){
   // ===== Barre d'outils =====
   var propBtns=S.props.map(function(p){
     var on=p.id===prop.id;
-    return '<button onclick="S.ratesProp=\''+p.id+'\';S.ratesLoaded={};S.ratesSelected={};window._ratesDragSel={};renderRates()" class="btn" style="'+(on?'background:var(--accent);color:#fff;border-color:var(--accent);':'')+'">'+p.name+'</button>';
+    return '<button onclick="S.ratesProp=\''+p.id+'\';S.ratesSelected={};window._ratesDragSel={};renderRates()" class="btn" style="'+(on?'background:var(--accent);color:#fff;border-color:var(--accent);':'')+'">'+p.name+'</button>';
   }).join('');
 
   var spanBtns=[[1,'1 mois'],[3,'3 mois'],[12,'12 mois']].map(function(s){
@@ -2093,7 +2103,11 @@ function renderRates(){
 
   var toolbar='<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px;">'
     +'<div style="display:flex;gap:6px;flex-wrap:wrap;">'+propBtns+'</div>'
-    +'<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">'+spanBtns+'</div>'
+    +'<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">'
+      +'<span id="rates-sync" style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-2);margin-right:4px;">'+_txtSync(prop.id)+'</span>'
+      +'<button onclick="_loadPricesFromAPI(\''+prop.id+'\',true,S.ratesMonth)" class="btn" title="Relire le calendrier réel sur Hostex" style="width:32px;padding:6px 0;">↻</button>'
+      +spanBtns
+    +'</div>'
   +'</div>'
   +'<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px;">'
     +'<div style="display:flex;align-items:center;gap:8px;">'
@@ -2106,8 +2120,10 @@ function renderRates(){
       +'<span style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-2);"><span style="width:9px;height:9px;border-radius:2px;background:'+AIR+';"></span>Airbnb</span>'
       +'<span style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-2);"><span style="width:9px;height:9px;border-radius:2px;background:'+BK+';"></span>Booking</span>'
       +'<span style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-2);"><span style="width:9px;height:9px;border-radius:2px;background:var(--accent);"></span>Aujourd’hui</span>'
-      +'<span style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-2);"><span style="width:9px;height:9px;border-radius:2px;background:#E5B84B;"></span>Bloqué</span>'
-      +'<span style="font-size:11px;color:var(--text-3);">Glissez pour sélectionner plusieurs jours</span>'
+      +'<span style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-2);"><span style="width:7px;height:7px;border-radius:50%;background:#1D9E75;"></span>Ouvert · modifiable</span>'
+      +'<span style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-2);"><span style="width:7px;height:7px;border-radius:50%;background:#E5A23B;"></span>Fermé sur une plateforme</span>'
+      +'<span style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-2);"><span style="width:11px;height:11px;border-radius:2px;border:1px dashed #BDB6A6;background:repeating-linear-gradient(135deg,#F2F0EA 0 3px,#E0DCD2 3px 4px);"></span>Fermé</span>'
+      +'<span style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-2);">'+CADENAS+'Réservé / passé · non modifiable</span>'
     +'</div>'
   +'</div>';
 
@@ -2115,12 +2131,15 @@ function renderRates(){
   var selBar='';
   if(selCount>0){
     var tri=selDays.slice().sort();
+    var selFermes=selDays.filter(function(x){var c=etat(x).code;return c==='ferme'||c==='ferme_air'||c==='ferme_bk';}).length;
+    var selToutFerme=selDays.filter(function(x){return etat(x).code==='ferme';}).length;
     selBar='<div style="position:sticky;top:56px;z-index:20;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:var(--accent);color:#fff;border-radius:var(--r-md);padding:11px 16px;margin-bottom:14px;box-shadow:var(--shadow-md);">'
       +'<div style="font-size:13px;font-weight:500;">'+selCount+' jour'+(selCount>1?'s':'')+' sélectionné'+(selCount>1?'s':'')
-        +'<span style="font-weight:400;opacity:.8;font-size:11.5px;margin-left:8px;">du '+tri[0].split('-').reverse().join('/')+' au '+tri[tri.length-1].split('-').reverse().join('/')+'</span></div>'
+        +'<span style="font-weight:400;opacity:.8;font-size:11.5px;margin-left:8px;">du '+tri[0].split('-').reverse().join('/')+' au '+tri[tri.length-1].split('-').reverse().join('/')+(selFermes?' · dont '+selFermes+' fermé'+(selFermes>1?'s':''):'')+'</span></div>'
       +'<div style="display:flex;gap:7px;flex-wrap:wrap;">'
         +'<button onclick="_rateApplySelected()" class="btn" style="background:#fff;color:var(--accent);border-color:#fff;font-weight:500;">Définir les tarifs</button>'
-        +'<button onclick="_openBlockDates(\''+prop.id+'\')" class="btn" style="background:transparent;color:#fff;border-color:rgba(255,255,255,.55);">Bloquer</button>'
+        +(selToutFerme<selCount?'<button onclick="_openBlockDates(\''+prop.id+'\')" class="btn" style="background:transparent;color:#fff;border-color:rgba(255,255,255,.55);">Fermer</button>':'')
+        +(selFermes>0?'<button onclick="_openUnblockDates(\''+prop.id+'\')" class="btn" style="background:transparent;color:#fff;border-color:rgba(255,255,255,.55);">Ouvrir</button>':'')
         +'<button onclick="_clearRatesSel()" class="btn" style="background:transparent;color:#fff;border-color:rgba(255,255,255,.55);">Effacer</button>'
       +'</div>'
     +'</div>';
@@ -2129,7 +2148,7 @@ function renderRates(){
   // ===== Calendriers =====
   var CELL=94,GAP=5;
   var calHtml='';
-  var totA=[],totB=[],nuitsOcc=0,joursTot=0,sansPrix=0;
+  var totA=[],totB=[],nuitsOcc=0,joursTot=0,sansPrix=0,fermesTot=0,ouvertsTot=0,resaFutur=0;
 
   for(var mo=0;mo<span;mo++){
     var mDate=new Date(mRef.getFullYear(),mRef.getMonth()+mo,1);
@@ -2137,15 +2156,19 @@ function renderRates(){
     var firstDow=(new Date(yr,mn,1).getDay()+6)%7;
     var dim=new Date(yr,mn+1,0).getDate();
 
-    var mA=[],mB=[],mOcc=0,mSansPrix=0;
+    var mA=[],mB=[],mOcc=0,mSansPrix=0,mFerme=0;
     for(var k=1;k<=dim;k++){
       var dsk=dsOf(yr,mn,k);
       var pa=prixAir(dsk),pb=prixBk(dsk);
       if(pa)mA.push(pa); if(pb)mB.push(pb);
+      var ek=etat(dsk).code;
       if(resaDu(dsk))mOcc++;
-      else if(!pa&&!pb&&!bloque(dsk)&&new Date(yr,mn,k)>=today)mSansPrix++;
+      else if(!pa&&!pb&&ek!=='ferme'&&new Date(yr,mn,k)>=today)mSansPrix++;
+      if(ek==='ferme'||ek==='ferme_air'||ek==='ferme_bk')mFerme++;
+      else if(ek==='ouvert')ouvertsTot++;
+      else if(ek==='reserve')resaFutur++;
     }
-    totA=totA.concat(mA);totB=totB.concat(mB);nuitsOcc+=mOcc;joursTot+=dim;sansPrix+=mSansPrix;
+    totA=totA.concat(mA);totB=totB.concat(mB);nuitsOcc+=mOcc;joursTot+=dim;sansPrix+=mSansPrix;fermesTot+=mFerme;
     var moyA=mA.length?Math.round(mA.reduce(function(s,v){return s+v;},0)/mA.length):null;
     var moyB=mB.length?Math.round(mB.reduce(function(s,v){return s+v;},0)/mB.length):null;
 
@@ -2159,45 +2182,54 @@ function renderRates(){
       var isToday=dObj.getTime()===today.getTime();
       var isPast=dObj<today;
       var isSel=!!selMap[ds];
-      var isBlk=bloque(ds);
-      var res=resaDu(ds);
+      var e=etat(ds);
+      var isBlk=e.code==='ferme';
+      var verrou=!e.modifiable;
+      var res=e.resa||(isPast?resaDu(ds):null);
       var isWE=dObj.getDay()===0||dObj.getDay()===6;
       var pa=prixAir(ds),pb=prixBk(ds);
+      var aF=!!(e.air&&e.air.inv===0),bF=!!(e.bk&&e.bk.inv===0);
 
       var bg='var(--surface)',bd='1px solid var(--border)';
       if(isPast){bg='#F4F3EE';}
       else if(isWE){bg='#FCFBF7';}
       if(res){bg=platClass(res.platform)==='airbnb'?AIR_BG:BK_BG;bd='1px solid '+(platClass(res.platform)==='airbnb'?'#E8B5A8':'#B3C8E0');}
-      if(isBlk){bg='#FDF6E3';bd='1px solid #E5B84B';}
+      if(isBlk){bg='repeating-linear-gradient(135deg,#F2F0EA 0 7px,#E8E4DB 7px 8px)';bd='1px dashed #BDB6A6';}
       if(isToday){bd='2px solid var(--accent)';}
       if(isSel){bg='var(--accent-light)';bd='2px solid var(--accent)';}
 
       var numCol=isToday?'var(--accent)':isPast?'var(--text-3)':'var(--text)';
+      var pastille='';
+      if(verrou)pastille=CADENAS;
+      else if(e.code==='ouvert')pastille='<span style="width:7px;height:7px;border-radius:50%;background:#1D9E75;flex-shrink:0;"></span>';
+      else if(e.code==='ferme_air'||e.code==='ferme_bk')pastille='<span style="width:7px;height:7px;border-radius:50%;background:#E5A23B;flex-shrink:0;"></span>';
+      else if(isBlk)pastille='<span style="width:7px;height:7px;border-radius:50%;background:#8A8474;flex-shrink:0;"></span>';
+      var arrInterdite=!verrou&&((e.air&&e.air.inv>0&&e.air.ctA)||(e.bk&&e.bk.inv>0&&e.bk.ctA));
+
       var corps='';
-      if(isBlk){
-        corps='<div style="font-size:10.5px;color:#8A6A12;font-weight:500;margin-top:4px;">Bloqué</div>';
-      } else if(res){
+      if(res){
         var pl=platClass(res.platform);
         var plC=pl==='airbnb'?AIR:BK;
         corps='<div style="font-size:10.5px;font-weight:500;color:'+plC+';overflow:hidden;white-space:nowrap;text-overflow:ellipsis;margin-top:3px;">'+(res.guest||'').split(' ')[0]+'</div>'
           +'<div style="font-size:9.5px;color:var(--text-3);margin-top:1px;">'+(pl==='airbnb'?'Airbnb':'Booking')+'</div>';
+      } else if(isBlk&&!isPast){
+        corps='<div style="font-size:10.5px;color:#5F5A4F;font-weight:600;margin-top:5px;">Fermé</div><div style="font-size:9.5px;color:#8A8474;margin-top:1px;">non réservable</div>';
       } else {
-        corps='<div style="display:flex;flex-direction:column;gap:3px;margin-top:5px;">'
-          +'<div style="display:flex;align-items:center;gap:5px;">'
-            +'<span style="width:15px;height:15px;border-radius:4px;background:'+(pa?AIR:'var(--bg)')+';color:'+(pa?'#fff':'var(--text-3)')+';font-size:9px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0;">A</span>'
-            +'<span style="font-size:13px;font-weight:600;color:'+(pa?'var(--text)':'var(--text-3)')+';'+NUM+'">'+(pa?pa+' €':'—')+'</span>'
-          +'</div>'
-          +'<div style="display:flex;align-items:center;gap:5px;">'
-            +'<span style="width:15px;height:15px;border-radius:4px;background:'+(pb?BK:'var(--bg)')+';color:'+(pb?'#fff':'var(--text-3)')+';font-size:9px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0;">B</span>'
-            +'<span style="font-size:13px;font-weight:600;color:'+(pb?'var(--text)':'var(--text-3)')+';'+NUM+'">'+(pb?pb+' €':'—')+'</span>'
-          +'</div>'
-        +'</div>';
+        corps='<div style="display:flex;flex-direction:column;gap:3px;margin-top:5px;">'+ligneCanal('A',AIR,pa,aF&&!isPast)+ligneCanal('B',BK,pb,bF&&!isPast)+'</div>';
       }
 
-      cells+='<div data-ds="'+ds+'" data-past="'+(isPast?1:0)+'" data-booked="'+(res?1:0)+'" class="rate-cell" title="'+ds.split('-').reverse().join('/')+(pa?' · Airbnb '+pa+' €':'')+(pb?' · Booking '+pb+' €':'')+'" style="border-radius:var(--r-sm);min-height:'+CELL+'px;padding:6px 7px;border:'+bd+';background:'+bg+';cursor:pointer;position:relative;'+(isPast?'opacity:.6;':'')+'">'
-        +'<div style="display:flex;align-items:center;justify-content:space-between;">'
+      var tip=_fmtJ(ds)+' — '+e.libelle+(verrou?' · non modifiable':'')
+        +(e.air?'\nAirbnb : '+(aF?'fermé':'ouvert')+(pa?' · '+pa+' €':'')+(e.air.min?' · min '+e.air.min+' nuit(s)':'')+(e.air.ctA?' · arrivée interdite':'')+(e.air.ctD?' · départ interdit':''):'')
+        +(e.bk?'\nBooking : '+(bF?'fermé':'ouvert')+(pb?' · '+pb+' €':'')+(e.bk.min?' · min '+e.bk.min+' nuit(s)':'')+(e.bk.ctA?' · arrivée interdite':'')+(e.bk.ctD?' · départ interdit':''):'');
+
+      cells+='<div data-ds="'+ds+'" data-etat="'+e.code+'" class="rate-cell" title="'+tip.replace(/"/g,'&quot;')+'" style="border-radius:var(--r-sm);min-height:'+CELL+'px;padding:6px 7px;border:'+bd+';background:'+bg+';cursor:'+(verrou&&!res?'not-allowed':'pointer')+';position:relative;'+(isPast?'opacity:.6;':'')+'">'
+        +'<div style="display:flex;align-items:center;justify-content:space-between;gap:4px;">'
           +'<span style="font-size:12px;font-weight:'+(isToday?'600':'500')+';color:'+numCol+';'+NUM+'">'+d+'</span>'
-          +(isWE&&!res&&!isBlk?'<span style="font-size:8.5px;color:var(--text-3);letter-spacing:.03em;">WE</span>':'')
+          +'<span style="display:flex;align-items:center;gap:4px;">'
+            +(arrInterdite?'<span title="Arrivée interdite" style="font-size:9px;font-weight:600;color:#A8382A;">↛</span>':'')
+            +(isWE&&!res&&!isBlk?'<span style="font-size:8.5px;color:var(--text-3);letter-spacing:.03em;">WE</span>':'')
+            +pastille
+          +'</span>'
         +'</div>'
         +corps
       +'</div>';
@@ -2210,6 +2242,7 @@ function renderRates(){
           +(moyA?'<span><span style="color:'+AIR+';font-weight:600;">A</span> moy. '+moyA+' €</span>':'')
           +(moyB?'<span><span style="color:'+BK+';font-weight:600;">B</span> moy. '+moyB+' €</span>':'')
           +'<span>'+mOcc+'/'+dim+' nuits réservées</span>'
+          +(mFerme>0?'<span style="color:#5F5A4F;">'+mFerme+' jour(s) fermé(s)</span>':'')
           +(mSansPrix>0?'<span style="color:#8A6A12;">'+mSansPrix+' jour(s) sans tarif</span>':'')
         +'</div>'
       +'</div>'
@@ -2222,7 +2255,12 @@ function renderRates(){
   var moyTotB=totB.length?Math.round(totB.reduce(function(s,v){return s+v;},0)/totB.length):0;
   var ecart=moyTotA&&moyTotB?Math.round((moyTotA-moyTotB)/moyTotA*100):0;
 
-  var resume='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px;">'
+  var resume='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:10px;margin-bottom:16px;">'
+    +'<div style="background:#EEF6F2;border:1px solid #A8CFC0;border-radius:var(--r-md);padding:12px 14px;">'
+      +'<div style="font-size:10.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:#0B6B4F;margin-bottom:5px;">Ouverts à la réservation</div>'
+      +'<div style="font-size:22px;font-weight:600;color:#0B4A3A;'+NUM+'">'+ouvertsTot+'</div>'
+      +'<div style="font-size:10.5px;color:#0B6B4F;margin-top:2px;">'+fermesTot+' fermé(s) · '+resaFutur+' nuit(s) réservée(s) à venir</div>'
+    +'</div>'
     +'<div style="background:'+AIR_BG+';border:1px solid #E8B5A8;border-radius:var(--r-md);padding:12px 14px;">'
       +'<div style="font-size:10.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:#8C3521;margin-bottom:5px;">Tarif moyen Airbnb</div>'
       +'<div style="font-size:22px;font-weight:600;color:#7C2718;'+NUM+'">'+(moyTotA||'—')+(moyTotA?' €':'')+'</div>'
@@ -2267,7 +2305,7 @@ function renderRates(){
       +'<div style="display:flex;align-items:center;gap:5px;"><input id="rr-minStay" type="number" min="1" value="'+(r.minStay||2)+'" style="width:52px;text-align:center;padding:5px;font-size:13px;"><span style="font-size:11px;color:var(--text-3);">nuits</span></div>'
     +'</div>'
     +'<button onclick="_applyBaseRules(\''+prop.id+'\')" class="btn btn-green" style="width:100%;">Appliquer sur '+MOIS[mRef.getMonth()]+'</button>'
-    +'<div style="font-size:10px;color:var(--text-3);margin-top:5px;text-align:center;">Les jours réservés ne sont pas modifiés</div>'
+    +'<div style="font-size:10px;color:var(--text-3);margin-top:5px;text-align:center;">Les jours réservés et passés ne sont pas modifiés</div>'
 
     +'<div style="height:1px;background:var(--border);margin:15px 0;"></div>'
     +'<div style="font-size:10.5px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--text-3);margin-bottom:9px;">Frais de ménage</div>'
@@ -2341,10 +2379,13 @@ function renderRates(){
 
   // ===== Sélection (souris + tactile) =====
   var rc=document.getElementById('main-content');
+  if(!rc._ratesBound){
+  rc._ratesBound=true;
   var dragging=false,moved=false,anchor=null;
 
   function cellAt(x,y){var el=document.elementFromPoint(x,y);return el&&el.closest('[data-ds]');}
-  function selectable(el){return el&&el.dataset.past!=='1'&&el.dataset.booked!=='1';}
+  // Seuls les jours à venir non réservés sont modifiables (état réel Hostex)
+  function selectable(el){return !!el&&el.dataset.etat!=='passe'&&el.dataset.etat!=='reserve';}
   function peindre(a,b){
     var lo=a<b?a:b, hi=a<b?b:a;
     S.ratesSelected={};
@@ -2362,12 +2403,13 @@ function renderRates(){
   }
 
   rc.addEventListener('mousedown',function(e){
+    if(S.page!=='rates')return;
     var el=e.target.closest('[data-ds]');
     if(!el){
-      if(!e.target.closest('.btn')&&selCount>0){_clearRatesSel();}
+      if(!e.target.closest('.btn,input,select,textarea,label,a')&&Object.keys(S.ratesSelected||{}).length>0){_clearRatesSel();}
       return;
     }
-    if(!selectable(el))return;
+    if(!selectable(el)){_openRateDay(el.dataset.ds,S.ratesProp);return;}
     e.preventDefault();
     dragging=true;moved=false;anchor=el.dataset.ds;
   });
@@ -2388,6 +2430,7 @@ function renderRates(){
   document.addEventListener('mouseup',function(){if(dragging&&!moved){dragging=false;anchor=null;}});
 
   rc.addEventListener('touchstart',function(e){
+    if(S.page!=='rates')return;
     var el=cellAt(e.touches[0].clientX,e.touches[0].clientY);
     if(!selectable(el))return;
     dragging=true;moved=false;anchor=el.dataset.ds;
@@ -2405,6 +2448,7 @@ function renderRates(){
     if(moved)renderRates();
     dragging=false;moved=false;anchor=null;
   },{passive:true});
+  }
 
   if(!window._ratesKeys){
     window._ratesKeys=true;
@@ -2516,8 +2560,7 @@ async function _applyBaseRules(propId){
   for(var d=1;d<=dim;d++){
     var date=new Date(year,month,d);
     var ds=dStr(date);
-    var isBooked=S.reservations.some(function(rv){return rv.prop_id===propId&&rv.check_in&&rv.check_out&&rv.status!=='cancelled'&&rv.check_in<=ds&&rv.check_out>ds;});
-    if(isBooked)continue;
+    if(!_etatJour(propId,ds).modifiable)continue;
     var dow=date.getDay();
     var isWE=dow===0||dow===5||dow===6;
     var ap=isWE?r.airWE:r.airWeek;
@@ -2533,11 +2576,17 @@ async function _applyBaseRules(propId){
   var bkCh=prop?prop.channels.filter(function(c){return platClass(c.channel_type)==='booking';}):[];
   var errors=0;
   try{
-    if(airCh.length){for(var i=0;i<airPrices.length;i+=30)await api('/listings/prices','POST',{listing_id:airCh[0].listing_id,channel_type:airCh[0].channel_type,prices:airPrices.slice(i,i+30)});}
-    if(bkCh.length){for(var i=0;i<bkPrices.length;i+=30)await api('/listings/prices','POST',{listing_id:bkCh[0].listing_id,channel_type:bkCh[0].channel_type,prices:bkPrices.slice(i,i+30)});}
-    if(r.minStay>0)await api('/listings/restrictions','POST',{property_id:propId,min_nights:r.minStay});
+    if(airCh.length){for(var i=0;i<airPrices.length;i+=30)await _hostexEcrire('/listings/prices',{listing_id:airCh[0].listing_id,channel_type:airCh[0].channel_type,prices:airPrices.slice(i,i+30)});}
+    if(bkCh.length){for(var i=0;i<bkPrices.length;i+=30)await _hostexEcrire('/listings/prices',{listing_id:bkCh[0].listing_id,channel_type:bkCh[0].channel_type,prices:bkPrices.slice(i,i+30)});}
     showToast('✓ '+airPrices.length+' jours synchronisés sur Airbnb + Booking');
-  }catch(e){showToast('Partiel : '+e.message);}
+  }catch(e){showToast('❌ Hostex a refusé les tarifs : '+e.message,6000);}
+  try{
+    var joursMS=airPrices.map(function(x){return x.date;});
+    for(var c=0;r.minStay>0&&prop&&c<prop.channels.length;c++){
+      var chM=prop.channels[c],cleM=_canalCle(chM);
+      for(var j=0;j<joursMS.length;j+=30)await _hostexEcrire('/listings/restrictions',{listing_id:chM.listing_id,channel_type:chM.channel_type,restrictions:joursMS.slice(j,j+30).map(function(ds){return _itemRestr(propId,cleM,ds,r.minStay);})});
+    }
+  }catch(e){showToast('❌ Séjour minimum refusé par Hostex : '+e.message,6000);}
   // Ne PAS vider ratesLoaded : cela rechargerait depuis l'API et écraserait les prix
   // qu'on vient d'appliquer (Hostex peut mettre du temps à les refléter). On garde
   // S.ratesPrices déjà à jour et on re-render simplement.
@@ -2637,91 +2686,127 @@ function _toggleSelMode(){
   renderRates();
 }
 
-function chgRatesMonth(d){var m=S.ratesMonth||new Date();S.ratesMonth=new Date(m.getFullYear(),m.getMonth()+d,1);S.ratesLoaded={};S.ratesSelected={};renderRates();}
+function chgRatesMonth(d){var m=S.ratesMonth||new Date();S.ratesMonth=new Date(m.getFullYear(),m.getMonth()+d,1);S.ratesSelected={};window._ratesDragSel={};renderRates();}
 function _saveClean(propId){if(!S.cleaning)S.cleaning={};var b=parseInt(document.getElementById("cl-base").value)||0;var e=parseInt(document.getElementById("cl-extra").value)||0;S.cleaning[propId]={base:b,extra:e};try{localStorage.setItem("cleaning_"+propId,JSON.stringify({base:b,extra:e}));}catch(ex){}showToast("Memo local - modifier sur Airbnb/Booking directement");renderRates();}
 function _loadCleaningFromStorage(){if(!S.cleaning)S.cleaning={};if(!S.props)return;S.props.forEach(function(p){try{var v=localStorage.getItem("cleaning_"+p.id);if(v)S.cleaning[p.id]=JSON.parse(v);}catch(ex){}});}
 
-function _rApplyRange(ds,propId,days){
-  var av=parseInt(document.getElementById('r-air').value)||0;var bv=parseInt(document.getElementById('r-bk').value)||0;
-  var opt=document.querySelector('input[name="bk-opt"]:checked');var f=opt&&opt.value==='nonref'?0.85:opt&&opt.value==='early'?0.90:opt&&opt.value==='lastmin'?1.05:1;
-  var start=new Date(ds+'T00:00:00');for(var i=0;i<days;i++){var d=new Date(start.getFullYear(),start.getMonth(),start.getDate()+i);var k=propId+'_'+dStr(d);if(av)S.ratesPrices[k+'_air']=av;if(bv)S.ratesPrices[k+'_bk']=Math.round(bv*f);}
-  _rSaveDay(ds,propId);
+// ===== Calendrier réel Hostex : disponibilité par logement et par plateforme =====
+async function _hostexEcrire(ep,body){
+  var r=await api(ep,'POST',body,20000);
+  if(!r)throw new Error('réponse vide');
+  if(r.error_code&&r.error_code!==200)throw new Error(r.error_msg||('code '+r.error_code));
+  return r;
+}
+function _canalCle(ch){return platClass(ch.channel_type)==='airbnb'?'air':'bk';}
+// Restriction d'un jour en conservant les autres règles existantes (arrivée/départ interdits, max)
+function _itemRestr(propId,cle,ds,min){
+  var c=(S.ratesAvail&&S.ratesAvail[propId]&&S.ratesAvail[propId][ds]&&S.ratesAvail[propId][ds][cle])||{};
+  var o={start_date:ds,end_date:ds,min_stay_on_arrival:min};
+  if(c.max)o.max_stay_on_arrival=c.max;
+  if(c.ctA!==undefined)o.closed_on_arrival=c.ctA;
+  if(c.ctD!==undefined)o.closed_on_departure=c.ctD;
+  return o;
+}
+function _resaSur(propId,ds){
+  return S.reservations.find(function(r){return r.prop_id===propId&&r.check_in&&r.check_out&&r.status!=='cancelled'&&r.check_in<=ds&&r.check_out>ds;});
+}
+// État réel d'un jour : passe | reserve | ferme | ferme_air | ferme_bk | ouvert | inconnu
+function _etatJour(propId,ds){
+  var j=(S.ratesAvail&&S.ratesAvail[propId]&&S.ratesAvail[propId][ds])||null;
+  var o={air:j&&j.air||null,bk:j&&j.bk||null,resa:null,modifiable:true};
+  if(ds<dStr(new Date())){o.code='passe';o.modifiable=false;o.libelle='Date passée';return o;}
+  var resa=_resaSur(propId,ds);
+  if(resa){o.resa=resa;o.code='reserve';o.modifiable=false;o.libelle='Réservé · '+(resa.guest||'')+' ('+platLabel(resa.platform)+')';return o;}
+  if(!j){o.code='inconnu';o.libelle='Disponibilité non synchronisée';return o;}
+  var aO=!!(o.air&&o.air.inv>0),bO=!!(o.bk&&o.bk.inv>0);
+  var aF=!!(o.air&&o.air.inv===0),bF=!!(o.bk&&o.bk.inv===0);
+  if(!aO&&!bO){o.code='ferme';o.libelle='Fermé à la réservation';}
+  else if(aF){o.code='ferme_air';o.libelle='Fermé sur Airbnb · ouvert sur Booking';}
+  else if(bF){o.code='ferme_bk';o.libelle='Ouvert sur Airbnb · fermé sur Booking';}
+  else{o.code='ouvert';o.libelle='Ouvert à la réservation';}
+  return o;
+}
+function _majBlockedDates(propId){
+  var dp=(S.ratesAvail&&S.ratesAvail[propId])||{};
+  S.blockedDates=Object.keys(dp).filter(function(ds){return _etatJour(propId,ds).code==='ferme';}).sort();
+}
+// Charge la disponibilité si la période affichée n'est pas couverte ou date de plus de 5 min
+function _assurerDispo(propId,base,span){
+  if(!propId||!base)return;
+  if(!S.ratesRange)S.ratesRange={};
+  if(S._dispoEnCours===propId)return;
+  var a=dStr(new Date(base.getFullYear(),base.getMonth(),1));
+  var b=dStr(new Date(base.getFullYear(),base.getMonth()+(span||1),0));
+  var m0=dStr(new Date(new Date().getFullYear(),new Date().getMonth(),1));
+  if(b<m0)return;
+  if(a<m0)a=m0;
+  var rg=S.ratesRange[propId];
+  if(rg&&rg.from<=a&&rg.to>=b&&Date.now()-rg.at<5*60000)return;
+  _loadPricesFromAPI(propId,false,base);
 }
 
-function _rateApplySelected(){
-  var days=Object.keys(S.ratesSelected).filter(function(k){return S.ratesSelected[k];}).sort();if(!days.length)return;
-  var BK_OPTIONS=[{id:'standard',label:'Tarif standard',desc:'Annulation 48h',factor:1},{id:'nonref',label:'Non remboursable',desc:'-15%',factor:0.85},{id:'early',label:'Anticipée',desc:'-10%',factor:0.90},{id:'lastmin',label:'Dernière minute',desc:'+5%',factor:1.05}];
-  showModal('<h3>Tarif sur '+days.length+' jour'+(days.length>1?'s':'')+'</h3>'
-    +'<div style="font-size:10px;color:#888;margin-bottom:12px;line-height:1.8;">'+days.join(' · ')+'</div>'
-    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">'
-      +'<div style="padding:12px;background:#FFF5F5;border-radius:8px;"><div style="background:#FF385C;border-radius:4px;padding:2px 8px;font-size:11px;color:#fff;font-weight:700;display:inline-block;margin-bottom:10px;">Airbnb</div><div style="display:flex;align-items:baseline;gap:4px;"><input type="number" id="bs-air" placeholder="€" style="font-size:22px;width:80px;border:none;background:transparent;font-weight:500;outline:none;padding:0;"><span style="font-size:14px;color:#888;">€/nuit</span></div></div>'
-      +'<div style="padding:12px;background:#F0F4FF;border-radius:8px;"><div style="background:#003580;border-radius:4px;padding:2px 8px;font-size:11px;color:#fff;font-weight:700;display:inline-block;margin-bottom:10px;">Booking</div><div style="display:flex;align-items:baseline;gap:4px;"><input type="number" id="bs-bk" placeholder="€" style="font-size:22px;width:80px;border:none;background:transparent;font-weight:500;outline:none;padding:0;"><span style="font-size:14px;color:#888;">€/nuit</span></div></div>'
-    +'</div>'
-    +'<div style="margin-bottom:12px;"><div style="font-size:11px;font-weight:600;color:#666;margin-bottom:6px;">Option Booking</div><div style="display:grid;gap:4px;">'+BK_OPTIONS.map(function(o){return'<label style="display:flex;align-items:center;gap:8px;padding:6px 10px;border:0.5px solid #e5e4e0;border-radius:6px;cursor:pointer;background:#fff;"><input type="radio" name="bs-opt" value="'+o.id+'" '+(o.id==='standard'?'checked':'')+' style="margin:0;"><div><div style="font-size:11px;font-weight:600;">'+o.label+'</div><div style="font-size:10px;color:#888;">'+o.desc+'</div></div></label>';}).join('')+'</div></div>'
-    +'<div class="modal-actions"><button class="btn" onclick="closeModal()">Annuler</button><button class="btn btn-green" onclick="_rSaveBulk()">✓ Appliquer sur '+days.length+' jours</button></div>');
-}
-
-async function _rSaveBulk(){
-  var av=parseInt(document.getElementById('bs-air').value)||0;var bv=parseInt(document.getElementById('bs-bk').value)||0;if(!av&&!bv){showToast('Entre un prix.');return;}
-  var opt=document.querySelector('input[name="bs-opt"]:checked');var f=opt&&opt.value==='nonref'?0.85:opt&&opt.value==='early'?0.90:opt&&opt.value==='lastmin'?1.05:1;
-  var days=Object.keys(S.ratesSelected).filter(function(k){return S.ratesSelected[k];});closeModal();
-  var prop=S.props.find(function(p){return p.id===S.ratesProp;});var aP=[],bP=[];
-  days.forEach(function(ds){var k=S.ratesProp+'_'+ds;if(av){S.ratesPrices[k+'_air']=av;aP.push({date:ds,price:av,start_date:ds,end_date:ds});}if(bv){S.ratesPrices[k+'_bk']=Math.round(bv*f);bP.push({date:ds,price:Math.round(bv*f)});}});
-  showToast('Envoi…');
-  try{var aC=prop?prop.channels.filter(function(c){return platClass(c.channel_type)==='airbnb';}):[];var bC=prop?prop.channels.filter(function(c){return platClass(c.channel_type)==='booking';}):[];if(av&&aC.length){for(var i=0;i<aP.length;i+=30)await api('/listings/prices','POST',{listing_id:aC[0].listing_id,channel_type:aC[0].channel_type,prices:aP.slice(i,i+30)});}if(bv&&bC.length){for(var i=0;i<bP.length;i+=30)await api('/listings/prices','POST',{listing_id:bC[0].listing_id,channel_type:bC[0].channel_type,prices:bP.slice(i,i+30)});}showToast('✓ '+days.length+' jours mis à jour');}catch(e){showToast('Local OK');}
-  S.ratesSelected={};renderRates();
-}
-
-async function _loadPricesFromAPI(propId){
+async function _loadPricesFromAPI(propId,force,base){
   var prop=S.props.find(function(p){return p.id===propId;});
-  if(!prop||!prop.channels.length){showToast('Aucun channel');return;}
-  var m=new Date();
-  var from=dStr(new Date(m.getFullYear(),m.getMonth(),1));
-  var to=dStr(new Date(m.getFullYear(),m.getMonth()+12,0));
-  showToast('Chargement '+prop.channels.length+' canaux...');
-  // Charger les dates bloquées et débloquées depuis localStorage
-  try { S.blockedDates=JSON.parse(localStorage.getItem('blockedDates_'+propId)||'[]'); } catch(e){ S.blockedDates=[]; }
-  try { S.manuallyUnblocked=JSON.parse(localStorage.getItem('manuallyUnblocked_'+propId)||'[]'); } catch(e){ S.manuallyUnblocked=[]; }
-  var today=new Date().toISOString().split('T')[0];
-  var total=0;
-  for(var ci=0;ci<prop.channels.length;ci++){
-    var ch=prop.channels[ci];
-    var type=platClass(ch.channel_type);
+  if(!prop||!prop.channels||!prop.channels.length){if(force)showToast('Aucun canal');return;}
+  if(!S.ratesAvail)S.ratesAvail={};
+  if(!S.ratesRange)S.ratesRange={};
+  if(S._dispoEnCours===propId)return;
+  base=base||(S.page==='calendar'&&S.calMonth)||S.ratesMonth||new Date();
+  var auj=new Date();
+  if(base<new Date(auj.getFullYear(),auj.getMonth(),1))base=new Date(auj.getFullYear(),auj.getMonth(),1);
+  var from=dStr(new Date(base.getFullYear(),base.getMonth(),1));
+  var to=dStr(new Date(base.getFullYear(),base.getMonth()+12,0));
+  S._dispoEnCours=propId;
+  S.ratesRange[propId]={from:from,to:to,at:Date.now(),ok:false};
+  if(force)showToast('Synchronisation du calendrier Hostex…');
+  if(S.page==='rates')_majIndicSync();
+  var dp=S.ratesAvail[propId]||(S.ratesAvail[propId]={});
+  var total=0,erreurs=[];
+  await Promise.all(prop.channels.map(async function(ch){
+    var cle=_canalCle(ch);
     try{
-      var data=await api('/listings/calendar','POST',{listings:[{listing_id:ch.listing_id,channel_type:ch.channel_type}],start_date:from,end_date:to});
-      console.log('Prices API response:', JSON.stringify(data).slice(0,200));
-      var listings=(data&&data.data&&data.data.listings)||[];
-      console.log('Calendar found:', listings.length, 'for', ch.listing_id);
-      listings.forEach(function(lst){
-        var days=lst.calendar||[];
-        days.forEach(function(p){
-          if(p.date){
-            // Prix
-            if(p.price){
-              var k=propId+'_'+p.date+'_'+(type==='airbnb'?'air':'bk');
-              if(!S.ratesModified||!S.ratesModified[k])S.ratesPrices[k]=parseInt(p.price);
-              total++;
-            }
-            // Dates bloquées manuellement (inventory=0, pas de réservation, date future)
-            if(p.inventory===0&&p.date>=today){
-              var hasRes=S.reservations.some(function(r){
-                return r.prop_id===propId&&r.status!=='cancelled'&&r.check_in<=p.date&&r.check_out>p.date;
-              });
-              var manualUnblocked=(S.manuallyUnblocked||[]).indexOf(p.date)>=0;
-              if(!hasRes&&!manualUnblocked&&S.blockedDates.indexOf(p.date)<0){
-                S.blockedDates.push(p.date);
-              }
-            }
+      var data=await api('/listings/calendar','POST',{listings:[{listing_id:ch.listing_id,channel_type:ch.channel_type}],start_date:from,end_date:to},30000);
+      if(!data||(data.error_code&&data.error_code!==200))throw new Error((data&&data.error_msg)||'réponse invalide');
+      ((data.data&&data.data.listings)||[]).forEach(function(lst){
+        (lst.calendar||[]).forEach(function(p){
+          if(!p.date)return;
+          var rs=p.restrictions||{};
+          (dp[p.date]||(dp[p.date]={}))[cle]={
+            inv:p.inventory==null?null:+p.inventory,
+            min:rs.min_stay_on_arrival||null,max:rs.max_stay_on_arrival||null,
+            ctA:!!rs.closed_on_arrival,ctD:!!rs.closed_on_departure
+          };
+          if(p.price){
+            var k=propId+'_'+p.date+'_'+cle;
+            if(!S.ratesModified||!S.ratesModified[k])S.ratesPrices[k]=parseInt(p.price);
+            total++;
           }
         });
       });
     }catch(e){
-      console.error('Error loading prices for',ch.listing_id,e.message);
-      showToast('Erreur canal '+type+': '+e.message);
+      console.error('Calendrier Hostex',ch.listing_id,e.message);
+      erreurs.push(platLabel(ch.channel_type));
     }
-  }
-  showToast(total>0?('✓ '+total+' tarifs chargés'):'Aucun tarif retourné par Hostex');
-  renderRates();
+  }));
+  S._dispoEnCours=null;
+  S.ratesRange[propId].ok=erreurs.length<prop.channels.length;
+  S.ratesRange[propId].erreurs=erreurs;
+  S.ratesRange[propId].at=Date.now();
+  _majBlockedDates(propId);
+  if(erreurs.length)showToast('⚠ Calendrier Hostex indisponible pour '+erreurs.join(', '),4000);
+  else if(force)showToast('✓ Calendrier synchronisé ('+total+' tarifs)');
+  if(S.page==='rates')renderRates();
+  else if(S.page==='calendar'&&typeof renderCal==='function')renderCal();
+}
+function _majIndicSync(){var el=document.getElementById('rates-sync');if(el)el.innerHTML=_txtSync(S.ratesProp);}
+function _txtSync(propId){
+  var rg=S.ratesRange&&S.ratesRange[propId];
+  if(S._dispoEnCours===propId)return '<span style="width:7px;height:7px;border-radius:50%;background:#E5B84B;"></span>Synchronisation Hostex…';
+  if(!rg)return '<span style="width:7px;height:7px;border-radius:50%;background:#C9C3B6;"></span>Non synchronisé';
+  if(!rg.ok)return '<span style="width:7px;height:7px;border-radius:50%;background:#D8544E;"></span>Hostex injoignable';
+  var h=new Date(rg.at);
+  return '<span style="width:7px;height:7px;border-radius:50%;background:#1D9E75;"></span>Calendrier réel Hostex · '+String(h.getHours()).padStart(2,'0')+'h'+String(h.getMinutes()).padStart(2,'0')
+    +(rg.erreurs&&rg.erreurs.length?' <span style="color:#A8382A;">(sans '+rg.erreurs.join(', ')+')</span>':'');
 }
 
 function openMinStay(propId){showModal(`<h3>Séjour minimum</h3><div class="form-row"><label class="form-label">Nuits minimum</label><input class="form-input" type="number" id="ms-val" value="2" min="1"></div><div class="modal-actions"><button class="btn" onclick="closeModal()">Annuler</button><button class="btn btn-green" onclick="saveMinStay('${propId}')">Appliquer</button></div>`);}
@@ -3317,11 +3402,12 @@ function renderCal(){
   function pad(n){return String(n).padStart(2,'0');}
   function ds2(y,m,d){return y+'-'+pad(m+1)+'-'+pad(d);}
   function bookedOn(date){return S.reservations.find(function(r){return r.prop_id===prop.id&&r.check_in<=date&&r.check_out>date&&r.status!=='cancelled';});}
-  function blockedOn(date){return S.blockedDates&&S.blockedDates.indexOf(date)>=0;}
+  function blockedOn(date){return !!(S.ratesAvail&&S.ratesAvail[prop.id]&&S.ratesAvail[prop.id][date]&&_etatJour(prop.id,date).code==='ferme');}
   function arriveeLe(date){return S.reservations.find(function(r){return r.prop_id===prop.id&&r.status!=='cancelled'&&r.check_in===date;});}
   function departLe(date){return S.reservations.find(function(r){return r.prop_id===prop.id&&r.status!=='cancelled'&&r.check_out===date;});}
 
   var mRef=S.calMonth,span=S.calSpan;
+  _assurerDispo(prop.id,mRef,span);
 
   var propBtns=S.props.map(function(p){
     var on=p.id===prop.id;
@@ -3532,47 +3618,113 @@ function _calModal(ds,res){
     +"<div class=\"modal-actions\"><button class=\"btn\" onclick=\"closeModal()\">Fermer</button></div>");
 }
 
+function _badgeCanal(c){
+  if(!c)return '<span style="font-size:11.5px;color:var(--text-3);">non synchronisé</span>';
+  var h=c.inv===0
+    ?'<span style="font-size:11px;font-weight:600;color:#5F5A4F;background:#ECE9E2;border-radius:10px;padding:2px 9px;">Fermé</span>'
+    :'<span style="font-size:11px;font-weight:600;color:#0B6B4F;background:#E1F3EC;border-radius:10px;padding:2px 9px;">Ouvert</span>';
+  var det=[];
+  if(c.min)det.push('min '+c.min+' nuit'+(c.min>1?'s':''));
+  if(c.max)det.push('max '+c.max+' nuits');
+  if(c.ctA)det.push('arrivée interdite');
+  if(c.ctD)det.push('départ interdit');
+  return h+(det.length?'<span style="font-size:11px;color:var(--text-3);margin-left:7px;">'+det.join(' · ')+'</span>':'');
+}
+
 function _openRateDay(ds,propId){window._rds=ds;window._rpid=propId;
+  var e=_etatJour(propId,ds);
+  if(!e.modifiable){
+    if(e.resa&&typeof openResDetail==='function'){openResDetail(e.resa.id);return;}
+    showToast('🔒 '+e.libelle+' — non modifiable');return;
+  }
   var key=propId+'_'+ds;var ap=S.ratesPrices[key+'_air']||'';var bp=S.ratesPrices[key+'_bk']||'';
   var d=new Date(ds+'T00:00:00');var lbl=d.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});
   var bkBase=parseInt(bp||ap||80);
   var BK_OPTIONS=[{id:'standard',label:'Tarif standard',desc:'Annulation gratuite 48h',factor:1},{id:'nonref',label:'Non remboursable',desc:'-15%',factor:0.85},{id:'early',label:'Réservation anticipée',desc:'-10% si 30j avant',factor:0.90},{id:'lastmin',label:'Dernière minute',desc:'+5% si -7j',factor:1.05}];
-  var isBlk=S.blockedDates&&S.blockedDates.indexOf(ds)>=0;
+  var aFerme=e.air&&e.air.inv===0,bFerme=e.bk&&e.bk.inv===0;
+  var noteFerme='<div style="font-size:10px;color:#8A8474;margin-top:6px;">Fermé : tarif appliqué à la réouverture</div>';
+  var etatBox='<div style="border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:12px;">'
+    +'<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;"><span style="font-size:10.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--text-3);">Calendrier réel Hostex</span><span style="font-size:11.5px;color:var(--text-2);">'+e.libelle+'</span></div>'
+    +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"><span style="width:62px;font-size:12px;font-weight:600;color:#D8544E;">Airbnb</span>'+_badgeCanal(e.air)+'</div>'
+    +'<div style="display:flex;align-items:center;gap:8px;"><span style="width:62px;font-size:12px;font-weight:600;color:#1E5490;">Booking</span>'+_badgeCanal(e.bk)+'</div>'
+    +'<div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;">'
+      +(e.code!=='ferme'?'<button class="btn" style="font-size:11.5px;" onclick="closeModal();_openBlockDates(window._rpid,[window._rds])">Fermer ce jour</button>':'')
+      +(e.code!=='ouvert'?'<button class="btn" style="font-size:11.5px;" onclick="closeModal();_openUnblockDates(window._rpid,[window._rds])">Ouvrir ce jour</button>':'')
+    +'</div></div>';
   showModal('<h3>Tarifs — '+lbl+'</h3>'
-    +(isBlk?'<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:10px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;"><span style="font-size:12px;color:#dc2626;font-weight:500;">⛔ Date bloquée sur Airbnb et Booking</span><button class="btn" style="font-size:11px;border-color:#dc2626;color:#dc2626;" onclick="_unblockDates(window._rpid,\''+ds+'\',\''+ds+'\');closeModal()">✓ Débloquer</button></div>':'')
+    +etatBox
     +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">'
-      +'<div style="padding:12px;background:#FFF5F5;border-radius:8px;"><div style="background:#FF385C;border-radius:4px;padding:2px 8px;font-size:11px;color:#fff;font-weight:700;display:inline-block;margin-bottom:10px;">Airbnb</div><div style="display:flex;align-items:baseline;gap:4px;"><input type="number" id="r-air" value="'+ap+'" placeholder="€" min="0" style="font-size:24px;width:90px;border:none;background:transparent;font-weight:500;outline:none;padding:0;"><span style="font-size:14px;color:#888;">€/nuit</span></div></div>'
-      +'<div style="padding:12px;background:#F0F4FF;border-radius:8px;"><div style="background:#003580;border-radius:4px;padding:2px 8px;font-size:11px;color:#fff;font-weight:700;display:inline-block;margin-bottom:10px;">Booking</div><div style="display:flex;align-items:baseline;gap:4px;"><input type="number" id="r-bk" value="'+bp+'" placeholder="€" min="0" style="font-size:24px;width:90px;border:none;background:transparent;font-weight:500;outline:none;padding:0;"><span style="font-size:14px;color:#888;">€/nuit</span></div></div>'
+      +'<div style="padding:12px;background:#FFF5F5;border-radius:8px;'+(aFerme?'opacity:.7;':'')+'"><div style="background:#FF385C;border-radius:4px;padding:2px 8px;font-size:11px;color:#fff;font-weight:700;display:inline-block;margin-bottom:10px;">Airbnb</div><div style="display:flex;align-items:baseline;gap:4px;"><input type="number" id="r-air" value="'+ap+'" placeholder="€" min="0" style="font-size:24px;width:90px;border:none;background:transparent;font-weight:500;outline:none;padding:0;"><span style="font-size:14px;color:#888;">€/nuit</span></div>'+(aFerme?noteFerme:'')+'</div>'
+      +'<div style="padding:12px;background:#F0F4FF;border-radius:8px;'+(bFerme?'opacity:.7;':'')+'"><div style="background:#003580;border-radius:4px;padding:2px 8px;font-size:11px;color:#fff;font-weight:700;display:inline-block;margin-bottom:10px;">Booking</div><div style="display:flex;align-items:baseline;gap:4px;"><input type="number" id="r-bk" value="'+bp+'" placeholder="€" min="0" style="font-size:24px;width:90px;border:none;background:transparent;font-weight:500;outline:none;padding:0;"><span style="font-size:14px;color:#888;">€/nuit</span></div>'+(bFerme?noteFerme:'')+'</div>'
     +'</div>'
     +'<div style="margin-bottom:12px;"><div style="font-size:11px;font-weight:600;color:#666;margin-bottom:6px;">Options Booking</div><div style="display:grid;gap:4px;">'+BK_OPTIONS.map(function(o){var oP=Math.round(bkBase*o.factor);return'<label style="display:flex;align-items:center;gap:8px;padding:7px 10px;border:0.5px solid #e5e4e0;border-radius:6px;cursor:pointer;background:#fff;"><input type="radio" name="bk-opt" value="'+o.id+'" '+(o.id==='standard'?'checked':'')+' style="margin:0;"><div style="flex:1;"><div style="font-size:11px;font-weight:600;">'+o.label+'</div><div style="font-size:10px;color:#888;">'+o.desc+'</div></div><span id="bkp-'+o.id+'" style="font-size:12px;font-weight:600;">'+oP+'€</span></label>';}).join('')+'</div></div>'
-    +'<div style="padding:8px 10px;background:#f5f4f0;border-radius:6px;font-size:11px;color:#888;margin-bottom:10px;">Répliquer sur : <button onclick="_rApplyRange(window._rds,window._rpid,7)" style="font-size:10px;padding:2px 8px;border-radius:4px;border:0.5px solid #ddd;background:#fff;cursor:pointer;margin:0 3px;">7j</button><button onclick="_rApplyRange(window._rds,window._rpid,30)" style="font-size:10px;padding:2px 8px;border-radius:4px;border:0.5px solid #ddd;background:#fff;cursor:pointer;">30j</button></div>'
-    +'<div style="font-size:11px;color:#666;margin-bottom:10px;">Séjour min : <input type="number" id="r-ms" value="'+(S.ratesMinStay[key]||'')+'" placeholder="nuits" min="1" style="width:55px;font-size:12px;text-align:center;margin-left:4px;"> nuits</div>'
+    +'<div style="padding:8px 10px;background:#f5f4f0;border-radius:6px;font-size:11px;color:#888;margin-bottom:10px;">Répliquer sur : <button onclick="_rApplyRange(window._rds,window._rpid,7)" style="font-size:10px;padding:2px 8px;border-radius:4px;border:0.5px solid #ddd;background:#fff;cursor:pointer;margin:0 3px;">7j</button><button onclick="_rApplyRange(window._rds,window._rpid,30)" style="font-size:10px;padding:2px 8px;border-radius:4px;border:0.5px solid #ddd;background:#fff;cursor:pointer;">30j</button> <span style="margin-left:4px;">(jours réservés ignorés)</span></div>'
+    +'<div style="font-size:11px;color:#666;margin-bottom:10px;">Séjour min : <input type="number" id="r-ms" value="'+(S.ratesMinStay[key]||(e.air&&e.air.min)||(e.bk&&e.bk.min)||'')+'" placeholder="nuits" min="1" style="width:55px;font-size:12px;text-align:center;margin-left:4px;"> nuits</div>'
     +'<div class="modal-actions"><button class="btn" onclick="closeModal()">Annuler</button><button class="btn btn-green" onclick="_rSaveDay(window._rds,window._rpid)">&#10003; Appliquer</button></div>');
+  window._rMsInit=document.getElementById('r-ms')?document.getElementById('r-ms').value:'';
   setTimeout(function(){var ri=document.getElementById('r-bk');if(ri)ri.oninput=function(){var bv=parseInt(ri.value)||bkBase;BK_OPTIONS.forEach(function(o){var el=document.getElementById('bkp-'+o.id);if(el)el.textContent=Math.round(bv*o.factor)+'€';});};},50);
 }
 
-async function _rSaveDay(ds,propId){
-  var av=parseInt(document.getElementById('r-air').value)||0;var bv=parseInt(document.getElementById('r-bk').value)||0;var msv=parseInt(document.getElementById('r-ms').value)||0;
+function _lireSaisieJour(){
+  var av=parseInt(document.getElementById('r-air').value)||0;var bv=parseInt(document.getElementById('r-bk').value)||0;
+  var msEl=document.getElementById('r-ms');var msv=msEl&&msEl.value!==window._rMsInit?(parseInt(msEl.value)||0):0;
   var opt=document.querySelector('input[name="bk-opt"]:checked');var f=opt&&opt.value==='nonref'?0.85:opt&&opt.value==='early'?0.90:opt&&opt.value==='lastmin'?1.05:1;
-  var key=propId+'_'+ds;if(!S.ratesModified)S.ratesModified={};if(av){S.ratesPrices[key+'_air']=av;S.ratesModified[key+'_air']=true;}if(bv){S.ratesPrices[key+'_bk']=Math.round(bv*f);S.ratesModified[key+'_bk']=true;}if(msv)S.ratesMinStay[key]=msv;
-  closeModal();showToast('Envoi…');
+  return {av:av,bv:bv?Math.round(bv*f):0,msv:msv};
+}
+
+// Envoie tarifs (et séjour minimum) à Hostex, uniquement sur les jours modifiables
+async function _enregistrerTarifs(propId,jours,av,bv,msv){
   var prop=S.props.find(function(p){return p.id===propId;});
-  try{for(var i=0;i<(prop?prop.channels.length:0);i++){var ch=prop.channels[i];var price=platClass(ch.channel_type)==='airbnb'?av:Math.round(bv*f);if(price>0)await api('/listings/prices','POST',{listing_id:ch.listing_id,channel_type:ch.channel_type,prices:[{date:ds,price:price,start_date:ds,end_date:ds}]});}if(msv>0)await api('/listings/restrictions','POST',{property_id:propId,min_nights:msv,start_date:ds,end_date:ds});showToast('✓ Tarifs mis à jour');}catch(e){showToast('Local OK');}
-  renderRates();
+  var exclus=jours.length;
+  jours=jours.filter(function(ds){return _etatJour(propId,ds).modifiable;});
+  exclus-=jours.length;
+  if(!jours.length){showToast('🔒 Aucun jour modifiable');if(S.page==='rates')renderRates();return;}
+  if(!av&&!bv&&!msv){showToast('Entre un prix.');return;}
+  if(!S.ratesModified)S.ratesModified={};
+  jours.forEach(function(ds){var k=propId+'_'+ds;if(av){S.ratesPrices[k+'_air']=av;S.ratesModified[k+'_air']=true;}if(bv){S.ratesPrices[k+'_bk']=bv;S.ratesModified[k+'_bk']=true;}if(msv)S.ratesMinStay[k]=msv;});
+  showToast('Envoi à Hostex…');
+  var pl=_plages(jours),err=[];
+  var chs=prop?prop.channels:[];
+  for(var i=0;i<chs.length;i++){
+    var ch=chs[i],cle=_canalCle(ch),prix=cle==='air'?av:bv;
+    try{
+      for(var j=0;prix>0&&j<pl.length;j+=30)await _hostexEcrire('/listings/prices',{listing_id:ch.listing_id,channel_type:ch.channel_type,prices:pl.slice(j,j+30).map(function(p){return {start_date:p.start_date,end_date:p.end_date,price:prix};})});
+    }catch(e){err.push('tarif '+platLabel(ch.channel_type)+' : '+e.message);}
+    try{
+      for(var j2=0;msv>0&&j2<jours.length;j2+=30)await _hostexEcrire('/listings/restrictions',{listing_id:ch.listing_id,channel_type:ch.channel_type,restrictions:jours.slice(j2,j2+30).map(function(ds){return _itemRestr(propId,cle,ds,msv);})});
+      if(msv>0){var dp=S.ratesAvail&&S.ratesAvail[propId];if(dp)jours.forEach(function(ds){if(dp[ds]&&dp[ds][cle])dp[ds][cle].min=msv;});}
+    }catch(e){err.push('séjour min '+platLabel(ch.channel_type)+' : '+e.message);}
+  }
+  if(err.length)showToast('❌ Hostex a refusé — '+err.join(' / '),6000);
+  else showToast('✓ '+jours.length+' jour(s) mis à jour sur Hostex'+(exclus?' · '+exclus+' verrouillé(s) ignoré(s)':''));
+  if(S.page==='rates')renderRates();
+}
+
+async function _rSaveDay(ds,propId){
+  var s=_lireSaisieJour();
+  closeModal();
+  await _enregistrerTarifs(propId,[ds],s.av,s.bv,s.msv);
 }
 
 function _rApplyRange(ds,propId,days){
-  var av=parseInt(document.getElementById('r-air').value)||0;var bv=parseInt(document.getElementById('r-bk').value)||0;
-  var opt=document.querySelector('input[name="bk-opt"]:checked');var f=opt&&opt.value==='nonref'?0.85:opt&&opt.value==='early'?0.90:opt&&opt.value==='lastmin'?1.05:1;
-  var start=new Date(ds+'T00:00:00');for(var i=0;i<days;i++){var d=new Date(start.getFullYear(),start.getMonth(),start.getDate()+i);var k=propId+'_'+dStr(d);if(av)S.ratesPrices[k+'_air']=av;if(bv)S.ratesPrices[k+'_bk']=Math.round(bv*f);}
-  _rSaveDay(ds,propId);
+  var s=_lireSaisieJour();
+  var start=new Date(ds+'T00:00:00'),jours=[];
+  for(var i=0;i<days;i++)jours.push(dStr(new Date(start.getFullYear(),start.getMonth(),start.getDate()+i)));
+  closeModal();
+  _enregistrerTarifs(propId,jours,s.av,s.bv,s.msv);
 }
 
 function _rateApplySelected(){
-  var days=Object.keys(S.ratesSelected).filter(function(k){return S.ratesSelected[k];}).sort();if(!days.length)return;
+  var tous=_joursSelectionnes();
+  var days=tous.filter(function(ds){return _etatJour(S.ratesProp,ds).modifiable;});
+  if(!days.length){showToast('🔒 Aucun jour modifiable dans la sélection');return;}
+  var fermes=days.filter(function(ds){return _etatJour(S.ratesProp,ds).code!=='ouvert'&&_etatJour(S.ratesProp,ds).code!=='inconnu';}).length;
   var BK_OPTIONS=[{id:'standard',label:'Tarif standard',desc:'Annulation 48h',factor:1},{id:'nonref',label:'Non remboursable',desc:'-15%',factor:0.85},{id:'early',label:'Anticipée',desc:'-10%',factor:0.90},{id:'lastmin',label:'Dernière minute',desc:'+5%',factor:1.05}];
   showModal('<h3>Tarif sur '+days.length+' jour'+(days.length>1?'s':'')+'</h3>'
-    +'<div style="font-size:10px;color:#888;margin-bottom:12px;line-height:1.8;">'+days.join(' · ')+'</div>'
+    +'<div style="font-size:11.5px;color:#888;margin-bottom:8px;line-height:1.6;">'+_txtPlages(days)+'</div>'
+    +(fermes||tous.length>days.length?'<div style="font-size:11.5px;color:#6B4E0B;background:#FDF6E3;border:1px solid #E5B84B;border-radius:8px;padding:8px 10px;margin-bottom:12px;">'
+      +(tous.length>days.length?(tous.length-days.length)+' jour(s) réservé(s) ou passé(s) ignoré(s). ':'')
+      +(fermes?fermes+' jour(s) fermé(s) sur au moins une plateforme : le tarif s’appliquera à la réouverture.':'')+'</div>':'')
     +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">'
       +'<div style="padding:12px;background:#FFF5F5;border-radius:8px;"><div style="background:#FF385C;border-radius:4px;padding:2px 8px;font-size:11px;color:#fff;font-weight:700;display:inline-block;margin-bottom:10px;">Airbnb</div><div style="display:flex;align-items:baseline;gap:4px;"><input type="number" id="bs-air" placeholder="€" style="font-size:22px;width:80px;border:none;background:transparent;font-weight:500;outline:none;padding:0;"><span style="font-size:14px;color:#888;">€/nuit</span></div></div>'
       +'<div style="padding:12px;background:#F0F4FF;border-radius:8px;"><div style="background:#003580;border-radius:4px;padding:2px 8px;font-size:11px;color:#fff;font-weight:700;display:inline-block;margin-bottom:10px;">Booking</div><div style="display:flex;align-items:baseline;gap:4px;"><input type="number" id="bs-bk" placeholder="€" style="font-size:22px;width:80px;border:none;background:transparent;font-weight:500;outline:none;padding:0;"><span style="font-size:14px;color:#888;">€/nuit</span></div></div>'
@@ -3584,12 +3736,10 @@ function _rateApplySelected(){
 async function _rSaveBulk(){
   var av=parseInt(document.getElementById('bs-air').value)||0;var bv=parseInt(document.getElementById('bs-bk').value)||0;if(!av&&!bv){showToast('Entre un prix.');return;}
   var opt=document.querySelector('input[name="bs-opt"]:checked');var f=opt&&opt.value==='nonref'?0.85:opt&&opt.value==='early'?0.90:opt&&opt.value==='lastmin'?1.05:1;
-  var days=Object.keys(S.ratesSelected).filter(function(k){return S.ratesSelected[k];});closeModal();
-  var prop=S.props.find(function(p){return p.id===S.ratesProp;});var aP=[],bP=[];
-  days.forEach(function(ds){var k=S.ratesProp+'_'+ds;if(av){S.ratesPrices[k+'_air']=av;aP.push({date:ds,price:av,start_date:ds,end_date:ds});}if(bv){S.ratesPrices[k+'_bk']=Math.round(bv*f);bP.push({date:ds,price:Math.round(bv*f)});}});
-  showToast('Envoi…');
-  try{var aC=prop?prop.channels.filter(function(c){return platClass(c.channel_type)==='airbnb';}):[];var bC=prop?prop.channels.filter(function(c){return platClass(c.channel_type)==='booking';}):[];if(av&&aC.length){for(var i=0;i<aP.length;i+=30)await api('/listings/prices','POST',{listing_id:aC[0].listing_id,channel_type:aC[0].channel_type,prices:aP.slice(i,i+30)});}if(bv&&bC.length){for(var i=0;i<bP.length;i+=30)await api('/listings/prices','POST',{listing_id:bC[0].listing_id,channel_type:bC[0].channel_type,prices:bP.slice(i,i+30)});}showToast('✓ '+days.length+' jours mis à jour');}catch(e){showToast('Local OK');}
-  S.ratesSelected={};renderRates();
+  var days=_joursSelectionnes();
+  closeModal();
+  S.ratesSelected={};window._ratesDragSel={};
+  await _enregistrerTarifs(S.ratesProp,days,av,bv?Math.round(bv*f):0,0);
 }
 
 
