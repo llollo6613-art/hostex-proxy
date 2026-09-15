@@ -349,7 +349,7 @@ async function loadAll(){
     }).catch(()=>{S.conversations=[];});
   },100);
 }
-const navDef=[{id:'dashboard',label:'Tableau de bord',icon:'◈'},{id:'reservations',label:'Réservations',icon:'≡'},{id:'calendar',label:'Calendrier',icon:'▦'},{id:'rates',label:'Tarifs',icon:'€'},{id:'properties',label:'Mes biens',icon:'⌂'},{id:'messages',label:'Messages',icon:'✉'},{id:'bilan',label:'Bilan',icon:'▣'},{id:'virements',label:'Virements',icon:'💳'},{id:'reviews',label:'Avis',icon:'★'},{id:'menage',label:'Ménage',icon:'🧹'}];
+const navDef=[{id:'dashboard',label:'Tableau de bord',icon:'◈'},{id:'reservations',label:'Réservations',icon:'≡'},{id:'calendar',label:'Calendrier',icon:'▦'},{id:'rates',label:'Tarifs',icon:'€'},{id:'tarifs-pro',label:'Tarifs Pro 📈',icon:'📈',url:'/tarifs-pro'},{id:'properties',label:'Mes biens',icon:'⌂'},{id:'messages',label:'Messages',icon:'✉'},{id:'bilan',label:'Bilan',icon:'▣'},{id:'virements',label:'Virements',icon:'💳'},{id:'reviews',label:'Avis',icon:'★'},{id:'menage',label:'Ménage',icon:'🧹'}];
 
 function navigate(p){if(p==='menage'){window.open('/menage','_blank');return;}S.page=p;render();}
 
@@ -1597,7 +1597,8 @@ function _renderNav(){
   if(!el)return;
   var unread=_nbNonLus();
   el.innerHTML=navDef.map(function(n){
-    return '<div class="nav-item '+(S.page===n.id?'active':'')+'" onclick="navigate(\''+n.id+'\')">'
+    var clickAction=n.url?('window.open(\''+n.url+'\',\'_blank\')'):('navigate(\''+n.id+'\')');
+    return '<div class="nav-item '+(S.page===n.id?'active':'')+'" onclick="'+clickAction+'">'
       +'<span style="font-size:12px">'+n.icon+'</span><span>'+n.label+'</span>'
       +(n.id==='messages'&&unread?'<span class="nav-badge">'+unread+'</span>':'')
     +'</div>';
@@ -1808,7 +1809,8 @@ function renderDash(){
     {id:"kv0",n:Math.round(monthRev),fmt:"eur",l:"Ce mois",s:monthRes.length+" r\u00e9s.",bg:"#EEF2FF",bd:"#C7D7FE",lc:"#3730A3",vc:"#312E81",sc:"#6366F1",ic:"#C7D7FE",ii:"\u20ac",fn:"_showMonthDetail('month')"},
     {id:"kv1",n:Math.round(yearRev),fmt:"eur",l:"Encaiss\u00e9 "+now.getFullYear(),s:yearRes.length+" r\u00e9s.",bg:"#FFF7ED",bd:"#FED7AA",lc:"#9A3412",vc:"#7C2D12",sc:"#EA580C",ic:"#FED7AA",ii:"\u25a3",fn:"_showMonthDetail('year')"},
     {id:"kv2",n:unread,fmt:"int",l:"Messages",s:unread>0?"non lus":"tout lu",bg:"#FFF1F2",bd:"#FECDD3",lc:"#9F1239",vc:"#881337",sc:"#E11D48",ic:"#FECDD3",ii:"\u2709",fn:"navigate('messages')"},
-    {id:"kv3",n:upcoming.length,fmt:"int",l:"Arriv\u00e9es",s:"\u00e0 venir",bg:"#F0FDF4",bd:"#BBF7D0",lc:"#14532D",vc:"#052E16",sc:"#16A34A",ic:"#BBF7D0",ii:"\u2192",fn:"_showMonthDetail('upcoming')"}
+    {id:"kv3",n:upcoming.length,fmt:"int",l:"Arriv\u00e9es",s:"\u00e0 venir",bg:"#F0FDF4",bd:"#BBF7D0",lc:"#14532D",vc:"#052E16",sc:"#16A34A",ic:"#BBF7D0",ii:"\u2192",fn:"_showMonthDetail('upcoming')"},
+    {id:"kv4",n:null,fmt:"txt",txt:"Optimiser",l:"Tarifs Pro",s:"strat\u00e9gie prix",bg:"#F5F3FF",bd:"#DDD6FE",lc:"#5B21B6",vc:"#4C1D95",sc:"#7C3AED",ic:"#DDD6FE",ii:"\ud83d\udcc8",fn:"window.open('/tarifs-pro','_blank')"}
   ];
   kDs.forEach(function(k,ki){
     h+="<div class=\"fade-in-up\" style=\"--i:"+ki+";background:"+k.bg+";border-color:"+k.bd+";"+CS+"cursor:pointer;position:relative;transition:transform .15s,box-shadow .15s;\" onclick=\""+k.fn+"\" onmouseover=\"this.style.transform='translateY(-3px)';this.style.boxShadow='0 8px 24px rgba(0,0,0,.1)'\" onmouseout=\"this.style.transform='';this.style.boxShadow=''\">"
@@ -2030,6 +2032,7 @@ function _animateKPIs(kDs){
   kDs.forEach(function(k){
     var el=document.getElementById(k.id);
     if(!el)return;
+    if(k.fmt==="txt"){el.textContent=k.txt||'';el.style.fontSize='18px';return;}
     var from=window._kpiPrevVals[k.id]||0;
     var to=k.n||0;
     var start=performance.now();

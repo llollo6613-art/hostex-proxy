@@ -79,6 +79,15 @@ input,select{border:1px solid var(--border);border-radius:8px;padding:8px 10px;f
   </div>
 </div>
 
+<div class="card" style="background:#FFFBEB;border-color:#FDE68A;">
+  <div class="row" style="justify-content:space-between;margin-bottom:8px;">
+    <div style="font-weight:600;">📊 Repère marché (estimation IA)</div>
+    <button class="btn btn-ghost" onclick="estimateMarket()" id="mktBtn">Estimer les prix de la zone</button>
+  </div>
+  <div id="marketBox" class="mini">Cliquez pour obtenir une fourchette de prix indicative pour un logement comparable dans votre secteur.</div>
+  <div class="mini" style="margin-top:8px;color:#92400E;">⚠️ Estimation approximative basée sur l'IA, PAS sur des données de marché en temps réel. À utiliser comme repère, pas comme référence exacte. Pour des données réelles, un abonnement type PriceLabs est nécessaire.</div>
+</div>
+
 <div class="card">
   <div class="monthnav">
     <button onclick="changeMonth(-1)">‹</button>
@@ -352,6 +361,36 @@ async function applyPrices(){
     }
     toast('✓ '+prices.length+' nuits appliquées ('+okCount+' canaux)');
   }catch(e){toast('Erreur application : '+e.message);}
+}
+
+// ===== Estimation marché via IA =====
+async function estimateMarket(){
+  var b=BIENS.find(function(x){return x.id===currentBien;});
+  var y=curMonth.getFullYear(),m=curMonth.getMonth();
+  var btn=document.getElementById('mktBtn');var box=document.getElementById('marketBox');
+  btn.textContent='Estimation…';btn.disabled=true;
+  box.textContent='L\'IA analyse le marché de votre secteur…';
+  var prompt='Tu es expert en location courte durée (Airbnb/Booking). Pour un appartement meublé de tourisme situé à Elne / Perpignan (Pyrénées-Orientales, sud de la France, proche mer et Espagne), donne une fourchette de prix par nuit INDICATIVE pour '+MONTHS[m]+' '+y+'. '
+    +'Le logement est de type "'+b.name+'" (petit appartement/studio meublé qualitatif). '
+    +'Réponds UNIQUEMENT en JSON strict : {"bas":nombre,"moyen":nombre,"haut":nombre,"commentaire":"une phrase courte sur la saisonnalité de cette période dans ce secteur"}. '
+    +'Les prix en euros/nuit. "bas"=basse saison/semaine, "moyen"=prix médian, "haut"=week-end/haute saison.';
+  try{
+    var r=await fetch('/api-claude',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:400,messages:[{role:'user',content:prompt}]})});
+    var data=await r.json();
+    if(data.error){box.textContent='Estimation indisponible ('+(data.error.message||'erreur')+')';btn.textContent='Réessayer';btn.disabled=false;return;}
+    var txt=(data.content&&data.content[0]&&data.content[0].text)||'';
+    var clean=txt.replace(/```json|```/g,'').trim();var mm=clean.match(/\{[\s\S]*\}/);if(mm)clean=mm[0];
+    var est=JSON.parse(clean);
+    // Comparer avec les prix de base actuels
+    var mien=Math.round((b.baseWeek+b.baseWE)/2);
+    var ecart=est.moyen>0?Math.round((mien-est.moyen)/est.moyen*100):0;
+    var ecartTxt=ecart>5?('<span style="color:#DC2626;">vos prix sont ~'+ecart+'% au-dessus du médian</span>'):ecart<-5?('<span style="color:#D97706;">vos prix sont ~'+Math.abs(ecart)+'% en-dessous du médian — marge de hausse possible</span>'):'<span style="color:#059669;">vos prix sont alignés sur le marché</span>';
+    box.innerHTML='<div style="font-size:14px;color:#1a1a1a;"><b>Fourchette estimée '+MONTHS[m]+' '+y+'</b> (par nuit) :<br>'
+      +'Bas <b>'+est.bas+'€</b> · Médian <b>'+est.moyen+'€</b> · Haut <b>'+est.haut+'€</b></div>'
+      +'<div style="margin-top:6px;">Votre prix moyen actuel : <b>'+mien+'€</b> — '+ecartTxt+'</div>'
+      +'<div class="mini" style="margin-top:6px;font-style:italic;">'+(est.commentaire||'')+'</div>';
+    btn.textContent='Réactualiser';btn.disabled=false;
+  }catch(e){box.textContent='Estimation impossible : '+e.message;btn.textContent='Réessayer';btn.disabled=false;}
 }
 
 // ===== Init =====
