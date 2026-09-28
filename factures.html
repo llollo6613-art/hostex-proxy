@@ -53,7 +53,7 @@ tr:hover td{background:#fafafa;}
     <div style="font-weight:600;margin-top:6px;">Ajouter une facture</div>
     <div class="mini" style="margin-top:3px;">Photo ou PDF — l'IA lira le montant, la date et le fournisseur</div>
   </div>
-  <input type="file" id="fileInput" accept="image/*,application/pdf,.xlsx,.xls,.csv" style="display:none" onchange="handleFile(event)">
+  <input type="file" id="fileInput" accept="image/*,application/pdf,.xlsx,.xls,.csv" multiple style="display:none" onchange="handleFile(event)">
 </div>
 
 <div class="card" id="editCard" style="display:none;">
@@ -165,8 +165,56 @@ function loadBiens(){
 function selectBien(id){currentBien=id;loadBiens();render();}
 
 function handleFile(ev){
-  var file=ev.target.files[0];
-  processFile(file);
+  var files=Array.prototype.slice.call(ev.target.files||[]);
+  processFiles(files);
+}
+function processFiles(files){
+  if(!files||!files.length)return;
+  if(files.length===1){processFile(files[0]);return;}
+  // Plusieurs fichiers : traiter chacun via OCR et agréger
+  processBatch(files);
+}
+async function processBatch(files){
+  var drop=document.getElementById('drop');
+  drop.classList.add('busy');
+  var st=document.getElementById('ocrStatus');
+  var allInvoices=[];
+  var excelFiles=files.filter(function(f){return /\.(xlsx|xls|csv)$/i.test(f.name);});
+  var docFiles=files.filter(function(f){return !/\.(xlsx|xls|csv)$/i.test(f.name);});
+  // Les Excel : on ne peut en traiter qu'un à la fois (aperçu dédié) — on prend le premier et on prévient
+  if(excelFiles.length && docFiles.length===0){ importExcel(excelFiles[0]); if(excelFiles.length>1)toast('Excel : glissez-les un par un'); return; }
+  var done=0;
+  for(var i=0;i<docFiles.length;i++){
+    var f=docFiles[i];
+    drop.querySelector('div:nth-child(2)').textContent='Lecture '+(i+1)+'/'+docFiles.length+'…';
+    try{
+      var invs=await ocrFileToInvoices(f);
+      invs.forEach(function(x){allInvoices.push(x);});
+      done++;
+    }catch(e){}
+  }
+  drop.classList.remove('busy');
+  drop.querySelector('div:nth-child(2)').textContent='Ajouter une facture';
+  if(!allInvoices.length){toast('Aucune facture détectée dans les '+docFiles.length+' fichiers');return;}
+  // Marquer sans image (batch) et afficher l'aperçu global avec détection doublons
+  pendingImg='';pendingPdfName='';
+  showImportPreview(allInvoices);
+}
+// OCR d'un fichier -> renvoie un tableau de factures (Promise)
+function ocrFileToInvoices(file){
+  return new Promise(function(resolve,reject){
+    var isPdf=file.type==='application/pdf'||/\.pdf$/i.test(file.name);
+    var reader=new FileReader();
+    reader.onload=async function(e){
+      var base64=e.target.result.split(',')[1];
+      try{
+        var invs=await callOCR(base64, isPdf?'application/pdf':file.type, isPdf);
+        resolve(invs);
+      }catch(err){resolve([]);}
+    };
+    reader.onerror=function(){resolve([]);};
+    reader.readAsDataURL(file);
+  });
 }
 function processFile(file){
   if(!file)return;
@@ -355,6 +403,36 @@ function compressImage(dataUrl, cb){
 }
 
 var pendingMultiple=[];
+// Appel OCR pur (sans UI) : renvoie un tableau de factures parsées
+async function callOCR(base64, mediaType, isPdf){
+  var prompt='Tu es un assistant comptable. Ce document peut contenir UNE ou PLUSIEURS factures. '
+    +'Identifie CHAQUE facture distincte et extrais ses informations. '
+    +'Réponds UNIQUEMENT avec un tableau JSON (commençant par [ et finissant par ]), sans texte ni balises autour. '
+    +'Format : [{"date":"YYYY-MM-DD","montant":nombre_TTC,"tva":nombre_ou_null,"fournisseur":"nom entreprise","categorie":"...","note":"n° facture ou détail"}]. '
+    +'Pour la catégorie, choisis STRICTEMENT parmi : '+CATEGORIES.join(', ')+'. '
+    +'Le montant est le TOTAL TTC en euros. Si une info est absente, mets null. Pas de texte hors du tableau JSON.';
+  var controller=new AbortController();
+  var timeoutId=setTimeout(function(){controller.abort();},120000);
+  try{
+    var body={model:'claude-sonnet-4-6',max_tokens:8000,messages:[{role:'user',content:[
+      isPdf?{type:'document',source:{type:'base64',media_type:'application/pdf',data:base64}}:{type:'image',source:{type:'base64',media_type:mediaType||'image/jpeg',data:base64}},
+      {type:'text',text:prompt}
+    ]}]};
+    var r=await fetch('/api-claude',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:controller.signal});
+    clearTimeout(timeoutId);
+    if(!r.ok)return [];
+    var data=await r.json();
+    if(data.error||data.type==='error')return [];
+    var txt=(data.content&&data.content[0]&&data.content[0].text)||'';
+    var clean=txt.replace(/```json|```/g,'').trim();
+    var mArr=clean.match(/\[[\s\S]*\]/);if(mArr)clean=mArr[0];
+    var parsed;
+    try{parsed=JSON.parse(clean);}catch(e){var lo=clean.lastIndexOf('}');if(lo>0){try{parsed=JSON.parse(clean.slice(0,lo+1)+']');}catch(e2){parsed=[];}}else parsed=[];}
+    if(!Array.isArray(parsed))parsed=[parsed];
+    return parsed.filter(function(x){return x&&(x.montant||x.fournisseur);});
+  }catch(e){clearTimeout(timeoutId);return [];}
+}
+
 async function runOCR(base64, mediaType, isPdf){
   var st=document.getElementById('ocrStatus');
   st.textContent='Analyse IA en cours… (gros document = patience, jusqu\'à 2 min)';
@@ -781,8 +859,8 @@ function exportAllYears(){
   drop.addEventListener('dragleave',function(){drop.style.borderColor='';drop.style.background='';});
   drop.addEventListener('drop',function(e){
     drop.style.borderColor='';drop.style.background='';
-    var files=e.dataTransfer.files;
-    if(files && files.length) processFile(files[0]);
+    var files=Array.prototype.slice.call(e.dataTransfer.files||[]);
+    if(files.length) processFiles(files);
   });
 })();
 
