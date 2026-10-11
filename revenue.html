@@ -392,6 +392,7 @@ function addCustomCharge(){
     var mo=parseInt(prompt('Sur quel mois ? (1=Janvier ... 12=Décembre) :'));
     if(isNaN(mo)||mo<1||mo>12)return;
     charge.month=mo;
+    charge.year=ELNE_YEAR;
   }
   var arr=getCustomCharges();
   arr.push(charge);
@@ -562,7 +563,7 @@ function renderElne(){
   html+='<h2>🏢 Suivi loyers '+ELNE_YEAR+'</h2>';
   html+='<div style="display:flex;align-items:center;gap:8px;">';
   html+='<div class="year-sel"><button class="year-btn" onclick="changeElneYear(-1)">‹</button><span class="year-lbl">'+ELNE_YEAR+'</span><button class="year-btn" onclick="changeElneYear(1)">›</button></div>';
-  html+='<button onclick="generateBilan()" style="padding:6px 12px;background:#0F6E56;color:#fff;border:none;border-radius:8px;font-size:11px;cursor:pointer;font-weight:600;">Bilan PDF</button>';
+  html+='<button onclick="openBilanModal(\'elne\')" style="padding:6px 12px;background:#0F6E56;color:#fff;border:none;border-radius:8px;font-size:11px;cursor:pointer;font-weight:600;">📄 Bilan</button>';
   html+='<button onclick="window.open(\'/factures?bien=elne\',\'_blank\')" style="padding:6px 12px;background:#1F4E5F;color:#fff;border:none;border-radius:8px;font-size:11px;cursor:pointer;font-weight:600;">📁 Factures</button>';
   html+='<button onclick="resetElne()" style="padding:6px 10px;border:1.5px solid #FCA5A5;background:#FEF2F2;color:#DC2626;border-radius:8px;font-size:11px;cursor:pointer;">🗑 Réinit</button>';
   html+='</div></div>';
@@ -1172,7 +1173,7 @@ function render(){
   var html="";
   html+="<div style='font-size:11px;color:#888;margin-bottom:8px;padding:4px 8px;background:#f0f0f0;border-radius:6px;'>Periode active: "+range.from.toLocaleDateString('fr-FR')+" → "+range.to.toLocaleDateString('fr-FR')+" (pieMois="+state.pieMois+")</div>";
   html+="<div style='display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:16px;'>";
-  html+="<div style='display:flex;justify-content:flex-end;margin-bottom:12px;'><button onclick='generateBilan()' style='padding:10px 20px;background:#0F6E56;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;'>Générer bilan fiscal PDF</button></div>";
+  html+="<div style='display:flex;justify-content:flex-end;margin-bottom:12px;'><button onclick='openBilanModal(\"all\")' style='padding:10px 20px;background:#0F6E56;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;'>📄 Générer un bilan (période au choix)</button></div>";
   html+="<div class='kpi-g'><div class='kg-l'>Valeur estimee</div><div class='kg-v'>"+Math.round(estVal/1000)+"k€</div><div class='kg-s' style='cursor:pointer;' onclick='editEstVal()'>modifier</div></div>";
   html+="<div class='kpi-g'><div class='kg-l'>Revenus periode</div><div class='kg-v'>"+fmtC(totalRev)+"</div><div class='kg-s'>"+nbMois+" mois</div></div>";
   html+="<div class='kpi-g'><div class='kg-l'>Charges periode</div><div class='kg-v' style='color:#DC2626;'>"+fmtC(totalChargesP)+"</div></div>";
@@ -1828,7 +1829,7 @@ function renderSoler(){
   html+='<div style="grid-column:span 2;"><div style="font-size:10px;opacity:.7;">CASH FLOW NET</div><div style="font-size:26px;font-weight:700;border-top:1px solid rgba(255,255,255,.3);padding-top:8px;color:'+(cashFlow>=0?'#A7F3D0':'#FCA5A5')+';">'+(cashFlow>=0?'+':'')+Math.round(cashFlow).toLocaleString('fr-FR')+'€</div></div>';
   html+='</div></div>';
   // Bouton bilan LMNP
-  html+='<div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:12px;"><button onclick="window.open(\'/factures?bien=soler\',\'_blank\')" style="padding:10px 20px;background:#1F4E5F;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;">📁 Factures</button><button onclick="generateSolerBilan()" style="padding:10px 20px;background:#7C3AED;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;">Générer bilan fiscal LMNP (PDF)</button></div>';
+  html+='<div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:12px;"><button onclick="window.open(\'/factures?bien=soler\',\'_blank\')" style="padding:10px 20px;background:#1F4E5F;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;">📁 Factures</button><button onclick="openBilanModal(\'soler\')" style="padding:10px 20px;background:#7C3AED;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;">📄 Générer un bilan (période au choix)</button></div>';
   // KPIs
   html+='<div class="kpi-grid" style="margin-bottom:16px;">';
   html+='<div class="kpi"><div class="kpi-label">Loyers attendus</div><div class="kpi-value" style="color:var(--bk)">'+Math.round(totalExpected).toLocaleString('fr-FR')+'€</div></div>';
@@ -2311,7 +2312,7 @@ function renderBien(id){
   html+='<div style="grid-column:span 2;"><div style="font-size:10px;opacity:.7;">CASH FLOW NET</div><div style="font-size:26px;font-weight:700;border-top:1px solid rgba(255,255,255,.3);padding-top:8px;color:'+(cashFlow>=0?'#A7F3D0':'#FCA5A5')+';">'+(cashFlow>=0?'+':'')+Math.round(cashFlow).toLocaleString('fr-FR')+'€</div></div>';
   html+='</div></div>';
   // Bouton bilan
-  html+='<div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:12px;"><button onclick="window.open(\'/factures?bien='+id+'\',\'_blank\')" style="padding:10px 20px;background:#1F4E5F;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;">📁 Factures</button><button onclick="generateBienBilan(\''+id+'\')" style="padding:10px 20px;background:#0F6E56;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;">Générer bilan fiscal '+regimeLbl+' (PDF)</button></div>';
+  html+='<div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:12px;"><button onclick="window.open(\'/factures?bien='+id+'\',\'_blank\')" style="padding:10px 20px;background:#1F4E5F;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;">📁 Factures</button><button onclick="openBilanModal(\''+id+'\')" style="padding:10px 20px;background:#0F6E56;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;">📄 Générer un bilan (période au choix)</button></div>';
   // KPIs
   html+='<div class="kpi-grid" style="margin-bottom:16px;">';
   html+='<div class="kpi"><div class="kpi-label">Loyers attendus</div><div class="kpi-value" style="color:var(--bk)">'+Math.round(totalExpected).toLocaleString('fr-FR')+'€</div></div>';
@@ -2461,6 +2462,723 @@ function generateBienBilan(id){
   w.document.write(h);w.document.close();
 }
 // ===== FIN BILAN ADAPTATIF =====
+
+
+// =====================================================================
+// ===== MODULE BILAN v2 — période au choix (1 mois, plusieurs mois, =====
+// ===== plusieurs années), un ou plusieurs biens                    =====
+// =====================================================================
+var BILAN_MOIS=['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+var BILAN_MOIS_C=['Janv.','Févr.','Mars','Avr.','Mai','Juin','Juil.','Août','Sept.','Oct.','Nov.','Déc.'];
+var BILAN={sel:{},biens:{},view:new Date().getFullYear(),type:'complet',
+  opts:{grille:true,cd:true,factures:true,fiscal:true},factures:null,_cache:{}};
+
+// Catégories du module Factures : nombre d'années d'amortissement (0 = charge déductible)
+var BILAN_CAT={
+  'Entretien & réparations':0,'Ménage / Blanchisserie':0,'Consommables & petit équipement':0,'Eau':0,'Électricité':0,
+  'Gaz / Chauffage':0,'Internet / Télécom':0,'Assurance (PNO, GLI...)':0,'Taxe foncière':0,'CFE / Cotisations':0,
+  'Charges de copropriété':0,'Honoraires (comptable, notaire, avocat)':0,'Frais de gestion / conciergerie':0,
+  'Commissions plateformes (Airbnb, Booking)':0,'Frais bancaires':0,"Intérêts d'emprunt":0,'Publicité / Annonces':0,
+  'Travaux - Toiture':25,'Travaux - Gros œuvre / Structure':40,'Travaux - Plomberie':15,'Travaux - Électricité':15,
+  'Travaux - Chauffage / Clim':15,'Travaux - Peinture / Revêtements':10,'Travaux - Agencement / Aménagement':10,
+  'Travaux - Salle de bain / Cuisine':15,'Mobilier & Literie':7,'Électroménager':7,'Matériel & Équipement (>600€)':5,
+  'Décoration / Équipement thématique':7,'Autre':0
+};
+// Paramètres par défaut (modifiables dans la fenêtre du bilan, enregistrés dans le navigateur)
+var BILAN_CFG_DEFAUT={
+  elne:{detenteur:'Llorenç PONTAC — en nom propre',regime:'lmnp',
+    loan:{crd:471085.37,ref:'2026-09',taux:4.2,mens:2985.42,ass:52.73,debut:'2025-11'}}
+};
+var BILAN_REGIMES={lmnp:'Location meublée (LMNP, régime réel)',foncier:'Location nue (revenus fonciers, réel)',
+  sci_ir:"SCI à l'IR (revenus fonciers)",sci_is:"SCI à l'IS",sas:'SAS (impôt sur les sociétés)'};
+
+// ---------- utilitaires ----------
+function bkKey(y,m){return y+'-'+(m<10?'0':'')+m;}
+function bkParse(k){return {y:parseInt(k.slice(0,4),10),m:parseInt(k.slice(5,7),10)};}
+function bkDiff(a,b){var p=bkParse(a),q=bkParse(b);return (q.y-p.y)*12+(q.m-p.m);}
+function bkAdd(k,n){var p=bkParse(k);var t=p.y*12+(p.m-1)+n;return bkKey(Math.floor(t/12),(t%12)+1);}
+function bkLabel(k,court){var p=bkParse(k);return (court?BILAN_MOIS_C[p.m-1]+' '+String(p.y).slice(2):BILAN_MOIS[p.m-1]+' '+p.y);}
+function bilanNowKey(){var n=new Date();return bkKey(n.getFullYear(),n.getMonth()+1);}
+function bNorm(s){return String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/œ/g,'oe').trim();}
+function bEsc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function bEur(n){n=Math.round(n||0);return (n<0?'−':'')+Math.abs(n).toLocaleString('fr-FR')+' €';}
+function bEurS(n){n=Math.round(n||0);return (n>0?'+':'')+bEur(n);}
+function bPct(n){return (Math.round(n*1000)/10).toLocaleString('fr-FR')+' %';}
+function bNum(v){var n=parseFloat(String(v==null?'':v).replace(',','.').replace(/\s/g,''));return isNaN(n)?0:n;}
+function bilanSelKeys(){return Object.keys(BILAN.sel).filter(function(k){return BILAN.sel[k];}).sort();}
+
+function bilanPeriodLabel(keys){
+  if(!keys.length)return 'Aucun mois sélectionné';
+  var runs=[],cur=[keys[0]];
+  for(var i=1;i<keys.length;i++){
+    if(bkAdd(cur[cur.length-1],1)===keys[i])cur.push(keys[i]);else{runs.push(cur);cur=[keys[i]];}
+  }
+  runs.push(cur);
+  var annees={};keys.forEach(function(k){annees[k.slice(0,4)]=1;});
+  var memeAnnee=Object.keys(annees).length===1,an=keys[0].slice(0,4);
+  var items=[];
+  runs.forEach(function(r){
+    var a=bkParse(r[0]),b=bkParse(r[r.length-1]);
+    if(a.y===b.y&&a.m===1&&b.m===12){items.push(memeAnnee?'toute l\'année':'année '+a.y);return;}
+    if(r.length<=2){r.forEach(function(k){var p=bkParse(k);items.push(memeAnnee?BILAN_MOIS[p.m-1]:bkLabel(k));});return;}
+    if(memeAnnee||a.y===b.y)items.push(BILAN_MOIS[a.m-1]+' à '+BILAN_MOIS[b.m-1]+(memeAnnee?'':' '+a.y));
+    else items.push(bkLabel(r[0])+' à '+bkLabel(r[r.length-1]));
+  });
+  var txt=items.length>1?items.slice(0,-1).join(', ')+' et '+items[items.length-1]:items[0];
+  if(memeAnnee&&txt!=='toute l\'année')txt+=' '+an;
+  if(txt==='toute l\'année')txt='année '+an;
+  return txt.charAt(0).toUpperCase()+txt.slice(1);
+}
+
+// ---------- réglages par bien ----------
+function bilanCfgAll(){try{return JSON.parse(localStorage.getItem('bilan_cfg')||'{}');}catch(e){return {};}}
+function bilanCfg(id){
+  var base={detenteur:'',regime:'lmnp',base:'',terrain:15,duree:40,tmi:30,ps:17.2,loan:null};
+  if(id!=='elne'&&id!=='soler'){var b=getBienById(id);if(b&&b.regime)base.regime=b.regime==='sci_ir'?'sci_ir':b.regime;}
+  var def=BILAN_CFG_DEFAUT[id]||{},st=bilanCfgAll()[id]||{};
+  var c=Object.assign({},base,def,st);
+  c.loan=Object.assign({},def.loan||{},st.loan||{});
+  if(!c.loan.crd)c.loan=null;
+  return c;
+}
+function bilanCfgSet(id,champ,val){
+  var all=bilanCfgAll();if(!all[id])all[id]={};
+  if(champ.indexOf('loan.')===0){
+    if(!all[id].loan)all[id].loan=Object.assign({},(BILAN_CFG_DEFAUT[id]||{}).loan||{});
+    all[id].loan[champ.slice(5)]=val;
+  } else all[id][champ]=val;
+  try{localStorage.setItem('bilan_cfg',JSON.stringify(all));}catch(e){}
+}
+
+// ---------- adaptateurs de données (lecture des données existantes de l'application) ----------
+function bilanBiensDispo(){
+  var arr=[{id:'elne',name:'Immeuble Elne',icon:'🏢',loc:'Elne (66200)'},{id:'soler',name:'Le Soler',icon:'🏘',loc:'Le Soler (66270)'}];
+  getCustomBiens().forEach(function(b){arr.push({id:b.id,name:b.name,icon:b.icon||'🏠',loc:b.location||''});});
+  return arr;
+}
+function bilanStore(key){
+  if(!(key in BILAN._cache)){try{BILAN._cache[key]=JSON.parse(localStorage.getItem(key)||'{}')||{};}catch(e){BILAN._cache[key]={};}}
+  return BILAN._cache[key];
+}
+function bilanReadPay(storeKey,lotKey,m,rent){
+  var d=bilanStore(storeKey);var v=d[lotKey]&&d[lotKey][m];
+  if(!v)return 0;if(v===true)return rent;return parseFloat(v)||0;
+}
+function bilanLots(id){
+  if(id==='elne'){
+    loadCustomData();
+    return ELNE_APTS.map(function(apt){
+      var rent=function(y){var c=localStorage.getItem('elne_rent_'+y+'_'+apt.id);return c?parseFloat(c):apt.rent;};
+      return {name:'Appartement '+apt.id,tenant:apt.tenant,start:apt.startMonth||1,rent:rent,
+        paid:function(y,m){return bilanReadPay('elne_'+y,apt.id,m,rent(y));}};
+    });
+  }
+  if(id==='soler'){
+    loadSolerCustom();
+    return SOLER_APTS.map(function(apt){
+      var rent=function(y){var c=localStorage.getItem('soler_rent_'+y+'_'+apt.id);return c?parseFloat(c):apt.rent;};
+      return {name:apt.name,tenant:apt.tenant,start:apt.startMonth||1,rent:rent,
+        paid:function(y,m){return bilanReadPay('soler_'+y,apt.id,m,rent(y));}};
+    });
+  }
+  var b=getBienById(id);if(!b)return [];
+  return (b.lots||[]).map(function(lot,li){
+    var rent=function(){return lot.rent||0;};
+    return {name:lot.name||('Lot '+(li+1)),tenant:lot.tenant||'',start:lot.startMonth||1,rent:rent,
+      paid:function(y,m){return bilanReadPay('bien_data_'+id+'_'+y,li,m,lot.rent||0);}};
+  });
+}
+function bilanIsCredit(c){var l=bNorm(c.label);return c.key==='credit'||l.indexOf('credit')===0||l.indexOf('pret ')===0||l==='pret'||l.indexOf('emprunt')===0||l.indexOf('echeance')===0||l.indexOf('mensualite')===0;}
+function bilanCharges(id){
+  var out=[];
+  if(id==='elne'){
+    loadCustomData();
+    ELNE_CHARGES.forEach(function(c){if(c.monthly!==false)out.push({label:c.label,val:c.val||0,credit:bilanIsCredit(c)});});
+    getCustomCharges().forEach(function(c){if(c.monthly)out.push({label:c.label,val:c.val||0,credit:false});});
+  } else if(id==='soler'){
+    loadSolerCustom();
+    SOLER_CHARGES.forEach(function(c){if(c.monthly!==false)out.push({label:c.label,val:c.val||0,credit:bilanIsCredit(c)});});
+  } else {
+    var b=getBienById(id);
+    if(b)(b.charges||[]).forEach(function(c){out.push({label:c.label,val:c.val||0,credit:bilanIsCredit(c)});});
+  }
+  return out;
+}
+function bilanPonctuels(id){
+  if(id!=='elne')return [];
+  return getCustomCharges().filter(function(c){return !c.monthly;}).map(function(c){return {label:c.label,val:c.val||0,y:c.year||null,m:c.month};});
+}
+function bilanMenage(id,y,m){return id==='elne'?(parseFloat(localStorage.getItem('elne_menage_'+y+'_'+m)||'0')||0):0;}
+function bilanValeur(id){
+  if(id==='elne')return parseFloat(localStorage.getItem('global_estvalue')||'0')||0;
+  if(id==='soler')return parseFloat(localStorage.getItem('soler_estvalue')||'0')||0;
+  var b=getBienById(id);return b&&b.value?b.value:0;
+}
+// Type de charge fixe correspondant à une catégorie de facture (pour ne pas compter deux fois)
+function bilanKind(txt){
+  var l=bNorm(txt);
+  if(l.indexOf('taxe fonciere')>=0||l==='taxe'||l.indexOf('taxe f')===0)return 'taxe';
+  if(l.indexOf('assurance')===0||l.indexOf('assurances')===0)return 'assurance';
+  if(l==='eau')return 'eau';
+  if(l.indexOf('comptab')>=0||l.indexOf('honoraires')===0)return 'comptable';
+  if(l.indexOf('menage')>=0)return 'menage';
+  if(l.indexOf('interets')>=0)return 'credit';
+  return '';
+}
+function bilanFactures(id){
+  var srv=(BILAN.factures||[]).filter(function(f){return f.bien===id&&f.date&&parseFloat(f.montant);});
+  if(srv.length){
+    return srv.map(function(f){
+      var yrs=BILAN_CAT.hasOwnProperty(f.categorie)?BILAN_CAT[f.categorie]:0;
+      return {date:f.date,montant:parseFloat(f.montant)||0,cat:f.categorie||'Autre',fournisseur:f.fournisseur||'',desc:f.note||'',annees:yrs};
+    });
+  }
+  if(id!=='elne')return [];
+  var dedN={};Object.keys(FACTURES_DED).forEach(function(k){dedN[bNorm(k)]=FACTURES_DED[k];});
+  return getFactures().filter(function(f){return f.date&&f.date.slice(0,4)>'2000'&&f.montant;}).map(function(f){
+    var n=bNorm(f.cat),ded=dedN.hasOwnProperty(n)?dedN[n]:true;
+    var yrs=ded?0:((n.indexOf('meublement')>=0||n.indexOf('electromenager')>=0||n==='cuisine')?7:10);
+    return {date:f.date,montant:parseFloat(f.montant)||0,cat:f.cat,fournisseur:'',desc:f.desc||'',annees:yrs};
+  });
+}
+// Répartition intérêts / capital / assurance d'une échéance à partir du tableau d'amortissement
+function bilanLoanSplit(L,k,echeance){
+  if(!L||!L.crd||!L.taux||!L.mens)return null;
+  var i=bNum(L.taux)/100/12,P=bNum(L.mens),ass=bNum(L.ass),crd=bNum(L.crd);
+  if(L.debut&&k<L.debut)return {interets:Math.max(0,echeance-ass),assurance:ass,capital:0,differe:true};
+  var off=bkDiff(L.ref,k),it;
+  if(off>0){var c=crd;for(var n=1;n<=off;n++){if(n===off)it=c*i;c=Math.max(0,c*(1+i)-P);}}
+  else{var c2=crd;for(var n2=0;n2>off;n2--)c2=(c2+P)/(1+i);it=((c2+P)/(1+i))*i;}
+  it=Math.max(0,Math.min(it,P));
+  return {interets:it,assurance:ass,capital:Math.max(0,echeance-it-ass)};
+}
+
+// ---------- calcul d'un bien sur les mois sélectionnés ----------
+function bilanCalcBien(id,keys){
+  var info=bilanBiensDispo().find(function(b){return b.id===id;})||{id:id,name:id,icon:'🏠',loc:''};
+  var cfg=bilanCfg(id),now=bilanNowKey(),nowY=new Date().getFullYear(),set={};
+  keys.forEach(function(k){set[k]=true;});
+  var M={};keys.forEach(function(k){M[k]={lld:0,att:0,cd:0,cdBrut:0,chg:0,fact:0,inv:0,echeance:0,interets:0,assurance:0,capital:0};});
+  var R={id:id,info:info,cfg:cfg,keys:keys,M:M,lots:[],charges:{},ponct:[],facts:[],factsExclues:[],notes:[],
+    cd:null,amortFact:0,amortBati:0,valeur:bilanValeur(id)};
+
+  // 1. Loyers à l'année
+  bilanLots(id).forEach(function(l){
+    var first=null;
+    for(var y=2020;y<=nowY+1&&!first;y++)for(var m=1;m<=12;m++){if(l.paid(y,m)>0){first=bkKey(y,m);break;}}
+    var row={name:l.name,tenant:l.tenant,loyer:l.rent(nowY),cells:{},enc:0,att:0,first:first};
+    keys.forEach(function(k){
+      var p=bkParse(k),enc=l.paid(p.y,p.m),att=0;
+      if(k<=now&&first&&k>=first)att=l.rent(p.y);
+      row.cells[k]={enc:enc,att:att};row.enc+=enc;row.att+=att;M[k].lld+=enc;M[k].att+=att;
+    });
+    R.lots.push(row);
+  });
+
+  // 2. Courte durée (Suite Illiberis + Loft Cinéma, immeuble d'Elne)
+  if(id==='elne'){
+    var props={'12619011':'Suite Illiberis','12619012':'Loft Cinéma'};
+    var cd={props:{},canal:{airbnb:{brut:0,net:0,n:0},booking:{brut:0,net:0,n:0},autre:{brut:0,net:0,n:0}},M:{}};
+    Object.keys(props).forEach(function(p){cd.props[p]={name:props[p],brut:0,net:0,com:0,res:0,nuits:0,occ:0,dispo:0,M:{}};
+      keys.forEach(function(k){cd.props[p].M[k]={brut:0,net:0,res:0,nuits:0,occ:0};});});
+    keys.forEach(function(k){var p=bkParse(k),dm=new Date(p.y,p.m,0).getDate();
+      Object.keys(props).forEach(function(pp){cd.props[pp].dispo+=dm;});});
+    (state.reservations||[]).forEach(function(r){
+      if(r.status==='cancelled')return;
+      var pid=String(r.property_id);if(!props[pid])return;
+      var ci=(r.check_in_date||r.check_in||'').slice(0,10),co=(r.check_out_date||r.check_out||'').slice(0,10);
+      if(!ci)return;
+      var P=cd.props[pid],kci=ci.slice(0,7);
+      var nuits=co?Math.max(0,Math.round((new Date(co+'T00:00:00')-new Date(ci+'T00:00:00'))/86400000)):0;
+      if(set[kci]){
+        var brut=parseFloat(r.total_price)||0,net=getNet(r),ch=bNorm(r.channel_type||r.platform||'');
+        var canal=ch.indexOf('airbnb')>=0?'airbnb':(ch.indexOf('booking')>=0?'booking':'autre');
+        P.brut+=brut;P.net+=net;P.com+=brut-net;P.res++;P.nuits+=nuits;
+        P.M[kci].brut+=brut;P.M[kci].net+=net;P.M[kci].res++;P.M[kci].nuits+=nuits;
+        cd.canal[canal].brut+=brut;cd.canal[canal].net+=net;cd.canal[canal].n++;
+        M[kci].cd+=net;M[kci].cdBrut+=brut;
+      }
+      // occupation : nuits effectivement passées dans chaque mois sélectionné
+      if(co){var d=new Date(ci+'T00:00:00'),fin=new Date(co+'T00:00:00');
+        while(d<fin){var kk=bkKey(d.getFullYear(),d.getMonth()+1);if(set[kk]){P.occ++;P.M[kk].occ++;}d.setDate(d.getDate()+1);}}
+    });
+    R.cd=cd;
+  }
+
+  // 3. Charges et crédit
+  var charges=bilanCharges(id),credits=charges.filter(function(c){return c.credit&&c.val;}),fixes={};
+  charges.forEach(function(c){if(!c.credit&&c.val>0){var kd=bilanKind(c.label);if(kd)fixes[kd]=true;}});
+  var approx=false,differe=false,exact=false,part=id==='elne'?0.6:0.5;
+  keys.forEach(function(k){
+    var p=bkParse(k),mm=M[k];
+    charges.forEach(function(c){
+      if(c.credit)return;
+      mm.chg+=c.val;R.charges[c.label]=(R.charges[c.label]||0)+c.val;
+    });
+    bilanPonctuels(id).forEach(function(c){
+      if(c.m===p.m&&(!c.y||c.y===p.y)){mm.chg+=c.val;R.ponct.push({label:c.label,val:c.val,k:k});}
+    });
+    var men=bilanMenage(id,p.y,p.m);
+    if(men){mm.chg+=men;R.charges['Ménage courte durée']=(R.charges['Ménage courte durée']||0)+men;fixes.menage=true;}
+    credits.forEach(function(c,ci){
+      mm.echeance+=c.val;
+      var sp=ci===0?bilanLoanSplit(cfg.loan,k,c.val):null;
+      if(sp)exact=true;
+      else{approx=true;sp={interets:c.val*part,assurance:0,capital:c.val*(1-part)};}
+      if(sp.differe)differe=true;
+      mm.interets+=sp.interets;mm.assurance+=sp.assurance;mm.capital+=sp.capital;
+    });
+  });
+  if(credits.length){
+    if(exact)R.notes.push("Intérêts du crédit calculés mois par mois à partir du tableau d'amortissement ("+bEsc(cfg.loan.taux)+" %, capital restant dû de "+bEur(bNum(cfg.loan.crd))+" après l'échéance de "+bkLabel(cfg.loan.ref)+").");
+    if(approx)R.notes.push("Part des intérêts "+(exact?"des autres crédits":"du crédit")+" estimée à "+Math.round(part*100)+" % de l'échéance : renseignez le prêt dans les paramètres du bien pour un calcul exact.");
+    if(differe)R.notes.push("Pendant le différé d'amortissement (avant "+bkLabel(cfg.loan.debut)+"), l'échéance est comptée en intérêts.");
+  }
+
+  // 4. Factures de la période et amortissements
+  var facts=bilanFactures(id);
+  facts.forEach(function(f){
+    var k=f.date.slice(0,7);
+    if(f.annees>0){var dur=f.annees*12,mens=f.montant/dur;
+      keys.forEach(function(kk){var off=bkDiff(k,kk);if(off>=0&&off<dur)R.amortFact+=mens;});}
+    if(!set[k])return;
+    var kd=f.annees>0?'':bilanKind(f.cat);
+    if(kd&&fixes[kd]){R.factsExclues.push(f);return;}
+    R.facts.push(f);
+    if(f.annees>0)M[k].inv+=f.montant;else M[k].fact+=f.montant;
+  });
+  if(R.factsExclues.length)R.notes.push(R.factsExclues.length+" facture(s) de taxe foncière, assurance, eau, ménage ou comptabilité ne sont pas ajoutées : ces dépenses sont déjà comptées par leur provision mensuelle.");
+
+  // 5. Amortissement du bâti (au prorata des mois)
+  var base=bNum(cfg.base),src='prix de revient';
+  if(!base&&R.valeur){base=R.valeur;src='valeur estimée (à remplacer par le prix de revient)';}
+  if(base){R.amortBati=base*(1-bNum(cfg.terrain)/100)/Math.max(1,bNum(cfg.duree)||40)/12*keys.length;R.amortBase={base:base,src:src};}
+
+  // 6. Totaux
+  var T={lld:0,att:0,cd:0,cdBrut:0,chg:0,fact:0,inv:0,echeance:0,interets:0,assurance:0,capital:0};
+  keys.forEach(function(k){Object.keys(T).forEach(function(f){T[f]+=M[k][f];});});
+  T.revenus=T.lld+T.cd;
+  T.exploit=T.chg+T.fact;
+  T.ebe=T.revenus-T.exploit;
+  T.cashflow=T.revenus-T.exploit-T.echeance-T.inv;
+  T.amort=R.amortFact+R.amortBati;
+  R.T=T;
+  return R;
+}
+
+// ---------- fiscalité indicative ----------
+function bilanFiscal(R){
+  var T=R.T,c=R.cfg,n=R.keys.length,reg=c.regime;
+  var deduc=T.exploit+T.interets+T.assurance;
+  var avant=T.revenus-deduc,F={regime:reg,deduc:deduc,avant:avant,amortTotal:0,amortUtil:0,amortReport:0,resultat:avant,impot:0,detail:''};
+  if(reg==='lmnp'){
+    F.amortTotal=T.amort;F.amortUtil=Math.max(0,Math.min(T.amort,avant));F.amortReport=T.amort-F.amortUtil;
+    F.resultat=avant-F.amortUtil;
+    var taux=(bNum(c.tmi)+bNum(c.ps))/100;F.impot=Math.max(0,F.resultat)*taux;
+    F.detail='Impôt estimé au taux marginal de '+bNum(c.tmi)+' % + prélèvements sociaux de '+bNum(c.ps).toLocaleString('fr-FR')+' %.';
+  } else if(reg==='sci_is'||reg==='sas'){
+    F.amortTotal=T.amort;F.amortUtil=T.amort;F.resultat=avant-T.amort;
+    var seuil=42500*n/12;
+    F.impot=F.resultat>0?(Math.min(F.resultat,seuil)*0.15+Math.max(0,F.resultat-seuil)*0.25):0;
+    F.detail="Impôt sur les sociétés : 15 % jusqu'à "+bEur(seuil)+' (42 500 € ramenés à '+n+' mois), 25 % au-delà.';
+  } else {
+    F.resultat=avant;var t2=(bNum(c.tmi)+bNum(c.ps))/100;F.impot=Math.max(0,avant)*t2;
+    F.detail='Revenus fonciers : pas d\'amortissement. Impôt estimé au taux marginal de '+bNum(c.tmi)+' % + prélèvements sociaux de '+bNum(c.ps).toLocaleString('fr-FR')+' %.';
+  }
+  return F;
+}
+
+// ---------- fenêtre de choix ----------
+function bilanPreset(p){
+  var now=new Date(),y=now.getFullYear(),m=now.getMonth()+1,nk=bkKey(y,m),keys=[];
+  if(p==='month')keys=[nk];
+  else if(p==='prev')keys=[bkAdd(nk,-1)];
+  else if(p==='quarter'){var qs=Math.floor((m-1)/3)*3+1,deb=bkAdd(bkKey(y,qs),-3);for(var i=0;i<3;i++)keys.push(bkAdd(deb,i));}
+  else if(p==='ytd'){for(var j=1;j<m;j++)keys.push(bkKey(y,j));if(!keys.length)keys=[nk];}
+  else if(p==='last12'){for(var a=12;a>=1;a--)keys.push(bkAdd(nk,-a));}
+  else if(p==='lastyear'){for(var b=1;b<=12;b++)keys.push(bkKey(y-1,b));}
+  else if(p==='viewyear'){var vy=BILAN.view;for(var c=1;c<=12;c++){var kk=bkKey(vy,c);if(kk<=nk)keys.push(kk);}}
+  else if(p==='none')keys=[];
+  BILAN.sel={};keys.forEach(function(k){BILAN.sel[k]=true;});
+  if(keys.length)BILAN.view=bkParse(keys[keys.length-1]).y;
+  bilanRefresh();
+}
+function bilanToggleMonth(k){if(k>bilanNowKey())return;BILAN.sel[k]=!BILAN.sel[k];bilanRefresh();}
+function bilanApplyRange(){
+  var a=(document.getElementById('bl-from').value||'').trim(),b=(document.getElementById('bl-to').value||'').trim();
+  var re=/^\d{4}-\d{2}$/;
+  if(!re.test(a)||!re.test(b)){alert('Indiquez les deux mois au format AAAA-MM (exemple : 2025-10).');return;}
+  if(a>b){var t=a;a=b;b=t;}
+  var nk=bilanNowKey();if(b>nk)b=nk;
+  BILAN.sel={};for(var k=a;k<=b;k=bkAdd(k,1))BILAN.sel[k]=true;
+  BILAN.view=bkParse(b).y;bilanRefresh();
+}
+function bilanViewDelta(d){BILAN.view+=d;bilanRefresh();}
+function bilanToggleBien(id){BILAN.biens[id]=!BILAN.biens[id];bilanRefresh();}
+function bilanSetType(t){BILAN.type=t;bilanRefresh();}
+function bilanToggleOpt(o){BILAN.opts[o]=!BILAN.opts[o];}
+function bilanClose(){var m=document.getElementById('bilan-modal');if(m)m.remove();}
+
+function openBilanModal(ctx){
+  var dispo=bilanBiensDispo();BILAN.biens={};
+  if(!ctx||ctx==='all')dispo.forEach(function(b){BILAN.biens[b.id]=true;});else BILAN.biens[ctx]=true;
+  if(!bilanSelKeys().length)bilanPreset('ytd');
+  if(BILAN.factures===null){
+    BILAN.factures=[];
+    fetch('/factures-load').then(function(r){return r.json();}).then(function(d){BILAN.factures=(d&&d.factures)||[];bilanRefresh();})
+      .catch(function(){try{BILAN.factures=JSON.parse(localStorage.getItem('factures_all')||'[]');}catch(e){}});
+  }
+  bilanClose();
+  var ov=document.createElement('div');ov.id='bilan-modal';
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:700;display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:16px;';
+  ov.innerHTML='<div id="bilan-box" style="background:#fff;border-radius:20px;padding:20px;width:100%;max-width:620px;margin:auto;"></div>';
+  ov.addEventListener('click',function(e){if(e.target===ov)bilanClose();});
+  document.body.appendChild(ov);
+  bilanRefresh();
+}
+
+function bilanRefresh(){
+  var box=document.getElementById('bilan-box');if(!box)return;
+  var keys=bilanSelKeys(),nk=bilanNowKey(),dispo=bilanBiensDispo();
+  var chip='padding:7px 12px;border-radius:20px;border:1.5px solid #ddd;background:#fff;font-size:12.5px;cursor:pointer;color:#333;';
+  var chipOn='padding:7px 12px;border-radius:20px;border:1.5px solid #0F6E56;background:#0F6E56;font-size:12.5px;cursor:pointer;color:#fff;font-weight:600;';
+  var lbl='font-size:12px;font-weight:700;color:#0F6E56;text-transform:uppercase;letter-spacing:.04em;margin:16px 0 8px;';
+  var h='<div style="display:flex;justify-content:space-between;align-items:center;"><h3 style="font-size:18px;font-weight:700;">📄 Générer un bilan</h3>'
+    +'<button onclick="bilanClose()" style="border:none;background:#f3f3f3;border-radius:50%;width:32px;height:32px;font-size:16px;cursor:pointer;">✕</button></div>';
+  // Biens
+  h+='<div style="'+lbl+'">1. Biens</div><div style="display:flex;flex-wrap:wrap;gap:6px;">';
+  dispo.forEach(function(b){h+='<button onclick="bilanToggleBien(\''+b.id+'\')" style="'+(BILAN.biens[b.id]?chipOn:chip)+'">'+b.icon+' '+bEsc(b.name)+'</button>';});
+  h+='</div>';
+  // Période
+  h+='<div style="'+lbl+'">2. Période</div><div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;">';
+  [['month','Ce mois'],['prev','Mois dernier'],['quarter','Dernier trimestre'],['ytd','Depuis janvier'],['last12','12 derniers mois complets'],['lastyear','Année '+(new Date().getFullYear()-1)],['none','Effacer']].forEach(function(p){
+    h+='<button onclick="bilanPreset(\''+p[0]+'\')" style="'+chip+'">'+p[1]+'</button>';});
+  h+='</div>';
+  h+='<div style="border:1px solid #eee;border-radius:14px;padding:12px;">';
+  h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">'
+    +'<button onclick="bilanViewDelta(-1)" style="width:32px;height:32px;border-radius:50%;border:1.5px solid #ddd;background:#fff;cursor:pointer;">‹</button>'
+    +'<div style="font-size:16px;font-weight:700;">'+BILAN.view+'</div>'
+    +'<button onclick="bilanViewDelta(1)" style="width:32px;height:32px;border-radius:50%;border:1.5px solid #ddd;background:#fff;cursor:pointer;">›</button></div>';
+  h+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">';
+  for(var m=1;m<=12;m++){
+    var k=bkKey(BILAN.view,m),fut=k>nk,on=!!BILAN.sel[k];
+    h+='<button '+(fut?'disabled ':'')+'onclick="bilanToggleMonth(\''+k+'\')" style="padding:10px 4px;border-radius:10px;font-size:13px;cursor:'+(fut?'default':'pointer')+';'
+      +(on?'background:#0F6E56;color:#fff;border:1.5px solid #0F6E56;font-weight:700;':(fut?'background:#fafafa;color:#ccc;border:1.5px dashed #eee;':'background:#fff;color:#333;border:1.5px solid #ddd;'))+'">'+BILAN_MOIS_C[m-1]+(k===nk?'<div style="font-size:9px;font-weight:500;opacity:.8;">en cours</div>':'')+'</button>';
+  }
+  h+='</div><div style="display:flex;justify-content:space-between;gap:6px;margin-top:8px;">'
+    +'<button onclick="bilanPreset(\'viewyear\')" style="'+chip+'font-size:12px;">Toute l\'année '+BILAN.view+'</button>'
+    +'<span style="font-size:11px;color:#888;align-self:center;">Touchez un mois pour l\'ajouter ou le retirer</span></div>';
+  h+='<div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:10px;font-size:12px;color:#555;">Du '
+    +'<input id="bl-from" type="month" placeholder="2025-10" value="'+(keys[0]||'')+'" style="border:1.5px solid #ddd;border-radius:8px;padding:6px;font-size:13px;width:130px;"> au '
+    +'<input id="bl-to" type="month" placeholder="2026-09" value="'+(keys[keys.length-1]||'')+'" style="border:1.5px solid #ddd;border-radius:8px;padding:6px;font-size:13px;width:130px;">'
+    +'<button onclick="bilanApplyRange()" style="'+chip+'font-size:12px;">Appliquer la plage</button></div>';
+  h+='</div>';
+  h+='<div style="margin-top:8px;font-size:13px;background:#E1F5EE;color:#085041;border-radius:10px;padding:8px 12px;font-weight:600;">'
+    +bEsc(bilanPeriodLabel(keys))+(keys.length?' · '+keys.length+' mois':'')+'</div>';
+  if(BILAN.sel[nk])h+='<div style="margin-top:6px;font-size:11.5px;color:#92400E;background:#FEF3C7;border-radius:10px;padding:6px 10px;">Le mois en cours n\'est pas terminé : ses loyers ne sont peut-être pas encore tous enregistrés, alors que ses charges sont comptées en entier.</div>';
+  // Type de document
+  h+='<div style="'+lbl+'">3. Document</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">';
+  [['complet','Bilan complet','Revenus, charges, crédit, cash-flow, factures, fiscalité'],['loyers','État des loyers encaissés','Pour la banque ou le comptable, avec signature']].forEach(function(t){
+    var on=BILAN.type===t[0];
+    h+='<div onclick="bilanSetType(\''+t[0]+'\')" style="cursor:pointer;border-radius:12px;padding:10px;border:2px solid '+(on?'#0F6E56':'#e5e5e5')+';background:'+(on?'#F0FAF6':'#fff')+';">'
+      +'<div style="font-weight:700;font-size:13px;">'+t[1]+'</div><div style="font-size:11px;color:#777;margin-top:3px;">'+t[2]+'</div></div>';
+  });
+  h+='</div>';
+  if(BILAN.type==='complet'){
+    h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 10px;margin-top:10px;font-size:13px;">';
+    [['grille','Détail mois par mois des loyers'],['cd','Détail de la courte durée'],['factures','Liste des factures'],['fiscal','Estimation fiscale']].forEach(function(o){
+      h+='<label style="display:flex;gap:6px;align-items:center;cursor:pointer;"><input type="checkbox" '+(BILAN.opts[o[0]]?'checked ':'')+'onchange="bilanToggleOpt(\''+o[0]+'\')">'+o[1]+'</label>';});
+    h+='</div>';
+  }
+  // Paramètres des biens sélectionnés
+  var sel=dispo.filter(function(b){return BILAN.biens[b.id];});
+  h+='<details style="margin-top:14px;border:1px solid #eee;border-radius:12px;padding:10px 12px;"><summary style="cursor:pointer;font-size:13px;font-weight:600;">⚙️ Paramètres des biens (détenteur, régime, prêt, amortissement)</summary>';
+  var inp='border:1.5px solid #ddd;border-radius:8px;padding:7px;font-size:13px;width:100%;';
+  sel.forEach(function(b){
+    var c=bilanCfg(b.id),L=c.loan||{};
+    var f=function(champ,val,ph,type){return '<input type="'+(type||'text')+'" value="'+bEsc(val==null?'':val)+'" placeholder="'+bEsc(ph||'')+'" onchange="bilanCfgSet(\''+b.id+'\',\''+champ+'\',this.value)" style="'+inp+'">';};
+    var g='display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px;';
+    var s='font-size:10.5px;color:#888;display:block;margin-bottom:2px;';
+    h+='<div style="border-top:1px solid #f0f0f0;margin-top:10px;padding-top:10px;"><div style="font-weight:700;font-size:13px;margin-bottom:6px;">'+b.icon+' '+bEsc(b.name)+'</div>';
+    h+='<div style="'+g+'"><div><span style="'+s+'">Détenteur (affiché sur le bilan)</span>'+f('detenteur',c.detenteur,'Ex : SCI LP IMMO')+'</div>'
+      +'<div><span style="'+s+'">Régime fiscal</span><select onchange="bilanCfgSet(\''+b.id+'\',\'regime\',this.value)" style="'+inp+'">';
+    Object.keys(BILAN_REGIMES).forEach(function(r){h+='<option value="'+r+'"'+(c.regime===r?' selected':'')+'>'+BILAN_REGIMES[r]+'</option>';});
+    h+='</select></div></div>';
+    h+='<div style="'+g+'"><div><span style="'+s+'">Prix de revient (achat + frais + travaux)</span>'+f('base',c.base,'base d\'amortissement','number')+'</div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;"><div><span style="'+s+'">Terrain %</span>'+f('terrain',c.terrain,'15','number')+'</div>'
+      +'<div><span style="'+s+'">Durée (ans)</span>'+f('duree',c.duree,'40','number')+'</div><div><span style="'+s+'">TMI %</span>'+f('tmi',c.tmi,'30','number')+'</div></div></div>';
+    h+='<div style="font-size:11px;color:#555;margin:6px 0 4px;font-weight:600;">Prêt (d\'après le tableau d\'amortissement)</div>';
+    h+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;">'
+      +'<div><span style="'+s+'">Capital restant dû</span>'+f('loan.crd',L.crd,'471085','number')+'</div>'
+      +'<div><span style="'+s+'">après l\'échéance de (AAAA-MM)</span>'+f('loan.ref',L.ref,'2026-09')+'</div>'
+      +'<div><span style="'+s+'">Taux %</span>'+f('loan.taux',L.taux,'4.2','number')+'</div>'
+      +'<div><span style="'+s+'">Mensualité hors assurance</span>'+f('loan.mens',L.mens,'2985.42','number')+'</div>'
+      +'<div><span style="'+s+'">Assurance / mois</span>'+f('loan.ass',L.ass,'52.73','number')+'</div>'
+      +'<div><span style="'+s+'">Début amortissement (AAAA-MM)</span>'+f('loan.debut',L.debut,'facultatif')+'</div></div>';
+    h+='</div>';
+  });
+  h+='<div style="font-size:11px;color:#888;margin-top:8px;">Les paramètres sont enregistrés dans ce navigateur. Les loyers, charges et factures viennent des onglets de l\'application.</div></details>';
+  var nbB=sel.length,ok=nbB&&keys.length;
+  h+='<button onclick="bilanGenerate()" '+(ok?'':'disabled ')+'style="margin-top:16px;width:100%;padding:14px;border:none;border-radius:12px;background:'+(ok?'#0F6E56':'#bbb')+';color:#fff;font-size:15px;font-weight:700;cursor:'+(ok?'pointer':'default')+';">'
+    +(ok?'Générer le document ('+nbB+' bien'+(nbB>1?'s':'')+', '+keys.length+' mois)':'Choisissez au moins un bien et un mois')+'</button>';
+  box.innerHTML=h;
+}
+
+// ---------- génération du document ----------
+function bilanGenerate(){
+  var keys=bilanSelKeys();
+  var ids=bilanBiensDispo().filter(function(b){return BILAN.biens[b.id];}).map(function(b){return b.id;});
+  if(!keys.length||!ids.length)return;
+  BILAN._cache={};
+  var Rs=ids.map(function(id){return bilanCalcBien(id,keys);});
+  var html=BILAN.type==='loyers'?bilanDocLoyers(Rs,keys):bilanDocComplet(Rs,keys);
+  var w=null;try{w=window.open('','_blank');}catch(e){}
+  if(w&&w.document){w.document.open();w.document.write(html);w.document.close();return;}
+  // Repli (fenêtres bloquées, application installée sur téléphone) : affichage dans la page
+  var ov=document.createElement('div');ov.id='bilan-view';
+  ov.style.cssText='position:fixed;inset:0;background:#fff;z-index:800;display:flex;flex-direction:column;';
+  ov.innerHTML='<div style="display:flex;gap:8px;justify-content:flex-end;padding:10px;border-bottom:1px solid #eee;">'
+    +'<button onclick="document.getElementById(\'bilan-frame\').contentWindow.print()" style="padding:9px 16px;border:none;border-radius:10px;background:#0F6E56;color:#fff;font-weight:600;">Imprimer / PDF</button>'
+    +'<button onclick="document.getElementById(\'bilan-view\').remove()" style="padding:9px 16px;border:none;border-radius:10px;background:#f3f3f3;font-weight:600;">Fermer</button></div>'
+    +'<iframe id="bilan-frame" style="flex:1;border:none;width:100%;"></iframe>';
+  document.body.appendChild(ov);
+  document.getElementById('bilan-frame').srcdoc=html;
+}
+
+function bilanCss(paysage){
+  return '*{margin:0;padding:0;box-sizing:border-box;}body{font-family:-apple-system,"Segoe UI",Arial,sans-serif;font-size:10.5px;color:#1a1a1a;padding:22px;max-width:'+(paysage?'1180':'860')+'px;margin:0 auto;line-height:1.45;}'
+   +'.hdr{border-bottom:3px solid #0F6E56;padding-bottom:12px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:flex-end;gap:12px;}'
+   +'.hdr h1{font-size:20px;color:#0F6E56;}.ent{font-size:9.5px;color:#777;text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px;}'
+   +'.per{font-size:12px;font-weight:700;color:#085041;background:#E1F5EE;display:inline-block;padding:3px 10px;border-radius:12px;margin-top:6px;}'
+   +'h2{font-size:12.5px;color:#0F6E56;border-left:3px solid #0F6E56;padding-left:8px;margin:20px 0 8px;page-break-after:avoid;}'
+   +'h3{font-size:11px;margin:12px 0 6px;color:#333;}'
+   +'table{width:100%;border-collapse:collapse;margin-bottom:10px;font-size:9.8px;page-break-inside:auto;}tr{page-break-inside:avoid;}'
+   +'th{background:#0F6E56;color:#fff;padding:5px 6px;text-align:left;font-weight:600;}th.r,td.r{text-align:right;}td{padding:4px 6px;border-bottom:.5px solid #e8e8e8;}'
+   +'tr:nth-child(even) td{background:#F8FBFA;}.tot td{font-weight:700;background:#E1F5EE!important;border-top:1.5px solid #0F6E56;}'
+   +'.sub td{font-weight:600;background:#F3F4F6!important;}.pos{color:#0F6E56;}.neg{color:#C62828;}.mut{color:#999;}'
+   +'.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:12px;}'
+   +'.k{border:1px solid #e3e3e3;border-radius:8px;padding:8px 10px;}.k .l{font-size:8.5px;color:#888;text-transform:uppercase;letter-spacing:.04em;}.k .v{font-size:15px;font-weight:700;margin-top:2px;}.k .s{font-size:8.5px;color:#888;margin-top:1px;}'
+   +'.k.hl{border-color:#0F6E56;background:#F0FAF6;}.note{background:#FFF8E1;border:1px solid #F3D27A;border-radius:6px;padding:7px 9px;font-size:9.5px;margin:6px 0 10px;}'
+   +'.note p+p{margin-top:3px;}.bien{page-break-before:always;}.bien.first{page-break-before:auto;}'
+   +'.sig{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:22px;}.sig div{border:1px solid #ddd;border-radius:6px;padding:10px;height:110px;font-size:9.5px;color:#555;}'
+   +'.ft{margin-top:22px;padding-top:8px;border-top:1px solid #eee;font-size:8.5px;color:#999;text-align:center;}'
+   +'.np{text-align:center;margin:16px 0;}.np button{padding:10px 22px;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;margin:0 4px;}'
+   +'@media print{body{padding:0;max-width:none;}.np{display:none;}@page{margin:11mm;size:A4 '+(paysage?'landscape':'portrait')+';}}';
+}
+function bilanHead(titre,sousTitre,entite,keys){
+  var now=new Date();
+  return '<div class="hdr"><div><div class="ent">'+bEsc(entite)+'</div><h1>'+bEsc(titre)+'</h1>'
+    +(sousTitre?'<div style="font-size:10px;color:#555;margin-top:2px;">'+bEsc(sousTitre)+'</div>':'')
+    +'<div class="per">'+bEsc(bilanPeriodLabel(keys))+' · '+keys.length+' mois</div></div>'
+    +'<div style="text-align:right;font-size:9px;color:#888;">Établi le '+now.toLocaleDateString('fr-FR')+'<br>à '+now.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})+'</div></div>';
+}
+function bilanEntite(Rs){
+  var noms=[],vides=0;Rs.forEach(function(R){if(!R.cfg.detenteur)vides++;else if(noms.indexOf(R.cfg.detenteur)<0)noms.push(R.cfg.detenteur);});
+  return (noms.length===1&&!vides)?noms[0]:'Patrimoine PONTAC Immobilier';
+}
+function bilanNoteEnCours(keys){var nk=bilanNowKey();return keys.indexOf(nk)>=0?'<div class="note"><p><b>Attention :</b> '+bkLabel(nk)+' n\'est pas terminé. Ses loyers ne sont peut-être pas encore tous encaissés, alors que ses charges sont comptées en entier.</p></div>':'';}
+function bilanChunks(keys){var out=[];for(var i=0;i<keys.length;i+=12)out.push(keys.slice(i,i+12));return out;}
+function bilanWrap(titre,body,paysage){
+  return '<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+bEsc(titre)+'</title><style>'+bilanCss(paysage)+'</style></head><body>'
+    +body+'<div class="np"><button onclick="window.print()" style="background:#0F6E56;color:#fff;">Imprimer / Enregistrer en PDF</button><button onclick="window.close()" style="background:#f1f1f1;">Fermer</button></div></body></html>';
+}
+function bilanMonthlyTable(Ms,keys){
+  // Ms : objet {k:{lld,cd,chg,fact,inv,echeance}}
+  var showInv=keys.some(function(k){return Ms[k].inv>0;});
+  var h='<table><tr><th>Mois</th><th class="r">Loyers à l\'année</th><th class="r">Courte durée (net)</th><th class="r">Total encaissé</th><th class="r">Charges</th><th class="r">Échéances de crédit</th>'+(showInv?'<th class="r">Travaux / équipement</th>':'')+'<th class="r">Cash-flow</th></tr>';
+  var t={lld:0,cd:0,chg:0,ech:0,inv:0,cf:0};
+  keys.forEach(function(k){
+    var m=Ms[k],rev=m.lld+m.cd,chg=m.chg+m.fact,cf=rev-chg-m.echeance-m.inv;
+    t.lld+=m.lld;t.cd+=m.cd;t.chg+=chg;t.ech+=m.echeance;t.inv+=m.inv;t.cf+=cf;
+    h+='<tr><td>'+bkLabel(k)+'</td><td class="r">'+bEur(m.lld)+'</td><td class="r">'+bEur(m.cd)+'</td><td class="r"><b>'+bEur(rev)+'</b></td><td class="r neg">'+bEur(chg)+'</td><td class="r neg">'+bEur(m.echeance)+'</td>'
+      +(showInv?'<td class="r neg">'+bEur(m.inv)+'</td>':'')+'<td class="r '+(cf>=0?'pos':'neg')+'"><b>'+bEurS(cf)+'</b></td></tr>';
+  });
+  h+='<tr class="tot"><td>Total</td><td class="r">'+bEur(t.lld)+'</td><td class="r">'+bEur(t.cd)+'</td><td class="r">'+bEur(t.lld+t.cd)+'</td><td class="r">'+bEur(t.chg)+'</td><td class="r">'+bEur(t.ech)+'</td>'
+    +(showInv?'<td class="r">'+bEur(t.inv)+'</td>':'')+'<td class="r">'+bEurS(t.cf)+'</td></tr>';
+  if(keys.length>1)h+='<tr class="sub"><td>Moyenne par mois</td><td class="r">'+bEur(t.lld/keys.length)+'</td><td class="r">'+bEur(t.cd/keys.length)+'</td><td class="r">'+bEur((t.lld+t.cd)/keys.length)+'</td><td class="r">'+bEur(t.chg/keys.length)+'</td><td class="r">'+bEur(t.ech/keys.length)+'</td>'
+    +(showInv?'<td class="r">'+bEur(t.inv/keys.length)+'</td>':'')+'<td class="r">'+bEurS(t.cf/keys.length)+'</td></tr>';
+  return h+'</table>';
+}
+function bilanLotsGrid(R,keys,mode){
+  // mode 'enc' : montants encaissés ; grille découpée par 12 mois
+  var h='';
+  bilanChunks(keys).forEach(function(ch){
+    h+='<table><tr><th>Logement</th>';ch.forEach(function(k){h+='<th class="r">'+bkLabel(k,true)+'</th>';});h+='<th class="r">Total</th></tr>';
+    var tot={};ch.forEach(function(k){tot[k]=0;});var tt=0;
+    R.lots.forEach(function(l){
+      var s=0;h+='<tr><td><b>'+bEsc(l.name)+'</b>'+(l.tenant?'<br><span class="mut">'+bEsc(l.tenant)+'</span>':'')+'</td>';
+      ch.forEach(function(k){var c=l.cells[k];s+=c.enc;tot[k]+=c.enc;
+        h+='<td class="r'+(c.enc>0?'':(c.att>0?' neg':' mut'))+'">'+(c.enc>0?Math.round(c.enc).toLocaleString('fr-FR'):(c.att>0?'impayé':'—'))+'</td>';});
+      tt+=s;h+='<td class="r"><b>'+bEur(s)+'</b></td></tr>';
+    });
+    if(mode==='cd'&&R.cd){
+      Object.keys(R.cd.props).forEach(function(p){var P=R.cd.props[p],s=0;
+        h+='<tr><td><b>'+bEsc(P.name)+'</b><br><span class="mut">courte durée, net</span></td>';
+        ch.forEach(function(k){var v=P.M[k].net;s+=v;tot[k]+=v;h+='<td class="r'+(v>0?'':' mut')+'">'+(v>0?Math.round(v).toLocaleString('fr-FR'):'—')+'</td>';});
+        tt+=s;h+='<td class="r"><b>'+bEur(s)+'</b></td></tr>';});
+    }
+    h+='<tr class="tot"><td>Total</td>';ch.forEach(function(k){h+='<td class="r">'+(tot[k]?Math.round(tot[k]).toLocaleString('fr-FR'):'—')+'</td>';});h+='<td class="r">'+bEur(tt)+'</td></tr></table>';
+  });
+  return h;
+}
+
+function bilanDocComplet(Rs,keys){
+  var multi=Rs.length>1,n=keys.length,paysage=false;
+  var G={};keys.forEach(function(k){G[k]={lld:0,att:0,cd:0,chg:0,fact:0,inv:0,echeance:0};});
+  var GT={rev:0,lld:0,cd:0,att:0,exploit:0,ech:0,inv:0,cf:0,int:0,valeur:0};
+  Rs.forEach(function(R){keys.forEach(function(k){['lld','att','cd','chg','fact','inv','echeance'].forEach(function(f){G[k][f]+=R.M[k][f];});});
+    GT.rev+=R.T.revenus;GT.lld+=R.T.lld;GT.cd+=R.T.cd;GT.att+=R.T.att;GT.exploit+=R.T.exploit;GT.ech+=R.T.echeance;GT.inv+=R.T.inv;GT.cf+=R.T.cashflow;GT.int+=R.T.interets;GT.valeur+=R.valeur||0;});
+  var titre=multi?'Bilan du patrimoine immobilier':'Bilan — '+Rs[0].info.name;
+  var sous=multi?Rs.map(function(R){return R.info.name;}).join(' · '):[Rs[0].info.loc,BILAN_REGIMES[Rs[0].cfg.regime]].filter(Boolean).join(' · ');
+  var b=bilanHead(titre,sous,bilanEntite(Rs),keys)+bilanNoteEnCours(keys);
+  // KPIs
+  var annual=n<12?12/n:null;
+  b+='<div class="kpis">'
+   +'<div class="k hl"><div class="l">Total encaissé</div><div class="v pos">'+bEur(GT.rev)+'</div><div class="s">'+bEur(GT.rev/n)+' par mois</div></div>'
+   +'<div class="k"><div class="l">Loyers à l\'année</div><div class="v">'+bEur(GT.lld)+'</div><div class="s">'+(GT.att?'taux d\'encaissement '+bPct(GT.lld/GT.att):'')+'</div></div>'
+   +(GT.cd?'<div class="k"><div class="l">Courte durée (net)</div><div class="v">'+bEur(GT.cd)+'</div><div class="s">après commissions</div></div>':'')
+   +'<div class="k"><div class="l">Charges</div><div class="v neg">'+bEur(GT.exploit)+'</div><div class="s">hors crédit</div></div>'
+   +'<div class="k"><div class="l">Échéances de crédit</div><div class="v neg">'+bEur(GT.ech)+'</div><div class="s">dont intérêts '+bEur(GT.int)+'</div></div>'
+   +'<div class="k hl"><div class="l">Cash-flow</div><div class="v '+(GT.cf>=0?'pos':'neg')+'">'+bEurS(GT.cf)+'</div><div class="s">'+bEurS(GT.cf/n)+' par mois</div></div>'
+   +'</div>';
+  var sec=0;function H(t){sec++;return '<h2>'+sec+'. '+t+'</h2>';}
+  if(multi){
+    b+=H('Synthèse par bien');
+    b+='<table><tr><th>Bien</th><th class="r">Loyers à l\'année</th><th class="r">Courte durée</th><th class="r">Total encaissé</th><th class="r">Charges</th><th class="r">Crédit</th><th class="r">Cash-flow</th><th class="r">Rendement brut annualisé</th></tr>';
+    Rs.forEach(function(R){var T=R.T;
+      b+='<tr><td><b>'+R.info.icon+' '+bEsc(R.info.name)+'</b><br><span class="mut">'+bEsc(R.cfg.detenteur||'')+'</span></td><td class="r">'+bEur(T.lld)+'</td><td class="r">'+bEur(T.cd)+'</td><td class="r"><b>'+bEur(T.revenus)+'</b></td><td class="r neg">'+bEur(T.exploit)+'</td><td class="r neg">'+bEur(T.echeance)+'</td><td class="r '+(T.cashflow>=0?'pos':'neg')+'"><b>'+bEurS(T.cashflow)+'</b></td><td class="r">'+(R.valeur?bPct(T.revenus*12/n/R.valeur):'<span class="mut">valeur non renseignée</span>')+'</td></tr>';});
+    b+='<tr class="tot"><td>Total</td><td class="r">'+bEur(GT.lld)+'</td><td class="r">'+bEur(GT.cd)+'</td><td class="r">'+bEur(GT.rev)+'</td><td class="r">'+bEur(GT.exploit)+'</td><td class="r">'+bEur(GT.ech)+'</td><td class="r">'+bEurS(GT.cf)+'</td><td class="r">'+(GT.valeur?bPct(GT.rev*12/n/GT.valeur):'')+'</td></tr></table>';
+  }
+  b+=H(multi?'Évolution mois par mois (tous les biens)':'Évolution mois par mois');
+  b+=bilanMonthlyTable(G,keys);
+  if(annual)b+='<div class="note"><p><b>Équivalent sur 12 mois :</b> '+bEur(GT.rev*annual)+' encaissés et '+bEurS(GT.cf*annual)+' de cash-flow, par simple règle de trois. La courte durée étant saisonnière, ce calcul peut surestimer ou sous-estimer l\'année : pour une banque, préférez le bouton « 12 derniers mois complets ».</p></div>';
+
+  Rs.forEach(function(R,ri){
+    var T=R.T;
+    b+='<div class="bien'+(multi?'':' first')+'">';
+    if(multi)b+='<h2 style="font-size:15px;border:none;padding:0;margin-top:26px;">'+R.info.icon+' '+bEsc(R.info.name)+' <span class="mut" style="font-weight:400;font-size:11px;">'+bEsc([R.info.loc,R.cfg.detenteur,BILAN_REGIMES[R.cfg.regime]].filter(Boolean).join(' · '))+'</span></h2>';
+    if(multi){b+='<h3>Mois par mois</h3>'+bilanMonthlyTable(R.M,keys);}
+    // Loyers
+    if(R.lots.length){
+      b+=H('Loyers à l\'année'+(multi?' — '+bEsc(R.info.name):''));
+      b+='<table><tr><th>Logement</th><th>Locataire</th><th class="r">Loyer mensuel</th><th class="r">Attendu</th><th class="r">Encaissé</th><th class="r">Écart</th><th class="r">Taux</th></tr>';
+      R.lots.forEach(function(l){var e=l.enc-l.att;
+        b+='<tr><td><b>'+bEsc(l.name)+'</b></td><td>'+bEsc(l.tenant||'—')+'</td><td class="r">'+bEur(l.loyer)+'</td><td class="r">'+bEur(l.att)+'</td><td class="r"><b>'+bEur(l.enc)+'</b></td><td class="r '+(e<-0.5?'neg':'pos')+'">'+(Math.abs(e)<0.5?'—':bEurS(e))+'</td><td class="r">'+(l.att?bPct(l.enc/l.att):'—')+'</td></tr>';});
+      b+='<tr class="tot"><td colspan="3">Total</td><td class="r">'+bEur(T.att)+'</td><td class="r">'+bEur(T.lld)+'</td><td class="r">'+bEurS(T.lld-T.att)+'</td><td class="r">'+(T.att?bPct(T.lld/T.att):'—')+'</td></tr></table>';
+      if(BILAN.opts.grille)b+='<h3>Encaissements mois par mois</h3>'+bilanLotsGrid(R,keys,'enc');
+      b+='<div class="note"><p>Le loyer attendu est compté à partir du premier loyer enregistré pour chaque logement, et jusqu\'au mois en cours. Loyers charges comprises tels que saisis dans l\'application.</p></div>';
+    }
+    // Courte durée
+    if(R.cd&&BILAN.opts.cd){
+      var CD=R.cd,tb=0,tn=0,tr=0,tni=0,to=0,td=0;
+      b+=H('Location courte durée (Airbnb, Booking)');
+      b+='<table><tr><th>Logement</th><th class="r">Réservations</th><th class="r">Nuits vendues</th><th class="r">Taux d\'occupation</th><th class="r">Prix moyen / nuit</th><th class="r">Brut</th><th class="r">Commissions</th><th class="r">Net encaissé</th></tr>';
+      Object.keys(CD.props).forEach(function(p){var P=CD.props[p];tb+=P.brut;tn+=P.net;tr+=P.res;tni+=P.nuits;to+=P.occ;td+=P.dispo;
+        b+='<tr><td><b>'+bEsc(P.name)+'</b></td><td class="r">'+P.res+'</td><td class="r">'+P.nuits+'</td><td class="r">'+(P.dispo?bPct(P.occ/P.dispo):'—')+'</td><td class="r">'+(P.nuits?bEur(P.brut/P.nuits):'—')+'</td><td class="r">'+bEur(P.brut)+'</td><td class="r neg">'+bEur(P.brut-P.net)+'</td><td class="r"><b>'+bEur(P.net)+'</b></td></tr>';});
+      b+='<tr class="tot"><td>Total</td><td class="r">'+tr+'</td><td class="r">'+tni+'</td><td class="r">'+(td?bPct(to/td):'—')+'</td><td class="r">'+(tni?bEur(tb/tni):'—')+'</td><td class="r">'+bEur(tb)+'</td><td class="r">'+bEur(tb-tn)+'</td><td class="r">'+bEur(tn)+'</td></tr></table>';
+      bilanChunks(keys).forEach(function(ch){
+        b+='<table><tr><th>Net par mois</th>';ch.forEach(function(k){b+='<th class="r">'+bkLabel(k,true)+'</th>';});b+='<th class="r">Total</th></tr>';
+        var tot={};ch.forEach(function(k){tot[k]=0;});var tt=0;
+        Object.keys(CD.props).forEach(function(p){var P=CD.props[p],s=0;b+='<tr><td>'+bEsc(P.name)+'</td>';
+          ch.forEach(function(k){var v=P.M[k].net;s+=v;tot[k]+=v;b+='<td class="r'+(v?'':' mut')+'">'+(v?Math.round(v).toLocaleString('fr-FR'):'—')+'</td>';});tt+=s;b+='<td class="r"><b>'+bEur(s)+'</b></td></tr>';});
+        b+='<tr class="sub"><td>Taux d\'occupation</td>';ch.forEach(function(k){var o=0,dm=new Date(bkParse(k).y,bkParse(k).m,0).getDate()*2;Object.keys(CD.props).forEach(function(p){o+=CD.props[p].M[k].occ;});b+='<td class="r">'+Math.round(o/dm*100)+'%</td>';});b+='<td></td></tr>';
+        b+='<tr class="tot"><td>Total</td>';ch.forEach(function(k){b+='<td class="r">'+Math.round(tot[k]).toLocaleString('fr-FR')+'</td>';});b+='<td class="r">'+bEur(tt)+'</td></tr></table>';
+      });
+      var ca=CD.canal;
+      b+='<table><tr><th>Plateforme</th><th class="r">Réservations</th><th class="r">Brut</th><th class="r">Net</th><th class="r">Part du net</th></tr>';
+      [['airbnb','Airbnb'],['booking','Booking'],['autre','Direct / autre']].forEach(function(c){var x=ca[c[0]];if(!x.n)return;
+        b+='<tr><td>'+c[1]+'</td><td class="r">'+x.n+'</td><td class="r">'+bEur(x.brut)+'</td><td class="r">'+bEur(x.net)+'</td><td class="r">'+(tn?bPct(x.net/tn):'—')+'</td></tr>';});
+      b+='</table><div class="note"><p>Revenus rattachés au mois d\'arrivée du voyageur (date de versement par la plateforme). Montants nets des commissions Airbnb et Booking.</p></div>';
+    }
+    // Charges
+    b+=H('Charges et crédit'+(multi?' — '+bEsc(R.info.name):''));
+    b+='<table><tr><th>Poste</th><th class="r">Montant sur la période</th><th class="r">Par mois</th></tr>';
+    Object.keys(R.charges).forEach(function(l){b+='<tr><td>'+bEsc(l)+'</td><td class="r">'+bEur(R.charges[l])+'</td><td class="r mut">'+bEur(R.charges[l]/n)+'</td></tr>';});
+    R.ponct.forEach(function(c){b+='<tr><td>'+bEsc(c.label)+' <span class="mut">(ponctuelle, '+bkLabel(c.k)+')</span></td><td class="r">'+bEur(c.val)+'</td><td></td></tr>';});
+    if(T.fact)b+='<tr><td>Factures d\'entretien et de fonctionnement</td><td class="r">'+bEur(T.fact)+'</td><td class="r mut">'+bEur(T.fact/n)+'</td></tr>';
+    b+='<tr class="sub"><td>Total des charges (hors crédit)</td><td class="r">'+bEur(T.exploit)+'</td><td class="r">'+bEur(T.exploit/n)+'</td></tr>';
+    if(T.echeance){
+      b+='<tr><td>Échéances de crédit</td><td class="r">'+bEur(T.echeance)+'</td><td class="r mut">'+bEur(T.echeance/n)+'</td></tr>';
+      b+='<tr><td style="padding-left:18px;" class="mut">dont intérêts</td><td class="r mut">'+bEur(T.interets)+'</td><td></td></tr>';
+      if(T.assurance)b+='<tr><td style="padding-left:18px;" class="mut">dont assurance emprunteur</td><td class="r mut">'+bEur(T.assurance)+'</td><td></td></tr>';
+      b+='<tr><td style="padding-left:18px;" class="mut">dont capital remboursé</td><td class="r mut">'+bEur(T.capital)+'</td><td></td></tr>';
+    }
+    if(T.inv)b+='<tr><td>Travaux et équipements (factures amortissables)</td><td class="r">'+bEur(T.inv)+'</td><td></td></tr>';
+    b+='</table>';
+    // Résultat
+    b+='<table><tr><th>Résultat de la période</th><th class="r">Montant</th></tr>'
+      +'<tr><td>Total encaissé</td><td class="r pos">'+bEur(T.revenus)+'</td></tr>'
+      +'<tr><td>− Charges (hors crédit)</td><td class="r neg">'+bEur(-T.exploit)+'</td></tr>'
+      +'<tr class="sub"><td>Excédent d\'exploitation</td><td class="r '+(T.ebe>=0?'pos':'neg')+'">'+bEurS(T.ebe)+'</td></tr>'
+      +'<tr><td>− Échéances de crédit</td><td class="r neg">'+bEur(-T.echeance)+'</td></tr>'
+      +(T.inv?'<tr><td>− Travaux et équipements</td><td class="r neg">'+bEur(-T.inv)+'</td></tr>':'')
+      +'<tr class="tot"><td>Cash-flow</td><td class="r">'+bEurS(T.cashflow)+'</td></tr>'
+      +(T.echeance?'<tr><td>Couverture du crédit (excédent d\'exploitation ÷ échéances)</td><td class="r"><b>'+(T.ebe/T.echeance).toLocaleString('fr-FR',{maximumFractionDigits:2,minimumFractionDigits:2})+'</b></td></tr>':'')
+      +(R.valeur?'<tr><td>Rendement brut annualisé (valeur estimée '+bEur(R.valeur)+')</td><td class="r">'+bPct(T.revenus*12/n/R.valeur)+'</td></tr>':'')
+      +'</table>';
+    // Factures
+    if(BILAN.opts.factures&&(R.facts.length||R.factsExclues.length)){
+      b+='<h3>Factures de la période</h3><table><tr><th>Date</th><th>Catégorie</th><th>Fournisseur / description</th><th>Traitement</th><th class="r">Montant</th></tr>';
+      R.facts.concat(R.factsExclues.map(function(f){return Object.assign({},f,{_ex:true});})).sort(function(a,c){return a.date<c.date?-1:1;}).forEach(function(f){
+        b+='<tr'+(f._ex?' class="mut"':'')+'><td>'+f.date.split('-').reverse().join('/')+'</td><td>'+bEsc(f.cat)+'</td><td>'+bEsc([f.fournisseur,f.desc].filter(Boolean).join(' — ')||'—')+'</td><td>'
+          +(f._ex?'déjà comptée (provision)':(f.annees>0?'amortissable '+f.annees+' ans':'charge déductible'))+'</td><td class="r">'+bEur(f.montant)+'</td></tr>';});
+      b+='<tr class="tot"><td colspan="4">Total pris en compte</td><td class="r">'+bEur(T.fact+T.inv)+'</td></tr></table>';
+    }
+    // Fiscal
+    if(BILAN.opts.fiscal){
+      var F=bilanFiscal(R);
+      b+=H('Estimation fiscale'+(multi?' — '+bEsc(R.info.name):'')+' — '+bEsc(BILAN_REGIMES[R.cfg.regime]||''));
+      b+='<table><tr><th>Poste</th><th class="r">Montant</th></tr>'
+        +'<tr><td>Recettes (loyers et courte durée nette)</td><td class="r">'+bEur(T.revenus)+'</td></tr>'
+        +'<tr><td>− Charges déductibles (charges, factures d\'entretien, intérêts, assurance emprunteur)</td><td class="r neg">'+bEur(-F.deduc)+'</td></tr>'
+        +'<tr class="sub"><td>Résultat avant amortissements</td><td class="r">'+bEurS(F.avant)+'</td></tr>';
+      if(R.cfg.regime==='lmnp'||R.cfg.regime==='sci_is'||R.cfg.regime==='sas'){
+        b+='<tr><td>Amortissement du bâti'+(R.amortBase?' ('+bEur(R.amortBase.base)+' hors '+bNum(R.cfg.terrain)+' % de terrain, sur '+(bNum(R.cfg.duree)||40)+' ans, base : '+bEsc(R.amortBase.src)+')':' (base non renseignée)')+'</td><td class="r neg">'+bEur(-R.amortBati)+'</td></tr>'
+          +'<tr><td>Amortissement des travaux et équipements (factures)</td><td class="r neg">'+bEur(-R.amortFact)+'</td></tr>';
+        if(R.cfg.regime==='lmnp'&&F.amortReport>0.5)b+='<tr><td class="mut">Amortissement non utilisé, reportable (il ne peut pas créer de déficit)</td><td class="r mut">'+bEur(F.amortReport)+'</td></tr>';
+      }
+      b+='<tr class="tot"><td>Résultat fiscal estimé</td><td class="r">'+bEurS(F.resultat)+'</td></tr>'
+        +'<tr><td>Impôt estimé</td><td class="r neg">'+bEur(-F.impot)+'</td></tr></table>';
+      b+='<div class="note"><p>'+bEsc(F.detail)+' Estimation indicative sur la période choisie, à faire valider par votre expert-comptable.</p></div>';
+    }
+    if(R.notes.length)b+='<div class="note">'+R.notes.map(function(t){return '<p>• '+t+'</p>';}).join('')+'</div>';
+    b+='</div>';
+  });
+  b+='<div class="ft">Document établi à partir des données de gestion de l\'application Patrimoine PONTAC Immobilier — non certifié, sans valeur comptable ni fiscale.</div>';
+  return bilanWrap(titre+' — '+bilanPeriodLabel(keys),b,paysage);
+}
+
+function bilanDocLoyers(Rs,keys){
+  var n=keys.length,paysage=n>8;
+  var titre='État des loyers encaissés';
+  var b=bilanHead(titre,Rs.map(function(R){return R.info.name+(R.info.loc&&R.info.name.indexOf(R.info.loc.split(' (')[0])<0?' — '+R.info.loc:'');}).join(' · '),bilanEntite(Rs),keys)+bilanNoteEnCours(keys);
+  var tot=0,totLld=0,totCd=0;
+  Rs.forEach(function(R){
+    b+='<h2>'+R.info.icon+' '+bEsc(R.info.name)+(R.cfg.detenteur?' — '+bEsc(R.cfg.detenteur):'')+'</h2>';
+    if(R.lots.length||R.cd)b+=bilanLotsGrid(R,keys,'cd');
+    tot+=R.T.revenus;totLld+=R.T.lld;totCd+=R.T.cd;
+    b+='<table><tr><th>Récapitulatif</th><th class="r">Montant</th></tr>'
+      +'<tr><td>Loyers des locations à l\'année (charges comprises)</td><td class="r">'+bEur(R.T.lld)+'</td></tr>'
+      +(R.cd?'<tr><td>Location courte durée — versements nets des plateformes</td><td class="r">'+bEur(R.T.cd)+'</td></tr>':'')
+      +'<tr class="tot"><td>Total encaissé</td><td class="r">'+bEur(R.T.revenus)+'</td></tr>'
+      +(R.T.att?'<tr><td>Loyers à l\'année attendus sur la période / taux d\'encaissement</td><td class="r">'+bEur(R.T.att)+' / '+bPct(R.T.lld/R.T.att)+'</td></tr>':'')
+      +'</table>';
+  });
+  if(Rs.length>1)b+='<h2>Total tous biens</h2>';
+  b+='<table><tr><th>Synthèse</th><th class="r">Montant</th></tr>'
+    +'<tr><td>Total des loyers encaissés sur la période ('+n+' mois)</td><td class="r"><b>'+bEur(tot)+'</b></td></tr>'
+    +'<tr><td style="padding-left:18px;" class="mut">dont locations à l\'année</td><td class="r mut">'+bEur(totLld)+'</td></tr>'
+    +(totCd?'<tr><td style="padding-left:18px;" class="mut">dont courte durée (net)</td><td class="r mut">'+bEur(totCd)+'</td></tr>':'')
+    +'<tr><td>Moyenne mensuelle</td><td class="r">'+bEur(tot/n)+'</td></tr>'
+    +(n<12?'<tr><td>Équivalent sur 12 mois (règle de trois, indicatif)</td><td class="r">'+bEur(tot*12/n)+'</td></tr>':'')
+    +'</table>';
+  b+='<div class="note"><p>Montants réellement encaissés tels qu\'enregistrés dans l\'outil de gestion. Courte durée : versements nets des commissions, rattachés au mois d\'arrivée du voyageur. Les mentions « impayé » signalent un loyer attendu non encaissé ce mois-là.</p></div>';
+  b+='<div class="sig"><div>Certifié exact par le propriétaire<br><br>Fait à ........................................, le ....../....../..........<br><br>Signature :</div>'
+    +'<div>Visa de l\'expert-comptable (le cas échéant)<br><br>Cachet et signature :</div></div>';
+  b+='<div class="ft">État établi à partir des données de gestion de l\'application Patrimoine PONTAC Immobilier.</div>';
+  return bilanWrap(titre+' — '+bilanPeriodLabel(keys),b,paysage);
+}
+// ===== FIN MODULE BILAN v2 =====
 
 init();
 </script>
