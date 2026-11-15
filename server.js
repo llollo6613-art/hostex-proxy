@@ -1951,6 +1951,18 @@ async function syncHostexToSupabase() {
       const disappeared = [];
       // (aucune détection par disparition)
 
+      // Anti-boucle : une résa déjà annulée en base ne redevient active QUE si ses dates
+      // ont changé (réservation modifiée). Sinon Hostex, qui peut encore la présenter comme
+      // active alors que ses nuits sont libres, la réactivait à chaque passage, et la
+      // détection d'annulation renvoyait une notification toutes les 15 minutes.
+      toSave.forEach(r => {
+        const prev = existingByCode[r.reservation_code];
+        if (prev && prev.status === 'cancelled' && r.status !== 'cancelled'
+            && prev.check_in_date === r.check_in_date && prev.check_out_date === r.check_out_date) {
+          r.status = 'cancelled';
+        }
+      });
+
       await supaSave(toSave);
       invalidateCache();
       console.log('Auto-sync: ' + toSave.length + ' synced, ' + newRes.length + ' new, ' + cancelledNow.length + ' cancelled');
