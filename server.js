@@ -1883,13 +1883,16 @@ async function syncHostexToSupabase() {
     // Airbnb/Booking). Sans cela, l'ancienne plage restait en base, ses nuits libérées
     // la faisaient passer pour annulée et les nouvelles nuits apparaissaient "fermées".
     try {
-      const j0 = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
-      const j1 = new Date(Date.now() + 400 * 86400000).toISOString().slice(0, 10);
-      for (let off = 0; off < 1000; off += 100) {
-        const data = await hostexGet('/reservations?start_check_in_date=' + j0 + '&end_check_in_date=' + j1 + '&limit=100&offset=' + off);
-        const list = (data && data.data && data.data.reservations) || [];
-        allRes = allRes.concat(list);
-        if (list.length < 100) break;
+      // Hostex refuse une plage d'arrivées de plus de 180 jours : fenêtres de 90 jours.
+      const jour = n => new Date(Date.now() + n * 86400000).toISOString().slice(0, 10);
+      for (let deb = -7; deb < 400; deb += 90) {
+        for (let off = 0; off < 1000; off += 100) {
+          const data = await hostexGet('/reservations?start_check_in_date=' + jour(deb) + '&end_check_in_date=' + jour(deb + 89) + '&limit=100&offset=' + off);
+          if (data && data.error_code && data.error_code !== 200) { console.error('Sync séjours à venir:', data.error_msg); break; }
+          const list = (data && data.data && data.data.reservations) || [];
+          allRes = allRes.concat(list);
+          if (list.length < 100) break;
+        }
       }
     } catch (eFut) { console.error('Sync séjours à venir:', eFut.message); }
     if (allRes.length > 0) {
