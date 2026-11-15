@@ -1878,8 +1878,22 @@ async function syncHostexToSupabase() {
       allRes = allRes.concat(list);
       if (list.length < 50) break;
     }
+    // Séjours en cours et à venir, relus par dates d'arrivée (liste complète, paginée) :
+    // c'est ce qui répercute les réservations MODIFIÉES (dates ou montant changés sur
+    // Airbnb/Booking). Sans cela, l'ancienne plage restait en base, ses nuits libérées
+    // la faisaient passer pour annulée et les nouvelles nuits apparaissaient "fermées".
+    try {
+      const j0 = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
+      const j1 = new Date(Date.now() + 400 * 86400000).toISOString().slice(0, 10);
+      for (let off = 0; off < 1000; off += 100) {
+        const data = await hostexGet('/reservations?start_check_in_date=' + j0 + '&end_check_in_date=' + j1 + '&limit=100&offset=' + off);
+        const list = (data && data.data && data.data.reservations) || [];
+        allRes = allRes.concat(list);
+        if (list.length < 100) break;
+      }
+    } catch (eFut) { console.error('Sync séjours à venir:', eFut.message); }
     if (allRes.length > 0) {
-      const toSave = allRes.map(r => {
+      const toSaveBrut = allRes.map(r => {
         // Normaliser le code: supprimer les préfixes 0- et suffixes -icXXXX -idXXXX
         let code = r.reservation_code || r.id || '';
         if (code.startsWith('0-')) code = code.split('-')[1]; // 0-HMXXXX-icXXXX -> HMXXXX
@@ -1902,6 +1916,10 @@ async function syncHostexToSupabase() {
         stay_status: r.stay_status || '',
         booked_at: r.created_at || ''
       }}).filter(r => r.reservation_code && r.check_in_date);
+      // Une seule ligne par code (les deux lectures se recoupent) ; la dernière lue fait foi
+      const parCode = {};
+      toSaveBrut.forEach(r => { parCode[r.reservation_code] = r; });
+      const toSave = Object.values(parCode);
       // Détecter les nouvelles réservations — bookées dans les 30 dernières minutes
       const existing = await getDB();
       const existingCodes = new Set(existing.map(r => r.reservation_code));
